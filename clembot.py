@@ -1341,27 +1341,38 @@ async def _raid(message):
     await asyncio.sleep(1) #Wait for the channel to be created.
 
     raidmsg = _("""Beep Beep! {pokemon} raid reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+This channel will be deleted five minutes after the timer expires.
+** **
+Please type `!beep` if you need a refresher of Clembot commands! 
+""").format(
+        pokemon=raid.mention, member=message.author.mention, citychannel=message.channel.mention,
+        location_details=raid_details)
 
-To update your status, choose from the following commands:
-**!interested, !coming, !here, !cancel**
-If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
-Example: `!coming 5`
-
-To see the list of trainers who have given their status:
-**!list interested, !list coming, !list here**
-Alternatively **!list** by itself will show all of the above.
-
-**!location** will show the current raid location.
-**!location new <address>** will let you correct the raid address.
-Sending a Google Maps link will also update the raid location.
-
-**!timer** will show the current raid time.
-**!timerset** will let you correct the raid countdown time.
-
-Message **!starting** when the raid is beginning to clear the raid's 'here' list.
-
-This channel will be deleted five minutes after the timer expires.""").format(pokemon=raid.mention, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
-    raidmessage = await Clembot.send_message(raid_channel, content = raidmsg, embed=raid_embed)
+#     raidmsg = _("""Beep Beep! {pokemon} raid reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+#
+# To update your status, choose from the following commands:
+# **!interested, !coming, !here, !cancel**
+# If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
+# Example: `!coming 5`
+#
+# To see the list of trainers who have given their status:
+# **!list interested, !list coming, !list here**
+# Alternatively **!list** by itself will show all of the above.
+#
+# **!location** will show the current raid location.
+# **!location new <address>** will let you correct the raid address.
+# Sending a Google Maps link will also update the raid location.
+#
+# **!timer** will show the current raid time.
+# **!timerset** will let you correct the raid countdown time.
+#
+# Message **!starting** when the raid is beginning to clear the raid's 'here' list.
+#
+# This channel will be deleted five minutes after the timer expires.""").format(pokemon=raid.mention,
+#                                                                               member=message.author.mention,
+#                                                                               citychannel=message.channel.mention,
+#                                                                               location_details=raid_details)
+    raidmessage = await Clembot.send_message(raid_channel, content=raidmsg, embed=raid_embed)
 
     server_dict[message.server]['raidchannel_dict'][raid_channel] = {
         'reportcity' : message.channel.name,
@@ -1915,10 +1926,16 @@ async def _raidegg(message):
         egg_info = raid_info['raid_eggs'][egg_level]
         egg_img = egg_info['egg_img']
         boss_list = ""
+        mon_in_one_line = 0
         for p in egg_info['pokemon']:
             p_name = get_name(p)
-            p_type = get_type(message.server,p)
-            boss_list += ("\n"+p_name+" "+''.join(p_type))
+            p_type = get_type(message.server, p)
+            mon_in_one_line = mon_in_one_line + 1
+            if (mon_in_one_line == 1):
+                separator = " "
+            else:
+                separator = "**\\**"
+            boss_list += (separator + " **" + p_name + "** " + ''.join(p_type) + " ")
         raid_channel_name = "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
         raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
         raid_img_url = "https://raw.githubusercontent.com/apavlinovic/pokemon-go-imagery/master/images/{}".format(str(egg_img))
@@ -1928,24 +1945,32 @@ async def _raidegg(message):
         await asyncio.sleep(1) #Wait for the channel to be created.
 
         raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.
+** **
+Please type `!beep` if you need a refresher of Clembot commands! 
+""").format(
+            level=egg_level, member=message.author.mention, citychannel=message.channel.mention,
+            location_details=raid_details)
 
-Message **!interested** if you're interested in attending.
-If you are interested in bringing more than one trainer/account, add in the number at the end of the commend.
-Example: `!interested 5`
-
-Use **!list interested** to see the list of trainers who are interested.
-
-**!location** will show the current raid location.
-**!location new <address>** will let you correct the raid address.
-Sending a Google Maps link will also update the raid location.
-
-**!timer** will show how long until the egg catches into an open raid.
-**!timerset** will let you correct the egg countdown time.
-
-Message **!raid <pokemon>** to update this channel into an open raid.
-Message **!raid assume <pokemon>** to have the channel auto-update into an open raid.
-
-When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+        #         raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+        #
+        # Message **!interested** if you're interested in attending.
+        # If you are interested in bringing more than one trainer/account, add in the number at the end of the commend.
+        # Example: `!interested 5`
+        #
+        # Use **!list interested** to see the list of trainers who are interested.
+        #
+        # **!location** will show the current raid location.
+        # **!location new <address>** will let you correct the raid address.
+        # Sending a Google Maps link will also update the raid location.
+        #
+        # **!timer** will show how long until the egg catches into an open raid.
+        # **!timerset** will let you correct the egg countdown time.
+        #
+        # Message **!raid <pokemon>** to update this channel into an open raid.
+        # Message **!raid assume <pokemon>** to have the channel auto-update into an open raid.
+        #
+        # When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
         raidmessage = await Clembot.send_message(raid_channel, content = raidmsg, embed=raid_embed)
         server_dict[message.server]['raidchannel_dict'][raid_channel] = {
             'reportcity' : message.channel.name,
@@ -2038,26 +2063,39 @@ async def _eggtoraid(entered_raid, raid_channel):
     raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=raid_channel.mention)
     await Clembot.edit_channel(raid_channel, name=raid_channel_name)
     raidmsg = _("""Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
+    This channel will be deleted five minutes after the timer expires.
+    ** **
+    Please type `!beep` if you need a refresher of Clembot commands! 
+    """).format(
+        member=raid_messageauthor.mention,
+    citychannel=reportcitychannel.mention,
+    pokemon=entered_raid.capitalize(),
+    location_details=egg_address)
 
-To update your status, choose from the following commands:
-**!interested, !coming, !here, !cancel**
-If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
-Example: `!coming 5`
-
-To see the list of trainers who have given their status:
-**!list interested, !list coming, !list here**
-Alternatively **!list** by itself will show all of the above.
-
-**!location** will show the current raid location.
-**!location new <address>** will let you correct the raid address.
-Sending a Google Maps link will also update the raid location.
-
-**!timer** will show the current raid time.
-**!timerset** will let you correct the raid countdown time.
-
-Message **!starting** when the raid is beginning to clear the raid's 'here' list.
-
-This channel will be deleted five minutes after the timer expires.""").format(member= raid_messageauthor.mention, citychannel=reportcitychannel.mention, pokemon=entered_raid.capitalize(), location_details=egg_address)
+#     raidmsg = _("""Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
+#
+# To update your status, choose from the following commands:
+# **!interested, !coming, !here, !cancel**
+# If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
+# Example: `!coming 5`
+#
+# To see the list of trainers who have given their status:
+# **!list interested, !list coming, !list here**
+# Alternatively **!list** by itself will show all of the above.
+#
+# **!location** will show the current raid location.
+# **!location new <address>** will let you correct the raid address.
+# Sending a Google Maps link will also update the raid location.
+#
+# **!timer** will show the current raid time.
+# **!timerset** will let you correct the raid countdown time.
+#
+# Message **!starting** when the raid is beginning to clear the raid's 'here' list.
+#
+# This channel will be deleted five minutes after the timer expires.""").format(member=raid_messageauthor.mention,
+#                                                                               citychannel=reportcitychannel.mention,
+#                                                                               pokemon=entered_raid.capitalize(),
+#                                                                               location_details=egg_address)
 
     try:
         raid_message = await Clembot.edit_message(raid_message, new_content=raidmsg, embed=raid_embed)
@@ -2091,6 +2129,33 @@ This channel will be deleted five minutes after the timer expires.""").format(me
     await Clembot.send_message(raid_channel, content = _("Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nYou're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(trainer_list=", ".join(trainer_list), pokemon=raid.mention), embed = raid_embed)
 
     event_loop.create_task(expiry_check(raid_channel))
+
+
+@Clembot.command(pass_context=True, aliases=["b"])
+@checks.activeraidchannel()
+async def beep(ctx):
+    raidmsg = _("""
+{member} to update your status, choose from the following commands:
+** **
+`!interested`, `!coming`, `!here` or `!cancel`
+or alternatively use the shortcuts 
+`!i`, `!c`, `!h` or `!x`
+** **
+If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
+Example: `!coming 5` or `!c 5`
+** **
+`!list` or `!l` will show the list of trainers who have given their status.
+** **
+`!location` will show the current raid location.
+`!location new <address>` will let you correct the raid address.
+*Sending a Google Maps link will also update the raid location.*
+** **
+`!timer` will show the current raid time.
+`!timerset` will let you correct the raid countdown time.
+** **
+`!start HH:MM AM/PM` to suggest a start time.
+`!starting` when the raid is beginning to clear the raid's 'here' list.""").format(member=ctx.message.author.mention)
+    await Clembot.send_message(ctx.message.channel, content=raidmsg)
 
 
 @Clembot.command(pass_context=True, aliases=["i", "maybe"])
@@ -2188,7 +2253,7 @@ async def here(ctx, *, count: str = None):
 
     await _here(ctx.message, count)
 
-@Clembot.command(pass_context=True)
+@Clembot.command(pass_context=True, aliases=["x"])
 @checks.activeraidchannel()
 async def cancel(ctx):
     """Indicate you are no longer interested in a raid.
