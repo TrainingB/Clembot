@@ -1,0 +1,564 @@
+{
+  "gym_info": {
+    "AAMU": {
+      "gym_name": "AAA Mural",
+      "longlat": "34.163425,-118.314462",
+      "gmap_link": "https://www.google.com/maps/place/34.163425,-118.314462"
+    },
+    "ADSA": {
+      "gym_name": "Adan Sanchez Statue",
+      "longlat": "34.191597,-118.333194",
+      "gmap_link": "https://www.google.com/maps/place/34.191597,-118.333194"
+    },
+    "AISI": {
+      "gym_name": "Airplane Sign",
+      "longlat": "34.191597,-118.333194",
+      "gmap_link": "https://www.google.com/maps/place/34.191597,-118.333194"
+    },
+    "ALWA": {
+      "gym_name": "All Watching Owls Mural",
+      "longlat": "34.172362,-118.316244",
+      "gmap_link": "https://www.google.com/maps/place/34.172362,-118.316244"
+    },
+    "AMEA": {
+      "gym_name": "Amelia Earhart",
+      "longlat": "34.19653,-118.353654",
+      "gmap_link": "https://www.google.com/maps/place/34.19653,-118.353654"
+    },
+    "ANIN": {
+      "gym_name": "Andrews International",
+      "longlat": "34.180139,-118.317715",
+      "gmap_link": "https://www.google.com/maps/place/34.180139,-118.317715"
+    },
+    "BEKO": {
+      "gym_name": "Bethany Korean Community Church",
+      "longlat": "34.199671,-118.336848",
+      "gmap_link": "https://www.google.com/maps/place/34.199671,-118.336848"
+    },
+    "BIAR": {
+      "gym_name": "Bike Art",
+      "longlat": "34.181461,-118.309807",
+      "gmap_link": "https://www.google.com/maps/place/34.181461,-118.309807"
+    },
+    "BOBI": {
+      "gym_name": "Bobs Big Boy",
+      "longlat": "34.152378,-118.34627",
+      "gmap_link": "https://www.google.com/maps/place/34.152378,-118.34627"
+    },
+    "BOGI": {
+      "gym_name": "Boysand Girls Club Mural",
+      "longlat": "34.196876,-118.337711",
+      "gmap_link": "https://www.google.com/maps/place/34.196876,-118.337711"
+    },
+    "BRCA": {
+      "gym_name": "Brace Canyon Park",
+      "longlat": "34.209198,-118.330562",
+      "gmap_link": "https://www.google.com/maps/place/34.209198,-118.330562"
+    },
+    "BUVIL": {
+      "gym_name": "Buena Vista Library",
+      "longlat": "34.163754,-118.330638",
+      "gmap_link": "https://www.google.com/maps/place/34.163754,-118.330638"
+    },
+    "BUVIP": {
+      "gym_name": "Buena Vista Park",
+      "longlat": "34.151666,-118.329603",
+      "gmap_link": "https://www.google.com/maps/place/34.151666,-118.329603"
+    },
+    "BUAD": {
+      "gym_name": "Burbank Adventist Church",
+      "longlat": "34.178857,-118.299914",
+      "gmap_link": "https://www.google.com/maps/place/34.178857,-118.299914"
+    },
+    "BUAN": {
+      "gym_name": "Burbank Animal Shelter Statues",
+      "longlat": "34.187687,-118.323134",
+      "gmap_link": "https://www.google.com/maps/place/34.187687,-118.323134"
+    },
+    "BUCE": {
+      "gym_name": "Burbank Center Plane",
+      "longlat": "34.190526,-118.327411",
+      "gmap_link": "https://www.google.com/maps/place/34.190526,-118.327411"
+    },
+    "BURE": {
+      "gym_name": "Burbank Rehabilitation Fountain",
+      "longlat": "34.162379,-118.311743",
+      "gmap_link": "https://www.google.com/maps/place/34.162379,-118.311743"
+    },
+    "BUTE": {
+      "gym_name": "Burbank Temple Emanu El",
+      "longlat": "34.192328,-118.31842",
+      "gmap_link": "https://www.google.com/maps/place/34.192328,-118.31842"
+    },
+    "CAVI": {
+      "gym_name": "Cabrini Village Waterfall",
+      "longlat": "34.211853,-118.342231",
+      "gmap_link": "https://www.google.com/maps/place/34.211853,-118.342231"
+    },
+    "CABA": {
+      "gym_name": "Calvary Baptist Church",
+      "longlat": "34.178422,-118.299362",
+      "gmap_link": "https://www.google.com/maps/place/34.178422,-118.299362"
+    },
+    "CANE": {
+      "gym_name": "Cartoon Network",
+      "longlat": "34.183646,-118.309501",
+      "gmap_link": "https://www.google.com/maps/place/34.183646,-118.309501"
+    },
+    "CELO": {
+      "gym_name": "Celestial Lotus Mural",
+      "longlat": "34.182311,-118.304407",
+      "gmap_link": "https://www.google.com/maps/place/34.182311,-118.304407"
+    },
+    "CHLU": {
+      "gym_name": "Christ Lutheran Church",
+      "longlat": "34.17877,-118.337329",
+      "gmap_link": "https://www.google.com/maps/place/34.17877,-118.337329"
+    },
+    "CLCO": {
+      "gym_name": "Climbing Cougar",
+      "longlat": "34.193277,-118.345691",
+      "gmap_link": "https://www.google.com/maps/place/34.193277,-118.345691"
+    },
+    "COCH": {
+      "gym_name": "Color Changing Fountain",
+      "longlat": "34.186626,-118.348703",
+      "gmap_link": "https://www.google.com/maps/place/34.186626,-118.348703"
+    },
+    "COTR": {
+      "gym_name": "Compass Tree Park",
+      "longlat": "34.17162,-118.309176",
+      "gmap_link": "https://www.google.com/maps/place/34.17162,-118.309176"
+    },
+    "DALI": {
+      "gym_name": "Da Lion",
+      "longlat": "34.16735,-118.325011",
+      "gmap_link": "https://www.google.com/maps/place/34.16735,-118.325011"
+    },
+    "DADU": {
+      "gym_name": "Daffy Duck Statue",
+      "longlat": "34.151802,-118.336602",
+      "gmap_link": "https://www.google.com/maps/place/34.151802,-118.336602"
+    },
+    "DAOL": {
+      "gym_name": "Dancing Olaf",
+      "longlat": "34.155528,-118.32269",
+      "gmap_link": "https://www.google.com/maps/place/34.155528,-118.32269"
+    },
+    "DEGO": {
+      "gym_name": "DeBell Golf Club",
+      "longlat": "34.198955,-118.305119",
+      "gmap_link": "https://www.google.com/maps/place/34.198955,-118.305119"
+    },
+    "DEST": {
+      "gym_name": "Deer Statues",
+      "longlat": "34.178937,-118.308726",
+      "gmap_link": "https://www.google.com/maps/place/34.178937,-118.308726"
+    },
+    "DIKA": {
+      "gym_name": "Dimples Karaoke Bar",
+      "longlat": "34.153954,-118.337366",
+      "gmap_link": "https://www.google.com/maps/place/34.153954,-118.337366"
+    },
+    "DIWA": {
+      "gym_name": "Disney Water Tower",
+      "longlat": "34.157595,-118.324565",
+      "gmap_link": "https://www.google.com/maps/place/34.157595,-118.324565"
+    },
+    "DOCU": {
+      "gym_name": "Don Cuco Toluca Lake",
+      "longlat": "34.152247,-118.342377",
+      "gmap_link": "https://www.google.com/maps/place/34.152247,-118.342377"
+    },
+    "DOTH": {
+      "gym_name": "Down the Rabbit Hole",
+      "longlat": "34.181588,-118.311502",
+      "gmap_link": "https://www.google.com/maps/place/34.181588,-118.311502"
+    },
+    "DOBU": {
+      "gym_name": "Downtown Burbank Metrolink Station",
+      "longlat": "34.178498,-118.311895",
+      "gmap_link": "https://www.google.com/maps/place/34.178498,-118.311895"
+    },
+    "DRDA": {
+      "gym_name": "Dr. David Burbank StatueandB",
+      "longlat": "34.183841,-118.323723",
+      "gmap_link": "https://www.google.com/maps/place/34.183841,-118.323723"
+    },
+    "EASE": {
+      "gym_name": "Early Settlers Tributeon ChandlerBikeway",
+      "longlat": "34.179341,-118.324585",
+      "gmap_link": "https://www.google.com/maps/place/34.179341,-118.324585"
+    },
+    "EMKN": {
+      "gym_name": "Emerald Knights",
+      "longlat": "34.173079,-118.35465",
+      "gmap_link": "https://www.google.com/maps/place/34.173079,-118.35465"
+    },
+    "F-ST": {
+      "gym_name": "F-104 Starfighter",
+      "longlat": "34.172008,-118.318497",
+      "gmap_link": "https://www.google.com/maps/place/34.172008,-118.318497"
+    },
+    "FATR": {
+      "gym_name": "Family Tree Sculpture",
+      "longlat": "34.186311,-118.315828",
+      "gmap_link": "https://www.google.com/maps/place/34.186311,-118.315828"
+    },
+    "FABR": {
+      "gym_name": "Fancy Brick Work",
+      "longlat": "34.180561,-118.332313",
+      "gmap_link": "https://www.google.com/maps/place/34.180561,-118.332313"
+    },
+    "FILU": {
+      "gym_name": "First Lutheran Church",
+      "longlat": "34.176434,-118.297433",
+      "gmap_link": "https://www.google.com/maps/place/34.176434,-118.297433"
+    },
+    "FLCA": {
+      "gym_name": "Flattened Castle",
+      "longlat": "34.157099,-118.324513",
+      "gmap_link": "https://www.google.com/maps/place/34.157099,-118.324513"
+    },
+    "FLON": {
+      "gym_name": "Floating on Water",
+      "longlat": "34.177759,-118.317098",
+      "gmap_link": "https://www.google.com/maps/place/34.177759,-118.317098"
+    },
+    "FO": {
+      "gym_name": "Fountain ",
+      "longlat": "34.162301,-118.329939",
+      "gmap_link": "https://www.google.com/maps/place/34.162301,-118.329939"
+    },
+    "FOAT": {
+      "gym_name": "Fountain at Library",
+      "longlat": "34.164347,-118.330505",
+      "gmap_link": "https://www.google.com/maps/place/34.164347,-118.330505"
+    },
+    "FRKA": {
+      "gym_name": "Frida Kahlo Mural",
+      "longlat": "34.192231,-118.33826",
+      "gmap_link": "https://www.google.com/maps/place/34.192231,-118.33826"
+    },
+    "FREL": {
+      "gym_name": "Fry's Electronics Burbank",
+      "longlat": "34.190997,-118.350237",
+      "gmap_link": "https://www.google.com/maps/place/34.190997,-118.350237"
+    },
+    "GAAR": {
+      "gym_name": "Gateway Arch",
+      "longlat": "34.202713,-118.297759",
+      "gmap_link": "https://www.google.com/maps/place/34.202713,-118.297759"
+    },
+    "SPST": {
+      "gym_name": "Sprint Store",
+      "longlat": "34.182433,-118.311266",
+      "gmap_link": "https://www.google.com/maps/place/34.182433,-118.311266"
+    },
+    "GIUN": {
+      "gym_name": "Girl Under Shadow HandTreeMural",
+      "longlat": "34.189785,-118.306458",
+      "gmap_link": "https://www.google.com/maps/place/34.189785,-118.306458"
+    },
+    "GOR": {
+      "gym_name": "Gordon R Howard Museum",
+      "longlat": "34.172214,-118.318138",
+      "gmap_link": "https://www.google.com/maps/place/34.172214,-118.318138"
+    },
+    "GRPA": {
+      "gym_name": "Griffith Park ZooDr. Entrance",
+      "longlat": "34.152949,-118.311888",
+      "gmap_link": "https://www.google.com/maps/place/34.152949,-118.311888"
+    },
+    "GTBU": {
+      "gym_name": "GTC Burbank",
+      "longlat": "34.172301,-118.319559",
+      "gmap_link": "https://www.google.com/maps/place/34.172301,-118.319559"
+    },
+    "HAMA": {
+      "gym_name": "Handy Market",
+      "longlat": "34.171665,-118.335178",
+      "gmap_link": "https://www.google.com/maps/place/34.171665,-118.335178"
+    },
+    "HIFI": {
+      "gym_name": "High Five",
+      "longlat": "34.171363,-118.348432",
+      "gmap_link": "https://www.google.com/maps/place/34.171363,-118.348432"
+    },
+    "HISH": {
+      "gym_name": "Historic Shields",
+      "longlat": "34.177999,-118.305011",
+      "gmap_link": "https://www.google.com/maps/place/34.177999,-118.305011"
+    },
+    "HUSC": {
+      "gym_name": "Hub Sculpture",
+      "longlat": "34.202401,-118.348193",
+      "gmap_link": "https://www.google.com/maps/place/34.202401,-118.348193"
+    },
+    "JOCE": {
+      "gym_name": "Joslyn Center",
+      "longlat": "34.170445,-118.320074",
+      "gmap_link": "https://www.google.com/maps/place/34.170445,-118.320074"
+    },
+    "LACH": {
+      "gym_name": "Larrys Chili Dog",
+      "longlat": "34.1763,-118.345028",
+      "gmap_link": "https://www.google.com/maps/place/34.1763,-118.345028"
+    },
+    "LASA": {
+      "gym_name": "Latter-day Saints Church",
+      "longlat": "34.193067,-118.297546",
+      "gmap_link": "https://www.google.com/maps/place/34.193067,-118.297546"
+    },
+    "MABL": {
+      "gym_name": "Magnolia Blvd Grade Separation",
+      "longlat": "34.181848,-118.313257",
+      "gmap_link": "https://www.google.com/maps/place/34.181848,-118.313257"
+    },
+    "MATH": {
+      "gym_name": "Main Theater",
+      "longlat": "34.156991,-118.326057",
+      "gmap_link": "https://www.google.com/maps/place/34.156991,-118.326057"
+    },
+    "MAST": {
+      "gym_name": "Maple Street Playground",
+      "longlat": "34.181082,-118.353522",
+      "gmap_link": "https://www.google.com/maps/place/34.181082,-118.353522"
+    },
+    "MCPA": {
+      "gym_name": "McCambridge Park",
+      "longlat": "34.18193,-118.30765",
+      "gmap_link": "https://www.google.com/maps/place/34.18193,-118.30765"
+    },
+    "MEFA": {
+      "gym_name": "Metal Face",
+      "longlat": "34.165902,-118.306955",
+      "gmap_link": "https://www.google.com/maps/place/34.165902,-118.306955"
+    },
+    "MESC": {
+      "gym_name": "Metallic sculpture",
+      "longlat": "34.19868,-118.326935",
+      "gmap_link": "https://www.google.com/maps/place/34.19868,-118.326935"
+    },
+    "MOMU": {
+      "gym_name": "Moose Mural",
+      "longlat": "34.180956,-118.331913",
+      "gmap_link": "https://www.google.com/maps/place/34.180956,-118.331913"
+    },
+    "MUOF": {
+      "gym_name": "Mural of Stars",
+      "longlat": "34.167379,-118.348041",
+      "gmap_link": "https://www.google.com/maps/place/34.167379,-118.348041"
+    },
+    "NAGU": {
+      "gym_name": "National Guard",
+      "longlat": "34.190105,-118.351454",
+      "gmap_link": "https://www.google.com/maps/place/34.190105,-118.351454"
+    },
+    "NIAN": {
+      "gym_name": "Nickelodeon Animation Studios",
+      "longlat": "34.174946,-118.315246",
+      "gmap_link": "https://www.google.com/maps/place/34.174946,-118.315246"
+    },
+    "OPMU": {
+      "gym_name": "Optometrist Mural",
+      "longlat": "34.186616,-118.31684",
+      "gmap_link": "https://www.google.com/maps/place/34.186616,-118.31684"
+    },
+    "PAPA": {
+      "gym_name": "Panda Painting",
+      "longlat": "34.166785,-118.307331",
+      "gmap_link": "https://www.google.com/maps/place/34.166785,-118.307331"
+    },
+    "PAAI": {
+      "gym_name": "Paper Airplane by Bumblebee",
+      "longlat": "34.197042,-118.347758",
+      "gmap_link": "https://www.google.com/maps/place/34.197042,-118.347758"
+    },
+    "PEBI": {
+      "gym_name": "Pecos Bill",
+      "longlat": "34.159761,-118.298088",
+      "gmap_link": "https://www.google.com/maps/place/34.159761,-118.298088"
+    },
+    "PEFO": {
+      "gym_name": "Pelican Fountain",
+      "longlat": "34.178651,-118.306561",
+      "gmap_link": "https://www.google.com/maps/place/34.178651,-118.306561"
+    },
+    "PIGA": {
+      "gym_name": "Pickwick Garden Planter 3",
+      "longlat": "34.160753,-118.311983",
+      "gmap_link": "https://www.google.com/maps/place/34.160753,-118.311983"
+    },
+    "RAFO": {
+      "gym_name": "Ralph Foy Park",
+      "longlat": "34.184855,-118.346658",
+      "gmap_link": "https://www.google.com/maps/place/34.184855,-118.346658"
+    },
+    "ROE.": {
+      "gym_name": "Robert E. Gross Park",
+      "longlat": "34.191602,-118.341632",
+      "gmap_link": "https://www.google.com/maps/place/34.191602,-118.341632"
+    },
+    "ROGU": {
+      "gym_name": "Roman Guard",
+      "longlat": "34.182043,-118.309162",
+      "gmap_link": "https://www.google.com/maps/place/34.182043,-118.309162"
+    },
+    "SACR": {
+      "gym_name": "Sag-Aftra Credit Union",
+      "longlat": "34.152229,-118.341606",
+      "gmap_link": "https://www.google.com/maps/place/34.152229,-118.341606"
+    },
+    "SAFI": {
+      "gym_name": "Saint Finbar Statue",
+      "longlat": "34.164044,-118.32592",
+      "gmap_link": "https://www.google.com/maps/place/34.164044,-118.32592"
+    },
+    "SI": {
+      "gym_name": "Silhouette ",
+      "longlat": "34.152106,-118.328157",
+      "gmap_link": "https://www.google.com/maps/place/34.152106,-118.328157"
+    },
+    "SOHI": {
+      "gym_name": "South Hills Church",
+      "longlat": "34.171549,-118.315329",
+      "gmap_link": "https://www.google.com/maps/place/34.171549,-118.315329"
+    },
+    "STJU": {
+      "gym_name": "St. Jude's Episcopal",
+      "longlat": "34.185216,-118.303554",
+      "gmap_link": "https://www.google.com/maps/place/34.185216,-118.303554"
+    },
+    "STLE": {
+      "gym_name": "St. Leon Armenian Cathedral",
+      "longlat": "34.206129,-118.341333",
+      "gmap_link": "https://www.google.com/maps/place/34.206129,-118.341333"
+    },
+    "STEM": {
+      "gym_name": "Starbucks Empire Center",
+      "longlat": "34.191494,-118.328926",
+      "gmap_link": "https://www.google.com/maps/place/34.191494,-118.328926"
+    },
+    "STTO": {
+      "gym_name": "Starbucks Toluca Lake",
+      "longlat": "34.15251,-118.34579",
+      "gmap_link": "https://www.google.com/maps/place/34.15251,-118.34579"
+    },
+    "STDR": {
+      "gym_name": "Starbucks Drive Through Mural",
+      "longlat": "34.186758,-118.317817",
+      "gmap_link": "https://www.google.com/maps/place/34.186758,-118.317817"
+    },
+    "STPL": {
+      "gym_name": "Starlight Plaque",
+      "longlat": "34.206496,-118.309887",
+      "gmap_link": "https://www.google.com/maps/place/34.206496,-118.309887"
+    },
+    "TEBE": {
+      "gym_name": "Temple Beth Emet",
+      "longlat": "34.16887,-118.333091",
+      "gmap_link": "https://www.google.com/maps/place/34.16887,-118.333091"
+    },
+    "THCH": {
+      "gym_name": "The Chapel",
+      "longlat": "34.211392,-118.337543",
+      "gmap_link": "https://www.google.com/maps/place/34.211392,-118.337543"
+    },
+    "THPR": {
+      "gym_name": "The Propeller",
+      "longlat": "34.191862,-118.345599",
+      "gmap_link": "https://www.google.com/maps/place/34.191862,-118.345599"
+    },
+    "THRE": {
+      "gym_name": "The Red Car",
+      "longlat": "34.174199,-118.328527",
+      "gmap_link": "https://www.google.com/maps/place/34.174199,-118.328527"
+    },
+    "THSO": {
+      "gym_name": "The Soussana Family JewishCenter",
+      "longlat": "34.172238,-118.334295",
+      "gmap_link": "https://www.google.com/maps/place/34.172238,-118.334295"
+    },
+    "THTR": {
+      "gym_name": "The Train Shack Mural",
+      "longlat": "34.16899,-118.347357",
+      "gmap_link": "https://www.google.com/maps/place/34.16899,-118.347357"
+    },
+    "THBA": {
+      "gym_name": "Theatre Banshee Mural",
+      "longlat": "34.168712,-118.344946",
+      "gmap_link": "https://www.google.com/maps/place/34.168712,-118.344946"
+    },
+    "TIHO": {
+      "gym_name": "Tin Horn Flatts",
+      "longlat": "34.171404,-118.336809",
+      "gmap_link": "https://www.google.com/maps/place/34.171404,-118.336809"
+    },
+    "TOAI": {
+      "gym_name": "Tooth Aid",
+      "longlat": "34.174583,-118.326302",
+      "gmap_link": "https://www.google.com/maps/place/34.174583,-118.326302"
+    },
+    "TRSP": {
+      "gym_name": "Tree Spirit",
+      "longlat": "34.202873,-118.298401",
+      "gmap_link": "https://www.google.com/maps/place/34.202873,-118.298401"
+    },
+    "UNGO": {
+      "gym_name": "Untitled Gordon Heuther1998",
+      "longlat": "34.157191,-118.331646",
+      "gmap_link": "https://www.google.com/maps/place/34.157191,-118.331646"
+    },
+    "VEPA": {
+      "gym_name": "Verdugo Park",
+      "longlat": "34.1877979,-118.332558",
+      "gmap_link": "https://www.google.com/maps/place/34.1877979,-118.332558"
+    },
+    "VERE": {
+      "gym_name": "Verdugo Rec Center",
+      "longlat": "34.163294,-118.339482",
+      "gmap_link": "https://www.google.com/maps/place/34.163294,-118.339482"
+    },
+    "VIPA": {
+      "gym_name": "Vickroy Park",
+      "longlat": "34.186131,-118.337445",
+      "gmap_link": "https://www.google.com/maps/place/34.186131,-118.337445"
+    },
+    "VIBA": {
+      "gym_name": "Victory Baptist Church",
+      "longlat": "34.154584,-118.338113",
+      "gmap_link": "https://www.google.com/maps/place/34.154584,-118.338113"
+    },
+    "VICA": {
+      "gym_name": "Villa Cabrini Park",
+      "longlat": "34.215491,-118.337181",
+      "gmap_link": "https://www.google.com/maps/place/34.215491,-118.337181"
+    },
+    "WADA": {
+      "gym_name": "War Dancers",
+      "longlat": "34.161802,-118.301342",
+      "gmap_link": "https://www.google.com/maps/place/34.161802,-118.301342"
+    },
+    "WAME": {
+      "gym_name": "War Memorial",
+      "longlat": "34.19033,-118.321191",
+      "gmap_link": "https://www.google.com/maps/place/34.19033,-118.321191"
+    },
+    "WHHW": {
+      "gym_name": "Whitnall Hwy Park",
+      "longlat": "34.161812,-118.34176",
+      "gmap_link": "https://www.google.com/maps/place/34.161812,-118.34176"
+    },
+    "WOCH": {
+      "gym_name": "Worshipwalk Church",
+      "longlat": "34.1687941,-118.3453878",
+      "gmap_link": "https://www.google.com/maps/place/34.1687941,-118.3453878"
+    },
+    "XLME": {
+      "gym_name": "XL Metal Art Structure",
+      "longlat": "34.175154,-118.348441",
+      "gmap_link": "https://www.google.com/maps/place/34.175154,-118.348441"
+    }
+  }
+}

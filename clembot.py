@@ -78,6 +78,8 @@ type_chart = {}
 type_list = []
 raid_info = {}
 active_raids = []
+gym_info_file = {}
+
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -90,6 +92,8 @@ def load_config():
     global type_chart
     global type_list
     global raid_info
+    global gym_info_file
+    global gym_info_list
 
     # Load configuration
     with open(os.path.join(script_path, "config.json"), "r") as fd:
@@ -112,6 +116,11 @@ def load_config():
         type_chart = json.load(fd)
     with open(os.path.join(script_path, "type_list.json"), "r") as fd:
         type_list = json.load(fd)
+
+    with open(os.path.join(script_path, "gym_info.json"), "r") as fd:
+        gym_info_file = json.load(fd)
+    if gym_info_file:
+        gym_info_list = gym_info_file.get('gym_info')
 
     # Set spelling dictionary to our list of Pokemon
     spelling.set_dictionary(pkmn_info['pokemon_list'])
@@ -236,6 +245,16 @@ def print_emoji_name(server, emoji_string):
         ret = emoji + " (`" + emoji_string + "`)"
 
     return ret
+
+
+def get_gym_info(gym_code, attribute = None):
+    gym_info = gym_info_list.get(gym_code)
+    if gym_info:
+        if attribute:
+            return gym_info[attribute]
+        else:
+            return gym_info
+    return None
 
 # Given an arbitrary string, create a Google Maps
 # query using the configured hints
@@ -1295,23 +1314,33 @@ async def _raid(message):
     entered_raid = re.sub("[\@]", "", args_split[0].lower())
     del args_split[0]
 
-    if args_split[-1].isdigit():
-        raidexp = args_split[-1]
-        del args_split[-1]
-    elif ":" in args_split[-1]:
-        args_split[-1] = re.sub(r"[a-zA-Z]", "", args_split[-1])
-        if args_split[-1].split(":")[0] == "":
-            endhours = 0
+
+    gym_info = None
+
+    if args_split[-1].isalpha():
+        gym_code = args_split[-1].upper()
+        gym_info = get_gym_info(gym_code)
+        if gym_info:
+            del args_split[-1]
+
+    if len(args_split) > 1:
+        if args_split[-1].isdigit():
+            raidexp = args_split[-1]
+            del args_split[-1]
+        elif ":" in args_split[-1]:
+            args_split[-1] = re.sub(r"[a-zA-Z]", "", args_split[-1])
+            if args_split[-1].split(":")[0] == "":
+                endhours = 0
+            else:
+                endhours = int(args_split[-1].split(":")[0])
+            if args_split[-1].split(":")[1] == "":
+                endmins = 0
+            else:
+                endmins = int(args_split[-1].split(":")[1])
+            raidexp = 60 * endhours + endmins
+            del args_split[-1]
         else:
-            endhours = int(args_split[-1].split(":")[0])
-        if args_split[-1].split(":")[1] == "":
-            endmins = 0
-        else:
-            endmins = int(args_split[-1].split(":")[1])
-        raidexp = 60 * endhours + endmins
-        del args_split[-1]
-    else:
-        raidexp = False
+            raidexp = False
 
     if entered_raid not in pkmn_info['pokemon_list']:
         await Clembot.send_message(message.channel, spellcheck(entered_raid))
@@ -1323,11 +1352,25 @@ async def _raid(message):
     raid_details = " ".join(args_split)
     raid_details = raid_details.strip()
     if raid_details == '':
-        await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
-        return
-    raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
+        if gym_info:
+            raid_details = gym_info['gym_name']
+        else:
+            await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
+            return
 
-    raid_channel_name = entered_raid + "-" + sanitize_channel_name(raid_details)
+    if gym_info is None and 4 <= raid_details.__len__() <= 5:
+        raid_details_gym_code = raid_details.upper()
+        raid_details_gym_info = get_gym_info(raid_details_gym_code)
+        if raid_details_gym_info:
+            gym_info = raid_details_gym_info
+
+    if gym_info:
+        raid_gmaps_link = gym_info['gmap_link']
+        raid_channel_name = entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
+    else:
+        raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
+        raid_channel_name = entered_raid + "-" + sanitize_channel_name(raid_details)
+
     raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
     raid = discord.utils.get(message.server.roles, name = entered_raid)
     if raid is None:
@@ -1883,6 +1926,15 @@ async def _raidegg(message):
         await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
         return
 
+
+    gym_info = None
+
+    if args_split[-1].isalpha():
+        gym_code = args_split[-1].upper()
+        gym_info = get_gym_info(gym_code)
+        if gym_info:
+            del args_split[-1]
+
     if args_split[0].isdigit():
         egg_level = int(args_split[0])
         del args_split[0]
@@ -1910,13 +1962,24 @@ async def _raidegg(message):
 
 
 
+
+
+
     raid_details = " ".join(args_split)
     raid_details = raid_details.strip()
-    if raid_details == '':
-        await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
-        return
 
-    raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
+    if raid_details == '':
+        if gym_info:
+            raid_details = gym_info['gym_name']
+        else:
+            await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
+            return
+
+    if gym_info is None and 4 <= raid_details.__len__() <= 5:
+        raid_details_gym_code = raid_details.upper()
+        raid_details_gym_info = get_gym_info(raid_details_gym_code)
+        if raid_details_gym_info:
+            gym_info = raid_details_gym_info
 
     if egg_level > 5 or egg_level == 0:
         await Clembot.send_message(message.channel, _("Beep Beep! Raid egg levels are only from 1-5!"))
@@ -1936,7 +1999,13 @@ async def _raidegg(message):
             else:
                 separator = "**\\**"
             boss_list += (separator + " **" + p_name + "** " + ''.join(p_type) + " ")
-        raid_channel_name = "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+        if gym_info:
+            raid_gmaps_link = gym_info['gmap_link']
+            raid_channel_name = "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
+        else:
+            raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
+            raid_channel_name = "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+
         raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
         raid_img_url = "https://raw.githubusercontent.com/apavlinovic/pokemon-go-imagery/master/images/{}".format(str(egg_img))
         raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"),url=raid_gmaps_link,description=_("Possible Bosses: {boss_list}").format(boss_list=boss_list),colour=discord.Colour(0x2ecc71))
@@ -2062,15 +2131,12 @@ async def _eggtoraid(entered_raid, raid_channel):
     raid_embed.set_thumbnail(url=raid_img_url)
     raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=raid_channel.mention)
     await Clembot.edit_channel(raid_channel, name=raid_channel_name)
-    raidmsg = _("""Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
-    This channel will be deleted five minutes after the timer expires.
-    ** **
-    Please type `!beep` if you need a refresher of Clembot commands! 
-    """).format(
-        member=raid_messageauthor.mention,
-    citychannel=reportcitychannel.mention,
-    pokemon=entered_raid.capitalize(),
-    location_details=egg_address)
+    raidmsg = _("""
+Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
+This channel will be deleted five minutes after the timer expires.
+** **
+Please type `!beep` if you need a refresher of Clembot commands! 
+""").format(member=raid_messageauthor.mention,citychannel=reportcitychannel.mention,pokemon=entered_raid.capitalize(),location_details=egg_address)
 
 #     raidmsg = _("""Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
 #
@@ -2130,6 +2196,38 @@ async def _eggtoraid(entered_raid, raid_channel):
 
     event_loop.create_task(expiry_check(raid_channel))
 
+@Clembot.command(pass_context=True)
+async def gymhelp(ctx):
+    gymmsg = ("""
+{member} to lookup a gym location just use the following command 
+`!gym <gym-code>` where gym-code is first two letters of first two words! 
+
+*Some gyms have an exception due to their naming like*
+BUVIL - Buena Vista Library 
+BUVIP - Buena Vista Park 
+FO - Fountain 
+SI - Silhoutte
+SPST - Sprint Store Downtown Burbank
+""".format(member=ctx.message.author.mention))
+    await Clembot.send_message(ctx.message.channel, content=gymmsg)
+
+
+@Clembot.command(pass_context=True, aliases=["g"])
+async def gym(ctx):
+    args = ctx.message.content
+    args_split = args.split(" ")
+    del args_split[0]
+
+    gym_code = args_split[0].upper()
+
+    if gym_code:
+        gym_location = get_gym_info(gym_code, 'gmap_link')
+        gym_name = get_gym_info(gym_code, 'gym_name')
+
+    if gym_location:
+        await Clembot.send_message(ctx.message.channel, content=gym_name + ' ' + gym_location)
+    else:
+        await Clembot.send_message(ctx.message.channel, content="Beep Beep...Hmmm, that's a gymcode I am not aware of! Type `!gymhelp` for more details to use it correctly!")
 
 @Clembot.command(pass_context=True, aliases=["b"])
 @checks.activeraidchannel()
@@ -2149,9 +2247,14 @@ Example: `!coming 5` or `!c 5`
 `!location` will show the current raid location.
 `!location new <address>` will let you correct the raid address.
 *Sending a Google Maps link will also update the raid location.*
+**New**
+`!gym gymcode` looks up gym location based upon gymcode, try `!gymhelp` for more details!
 ** **
 `!timer` will show the current raid time.
 `!timerset` will let you correct the raid countdown time.
+** **
+`!raid <pokemon>` to update egg channel into an open raid.
+`!raid assume <pokemon>` to have the egg channel auto-update into an open raid.
 ** **
 `!start HH:MM AM/PM` to suggest a start time.
 `!starting` when the raid is beginning to clear the raid's 'here' list.""").format(member=ctx.message.author.mention)
