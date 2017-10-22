@@ -202,3 +202,22 @@ def cityeggchannel():
         elif check_citychannel(ctx) == True:
             return True
     return commands.check(predicate)
+
+
+def raidpartychannel():
+    def predicate(ctx):
+        if check_raidpartychannel(ctx) == True:
+            return True
+    return commands.check(predicate)
+
+def check_raidpartychannel(ctx):
+    if ctx.message.server is None:
+        return False
+    channel = ctx.message.channel
+    server = ctx.message.server
+    try:
+        type = ctx.bot.server_dict[server]['raidchannel_dict'][channel]['type']
+    except KeyError:
+        return False
+    if type == 'raidparty':
+        return True

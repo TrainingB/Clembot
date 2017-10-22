@@ -78,8 +78,7 @@ type_chart = {}
 type_list = []
 raid_info = {}
 active_raids = []
-gym_info_file = {}
-
+gym_info_list = {}
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -118,9 +117,7 @@ def load_config():
         type_list = json.load(fd)
 
     with open(os.path.join(script_path, "gym_info.json"), "r") as fd:
-        gym_info_file = json.load(fd)
-    if gym_info_file:
-        gym_info_list = gym_info_file.get('gym_info')
+        gym_info_list = json.load(fd)
 
     # Set spelling dictionary to our list of Pokemon
     spelling.set_dictionary(pkmn_info['pokemon_list'])
@@ -246,15 +243,34 @@ def print_emoji_name(server, emoji_string):
 
     return ret
 
-
 def get_gym_info(gym_code, attribute = None):
-    gym_info = gym_info_list.get(gym_code)
+    gym_info = gym_info_list.get(gym_code.upper())
     if gym_info:
         if attribute:
             return gym_info[attribute]
         else:
             return gym_info
     return None
+
+
+def get_gym_info_for(gym_code_prefix):
+
+    matching_gyms = []
+
+    for gym_code in gym_info_list.keys():
+        if gym_code.startswith(gym_code_prefix):
+            matching_gyms.append(gym_info_list.get(gym_code))
+    return matching_gyms
+
+
+
+def fetch_gmap_link(gym_code, channel):
+    details_list = gym_code.split()
+    report_channel = server_dict[channel.server]['raidchannel_dict'][channel]['reportcity']
+    city_channel = server_dict[channel.server]['city_channels'][report_channel]
+    loc_list = city_channel.split()
+    return "https://www.google.com/maps/search/?api=1&query={0}+{1}".format('+'.join(details_list), '+'.join(loc_list))
+
 
 # Given an arbitrary string, create a Google Maps
 # query using the configured hints
@@ -464,7 +480,7 @@ async def channel_cleanup(loop=True):
                     elif serverdict_chtemp[server]['raidchannel_dict'][channel]['active'] == True:
 
                         #if it's an exraid
-                        if serverdict_chtemp[server]['raidchannel_dict'][channel]['type'] == 'exraid':
+                        if serverdict_chtemp[server]['raidchannel_dict'][channel]['type'] == 'exraid' or serverdict_chtemp[server]['raidchannel_dict'][channel]['type'] == 'raidparty':
 
                             #check if it's expiry is not None
                             if serverdict_chtemp[server]['raidchannel_dict'][channel]['exp'] is not None:
@@ -1317,11 +1333,10 @@ async def _raid(message):
 
     gym_info = None
 
-    if args_split[-1].isalpha():
-        gym_code = args_split[-1].upper()
-        gym_info = get_gym_info(gym_code)
-        if gym_info:
-            del args_split[-1]
+    gym_code = args_split[-1].upper()
+    gym_info = get_gym_info(gym_code)
+    if gym_info:
+        del args_split[-1]
 
     if len(args_split) > 1:
         if args_split[-1].isdigit():
@@ -1528,6 +1543,7 @@ async def timerset(ctx):
             return
     except KeyError:
         pass
+    raidexp = None
     args = ctx.message.content[10:]
     if args.isdigit():
         raidexp = args
@@ -1541,7 +1557,7 @@ async def timerset(ctx):
         else:
             await Clembot.send_message(ctx.message.channel, "Beep Beep! I couldn't understand your time format. Try again like this: **!timerset <minutes>**")
             return
-    if str(raidexp).isdigit():
+    if raidexp and str(raidexp).isdigit():
         await _timerset(ctx.message.channel, raidexp)
     else:
         await Clembot.send_message(ctx.message.channel, _("Beep Beep... I couldn't understand your time format. Try again like this: **!timerset <minutes>**"))
@@ -1788,6 +1804,9 @@ async def on_message(message):
                         newloc = message.content[newlocindex:]
                     else:
                         newloc = message.content[newlocindex:newlocend+1]
+
+                    if server_dict[message.server]['raidchannel_dict'][message.channel]['type'] == 'raidparty':
+                        return
                     oldraidmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidmessage']
                     oldreportmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidreport']
                     oldembed = oldraidmsg.embeds[0]
@@ -1902,6 +1921,146 @@ This channel needs to be manually deleted!""").format(pokemon=raid.mention, memb
 
     event_loop.create_task(expiry_check(raid_channel))
 
+
+
+
+
+@Clembot.command(pass_context=True)
+@checks.citychannel()
+@checks.raidset()
+async def raidparty(ctx):
+    """Report an upcoming EX raid.
+
+    Usage: !exraid <species> <location>
+    Clembot will insert the details (really just everything after the species name) into a
+    Google maps link and post the link to the same channel the report was made in.
+    Clembot's message will also include the type weaknesses of the boss.
+
+    Finally, Clembot will create a separate channel for the raid report, for the purposes of organizing the raid."""
+
+    await _raidparty(ctx.message)
+
+async def _raidparty(message):
+    args = message.clean_content[9:]
+    args_split = args.split(" ")
+    del args_split[0]
+    if len(args_split) < 1:
+        await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Usage: **!raidparty <channel-name>**"))
+        return
+    raid_details = " ".join(args_split)
+    raid_details = raid_details.strip()
+
+    raid_channel_name = "raid-party-" + sanitize_channel_name(raid_details)
+    raid_channel_overwrites = message.channel.overwrites
+    meowth_overwrite = (Clembot.user, discord.PermissionOverwrite(send_messages=True))
+
+    raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *raid_channel_overwrites,meowth_overwrite)
+    raidreport = await Clembot.send_message(message.channel, content = _("Beep Beep! A raid party is being organized by {member}! You can coordinate in {raid_channel}").format(
+        member=message.author.mention, raid_channel=raid_channel.mention))
+    await asyncio.sleep(1) #Wait for the channel to be created.
+
+    server_dict[message.server]['raidchannel_dict'][raid_channel] = {
+        'reportcity' : message.channel.name,
+        'trainer_dict' : {},
+        'exp' : None, # No expiry
+        'manual_timer' : False,
+        'active' : True,
+        'raidmessage' : None,
+        'raidreport' : raidreport,
+        'address' : raid_details,
+        'type' : 'raidparty',
+        'pokemon' : None,
+        'egglevel' : '0',
+        'suggested_start' : False,
+        'roster' : [],
+        'roster_index' : None
+        }
+
+
+
+
+#     for overwrite in raid_channel_overwrites:
+#         overwrite[1].send_messages = False
+#     raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *raid_channel_overwrites, meowth_overwrite)
+#     raid = discord.utils.get(message.server.roles, name = entered_raid)
+#     if raid is None:
+#         raid = await Clembot.create_role(server = message.server, name = entered_raid, hoist = False, mentionable = True)
+#         await asyncio.sleep(0.5)
+#     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
+#     raid_img_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
+#     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the EX raid!"),url=raid_gmaps_link,description=_("Weaknesses: {weakness_list}").format(weakness_list=weakness_to_str(message.server, get_weaknesses(entered_raid))),colour=discord.Colour(0x2ecc71))
+#     raid_embed.set_thumbnail(url=raid_img_url)
+#
+#     raidmsg = _("""Beep Beep! {pokemon} EX raid reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+#
+# To update your status, choose from the following commands:
+# **!interested, !coming, !here, !cancel**
+# If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
+# Example: `!coming 5`
+#
+# To see the list of trainers who have given their status:
+# **!list interested, !list coming, !list here**
+# Alternatively **!list** by itself will show all of the above.
+#
+# **!location** will show the current raid location.
+# **!location new <address>** will let you correct the raid address.
+# Sending a Google Maps link will also update the raid location.
+#
+# Message **!starting** when the raid is beginning to clear the raid's 'here' list.
+#
+# This channel needs to be manually deleted!""").format(pokemon=raid.mention, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+#     raidmessage = await Clembot.send_message(raid_channel, content = raidmsg, embed=raid_embed)
+#
+#     server_dict[message.server]['raidchannel_dict'][raid_channel] = {
+#         'reportcity' : message.channel.name,
+#         'trainer_dict' : {},
+#         'exp' : None, # No expiry
+#         'manual_timer' : False,
+#         'active' : True,
+#         'raidmessage' : raidmessage,
+#         'raidreport' : raidreport,
+#         'address' : raid_details,
+#         'type' : 'exraid',
+#         'pokemon' : entered_raid,
+#         'egglevel' : '0',
+#         'suggested_start' : False
+#         }
+#
+#
+#
+#     event_loop.create_task(expiry_check(raid_channel))
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @Clembot.command(pass_context=True)
 @checks.citychannel()
 @checks.raidset()
@@ -1942,27 +2101,24 @@ async def _raidegg(message):
         await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
         return
 
-    if args_split[-1].isdigit():
-        raidexp = args_split[-1]
-        del args_split[-1]
-    elif ":" in args_split[-1]:
-        args_split[-1] = re.sub(r"[a-zA-Z]", "", args_split[-1])
-        if args_split[-1].split(":")[0] == "":
-            endhours = 0
-        else:
-            endhours = int(args_split[-1].split(":")[0])
-        if args_split[-1].split(":")[1] == "":
-            endmins = 0
-        else:
-            endmins = int(args_split[-1].split(":")[1])
-        raidexp = 60 * endhours + endmins
-        del args_split[-1]
-    else:
-        raidexp = False
+    raidexp = False
 
-
-
-
+    if len(args_split) >= 1:
+        if args_split[-1].isdigit():
+            raidexp = args_split[-1]
+            del args_split[-1]
+        elif ":" in args_split[-1]:
+            args_split[-1] = re.sub(r"[a-zA-Z]", "", args_split[-1])
+            if args_split[-1].split(":")[0] == "":
+                endhours = 0
+            else:
+                endhours = int(args_split[-1].split(":")[0])
+            if args_split[-1].split(":")[1] == "":
+                endmins = 0
+            else:
+                endmins = int(args_split[-1].split(":")[1])
+            raidexp = 60 * endhours + endmins
+            del args_split[-1]
 
 
     raid_details = " ".join(args_split)
@@ -2199,17 +2355,48 @@ Please type `!beep` if you need a refresher of Clembot commands!
 @Clembot.command(pass_context=True)
 async def gymhelp(ctx):
     gymmsg = ("""
-{member} to lookup a gym location just use the following command 
-`!gym <gym-code>` where gym-code is first two letters of first two words! 
+{member} you can use following commands for gym lookup. 
 
-*Some gyms have an exception due to their naming like*
-BUVIL - Buena Vista Library 
-BUVIP - Buena Vista Park 
+`!gym <gym-code>` brings up the google maps location of the gym.
+
+Note : **gym-code** is **first two letters** of **first two words** of gym name 
+
+in most cases it means 4 characters with following exceptions:
 FO - Fountain 
 SI - Silhoutte
+F-ST - F-104 Starfighter
+ROE. - Robert E. Gross Park
 SPST - Sprint Store Downtown Burbank
+BUVIL - Buena Vista Library 
+BUVIP - Buena Vista Park 
+
+`!gymlookup <code>` looks up all gyms starting with code. 
+** **
+ Example:
+`!gymlookup A` will bring up all gym code and gym names starting with A
+`!gymlookup BU` will bring up all gym code and gym names starting with BU
 """.format(member=ctx.message.author.mention))
     await Clembot.send_message(ctx.message.channel, content=gymmsg)
+
+
+@Clembot.command(pass_context=True)
+async def gymlookup(ctx):
+    args = ctx.message.content
+    args_split = args.split(" ")
+    del args_split[0]
+
+    gym_code = args_split[0].upper()
+    gym_message_output = ""
+
+    for gym_info in get_gym_info_for(gym_code):
+        gym_message_output+=("{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
+
+    if gym_message_output:
+        await Clembot.send_message(ctx.message.channel, content=gym_message_output)
+    else:
+        await Clembot.send_message(ctx.message.channel, content="Beep Beep...Hmmm, no matches found for {gym_code}".format(gym_code=gym_code))
+
+
 
 
 @Clembot.command(pass_context=True, aliases=["g"])
@@ -2451,6 +2638,15 @@ async def list(ctx):
                 await Clembot.send_message(channel, listmsg)
                 return
 
+        if checks.check_raidpartychannel(ctx):
+            if checks.check_raidactive(ctx):
+                rc_d = server_dict[server]['raidchannel_dict'][channel]
+                listmsg += await _interest(ctx)
+                listmsg += "\n" + await _otw(ctx)
+                listmsg += "\n" + await _waiting(ctx)
+                await Clembot.send_message(channel, listmsg)
+                return
+
         if checks.check_raidchannel(ctx):
             if checks.check_raidactive(ctx):
                 rc_d = server_dict[server]['raidchannel_dict'][channel]
@@ -2468,6 +2664,7 @@ async def list(ctx):
                     listmsg += "\n" + await print_start_time(channel)
                 await Clembot.send_message(channel, listmsg)
                 return
+
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.activeraidchannel()
@@ -2758,6 +2955,331 @@ async def otw(ctx):
 @checks.activeraidchannel()
 async def waiting(ctx):
     await Clembot.send_message(ctx.message.channel, _("Beep Beep! We've moved this command to **!list here**."))
+
+@Clembot.command(pass_context=True)
+@checks.raidpartychannel()
+async def update(ctx):
+    try:
+        roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
+
+    except Exception as error:
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! Error : {error} {error_details}").format(error=error, error_details=str(error)))
+
+
+@Clembot.command(pass_context=True)
+@checks.raidpartychannel()
+async def add(ctx):
+    try:
+        roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
+
+        args = ctx.message.clean_content[4:]
+        args_split = args.split(" ")
+        del args_split[0]
+
+        roster_loc_mon = args_split[0]
+        if roster_loc_mon != "egg":
+            if roster_loc_mon not in pkmn_info['pokemon_list']:
+                await Clembot.send_message(ctx.message.channel, spellcheck(roster_loc_mon))
+                return
+            if roster_loc_mon not in pkmn_info['raid_list'] and roster_loc_mon in pkmn_info['pokemon_list']:
+                await Clembot.send_message(ctx.message.channel,("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=roster_loc_mon.capitalize()))
+                return
+
+        roster_loc_gym_code = args_split[1]
+        gym_info = get_gym_info(roster_loc_gym_code)
+
+        roster_loc = {}
+        roster_loc['index'] = len(roster)+1
+        roster_loc['mon']=roster_loc_mon
+
+        if gym_info:
+            roster_loc['gym_name'] = gym_info['gym_name']
+            roster_loc['gym_code'] = gym_info['gym_code']
+            roster_loc['gmap_link'] = gym_info['gmap_link']
+        else:
+            roster_loc['gym_name'] = roster_loc_gym_code
+            roster_loc['gym_code'] = roster_loc_gym_code
+            roster_loc['gmap_link'] = fetch_gmap_link(roster_loc_gym_code, ctx.message.channel)
+
+        roster.append(roster_loc)
+        await print_roster(ctx.message)
+    except Exception as error:
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! Error : {error} {error_details}").format(error=error, error_details=str(error)))
+
+
+async def _add(message, gmap_link):
+    try:
+        roster_loc_gym_link = None
+
+        if gmap_link:
+            roster_loc_gym_link = gmap_link
+        else:
+            args = message.clean_content[4:]
+            args_split = args.split(" ")
+            del args_split[0]
+
+            roster_loc_mon = args_split[0]
+            roster_loc_gym_code = args_split[1]
+            gym_info = get_gym_info(roster_loc_gym_code)
+
+        roster_loc = {}
+        roster_loc['index'] = len(roster)+1
+        roster_loc['mon']=roster_loc_mon
+
+        if gym_info:
+            roster_loc['gym_name'] = gym_info['gym_name']
+            roster_loc['gym_code'] = gym_info['gym_code']
+            roster_loc['gmap_link'] = gym_info['gmap_link']
+        else:
+            roster_loc['gym_name'] = roster_loc_gym_code
+            roster_loc['gym_code'] = roster_loc_gym_code
+            roster_loc['gmap_link'] = fetch_gmap_link(roster_loc_gym_code, ctx.message.channel)
+
+        roster.append(roster_loc)
+        await print_roster(message)
+    except Exception as error:
+        await Clembot.send_message(message.channel, content=_("Beep Beep! Error : {error} {error_details}").format(error=error, error_details=str(error)))
+    return
+
+
+async def reindex_roster(roster):
+    current_index = 1
+    for roster_loc in roster:
+        roster_loc['index'] = current_index
+        current_index = current_index + 1
+    return roster
+
+@Clembot.command(pass_context=True)
+@checks.raidpartychannel()
+async def remove(ctx):
+    roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
+    roster_index = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
+    if len(roster) < 1:
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
+        return
+
+    args = ctx.message.clean_content[len("!remove"):]
+    args_split = args.split()
+
+    if len(args_split) > 0:
+        if args_split[0].isdigit():
+            index_to_remove = int(args_split[0]) - 1
+
+    if 0 <= index_to_remove < len(roster):
+        del roster[index_to_remove]
+        await reindex_roster(roster)
+
+        if roster_index:
+            if roster_index > len(roster):
+                roster_index = roster_index - 1
+            if len(roster) == 0:
+                roster_index = None
+            server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = roster_index
+
+    await print_roster(ctx.message)
+    return
+
+
+@Clembot.command(pass_context=True)
+@checks.raidpartychannel()
+async def move(ctx):
+
+    roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
+    if len(roster) < 1:
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! No locations are added on the roster yet!"))
+        return
+
+    args = ctx.message.clean_content[5:]
+    args_split = args.split()
+
+    if len(args_split) > 0:
+        if args_split[0].isdigit():
+            current_index = int(args_split[0]) - 1
+    else:
+        current_index = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
+        if current_index is None:
+            current_index = 0
+
+    if current_index >= len(roster):
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
+        return
+
+    server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = current_index + 1
+    await print_roster_with_highlight(ctx.message, current_index + 1)
+    return
+
+
+
+def get_roster_with_highlight(roster, highlight_roster_index):
+    roster_msg = ""
+
+    try:
+        for roster_loc in roster:
+            if highlight_roster_index == roster_loc['index']:
+                marker = "**"
+            else:
+                marker = ""
+            roster_msg += _("\n{marker1}[#{number}] [{gym}]({link}) - {pokemon}{marker2}").format(number=roster_loc['index'], pokemon=roster_loc['mon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'],marker1=marker,marker2=marker)
+    except Exception as error:
+        print(error)
+
+    return roster_msg
+
+
+
+@Clembot.command(pass_context=True)
+async def raidpartyhelp(ctx):
+    gymmsg = ("""
+{member} here are the commands to work with raid party. 
+**Note:** *<> are used for decoration only.* 
+
+`!raidparty <channel name>` creates a raid party channel
+`!add <pokemon> <gym-code or gym name or location>` adds a location into the roster
+`!move` moves raid party to the next location in roster
+`!remove <location#>` removes specified location from roster
+`!update <mon> <gym code or gym name>` updates the location at roster
+** **
+`!roster` prints the current roster
+`!current` prints the current location of the raid party
+`!next` prints where the raid party is headed next
+** ** 
+to update your status, choose from the following commands:
+** **
+`!interested`, `!coming`, `!here` or `!cancel`
+or alternatively use the shortcuts 
+`!i`, `!c`, `!h` or `!x`
+** **
+""".format(member=ctx.message.author.mention))
+    await Clembot.send_message(ctx.message.channel, content=gymmsg)
+
+    return
+
+
+@Clembot.command(pass_context=True)
+@checks.raidpartychannel()
+async def current(ctx):
+    roster_index = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
+    roster = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster']
+
+    if len(roster) < 1:
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
+        return
+
+    if roster_index:
+        if roster_index > len(roster):
+            status_message = _("Raid party is at **{current}/{total}** location. Next location doesn't exist on roster!").format(current=roster_index, total=len(roster))
+            await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {status_message}").format(status_message=status_message))
+            return
+    else:
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! It seems raid party hasn't started yet! Please `!move` to start raiding!"))
+        return
+
+    await print_roster_with_highlight(ctx.message, roster_index)
+    return
+
+@Clembot.command(pass_context=True)
+@checks.raidpartychannel()
+async def next(ctx):
+
+    roster_index = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
+    roster = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster']
+
+    if len(roster) < 1:
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
+        return
+
+    if roster_index:
+        if roster_index > len(roster) - 1 :
+            status_message = _("Raid party is at **{current}/{total}** location. Next location doesn't exist on roster!").format(current=roster_index, total=len(roster))
+            await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {status_message}").format(status_message=status_message))
+            return
+    else:
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! It seems raid party hasn't started yet! Please `!move` to start raiding!"))
+        return
+
+    await print_roster_with_highlight(ctx.message, roster_index + 1)
+    return
+
+@Clembot.command(pass_context=True)
+@checks.raidpartychannel()
+async def roster(ctx):
+    await print_roster(ctx.message)
+
+
+async def print_roster_with_highlight(message, highlight_roster_index):
+    roster = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster']
+
+    if highlight_roster_index:
+        roster_index = highlight_roster_index
+    else:
+        roster_index = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster_index']
+        if len(roster) < 1:
+            await Clembot.send_message(message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
+            return
+
+        if roster_index:
+            if roster_index >= len(roster):
+                await Clembot.send_message(message.channel, content=_("Beep Beep! No more locations remaining on roster!"))
+        else:
+            await Clembot.send_message(message.channel, content=_("Beep Beep! It seems raid party hasn't started yet! Please `!move` to start raiding!"))
+            return
+
+
+    roster_loc = roster[roster_index - 1]
+    roster_msg = get_roster_with_highlight(roster,roster_loc)
+
+    raid_party_image_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
+    raid_img_url = raid_party_image_url
+    # "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
+
+    embed_title = _("Click here for directions for Location **[#{highlight_roster_index}]**!").format(highlight_roster_index=highlight_roster_index)
+    roster_loc_gmap_link = roster_loc['gmap_link']
+
+    raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title), url=roster_loc_gmap_link, description=roster_msg )
+    raid_embed.set_thumbnail(url=raid_img_url)
+    try:
+        await Clembot.send_message(message.channel, content=_("Beep Beep! {member} raid party is now at Location **[#{number}] {gym} for {pokemon}**").format(member=message.author.mention,number=roster_loc['index'], pokemon=roster_loc['mon'].capitalize(), gym=roster_loc['gym_name']), embed=raid_embed)
+    except Exception as error:
+        print(str(error))
+
+    return
+
+async def print_roster(message):
+    roster = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster']
+    roster_index = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster_index']
+
+    if len(roster) < 1:
+        await Clembot.send_message(message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
+        return
+
+    roster_msg = get_roster_with_highlight(roster,roster_index)
+
+    raid_party_image_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
+
+    raid_img_url = raid_party_image_url
+    # "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
+
+    if roster_index:
+
+        current_roster = roster[roster_index-1]
+
+        embed_title = _("Raid Party is at Location # {index}. Click here for directions!").format(index=roster_index)
+        raid_party_image_url = current_roster['gmap_link']
+    else:
+        embed_title = "Raid Party has not started yet!!"
+        raid_party_image_url = ""
+
+    raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}" ).format(embed_title=embed_title), url=raid_party_image_url,description=roster_msg)
+    raid_embed.set_thumbnail(url=raid_img_url)
+    try:
+        await Clembot.send_message(message.channel, content = _("Beep Beep! {member} here is the raid party roster..").format(member=message.author.mention), embed = raid_embed)
+    except Exception as error:
+        print(error)
+
+
+
+
+
 
 @Clembot.command(pass_context=True)
 @checks.citychannel()
