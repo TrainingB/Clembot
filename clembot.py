@@ -3134,14 +3134,12 @@ async def raidpartyhelp(ctx):
 **Note:** *<> are used for decoration only.* 
 
 `!raidparty <channel name>` creates a raid party channel
-`!add <pokemon> <gym-code or gym name or location>` adds a location into the roster
+`!add <pokemon or egg> <gym-code or gym name or location>` adds a location into the roster
 `!move` moves raid party to the next location in roster
 `!remove <location#>` removes specified location from roster
-`!update <mon> <gym code or gym name>` updates the location at roster
 ** **
 `!roster` prints the current roster
 `!current` prints the current location of the raid party
-`!next` prints where the raid party is headed next
 ** ** 
 to update your status, choose from the following commands:
 ** **
@@ -3151,6 +3149,10 @@ or alternatively use the shortcuts
 ** **
 """.format(member=ctx.message.author.mention))
     await Clembot.send_message(ctx.message.channel, content=gymmsg)
+
+# `!next` prints where the raid party is headed next
+# `!update <mon> <gym code or gym name>` updates the location at roster
+
 
     return
 
