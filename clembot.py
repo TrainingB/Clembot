@@ -3287,6 +3287,14 @@ async def print_roster(message, roster_message=None):
 
     return
 
+@Clembot.command(pass_context=True)
+async def reloadconfig(ctx):
+    try:
+        load_config()
+        await Clembot.send_message(ctx.message.channel,content=_("Beep Beep! configuration reloaded!"))
+    except Exception as error:
+        await Clembot.send_message(ctx.message.channel,content=_("Beep Beep! Error : {error}").format(error=str(error)))
+    return
 
 @Clembot.command(pass_context=True)
 @checks.citychannel()
@@ -3378,5 +3386,6 @@ async def on_command_error(error, ctx):
         pass
     else:
         logger.exception(type(error).__name__, exc_info=error)
+
 
 Clembot.run(config['bot_token'])
