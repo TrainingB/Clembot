@@ -2971,6 +2971,9 @@ async def update(ctx):
 async def add(ctx):
     try:
         roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
+        first_index = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
+        if first_index is None:
+            first_index = 0
 
         args = ctx.message.clean_content[4:]
         args_split = args.split(" ")
@@ -2982,14 +2985,19 @@ async def add(ctx):
                 await Clembot.send_message(ctx.message.channel, spellcheck(roster_loc_mon))
                 return
             if roster_loc_mon not in pkmn_info['raid_list'] and roster_loc_mon in pkmn_info['pokemon_list']:
-                await Clembot.send_message(ctx.message.channel,("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=roster_loc_mon.capitalize()))
+                await Clembot.send_message(ctx.message.channel,_("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=roster_loc_mon.capitalize()))
                 return
 
         roster_loc_gym_code = args_split[1]
         gym_info = get_gym_info(roster_loc_gym_code)
 
         roster_loc = {}
-        roster_loc['index'] = len(roster)+1
+
+        if len(roster) < 1:
+            roster_loc['index'] = first_index + 1
+        else:
+            roster_loc['index'] = roster[-1]['index'] + 1
+
         roster_loc['mon']=roster_loc_mon
 
         if gym_info:
@@ -3002,7 +3010,10 @@ async def add(ctx):
             roster_loc['gmap_link'] = fetch_gmap_link(roster_loc_gym_code, ctx.message.channel)
 
         roster.append(roster_loc)
-        await print_roster(ctx.message)
+
+        roster_message = _("Location # {location_number} has been been added to roster!").format(location_number=roster_loc['index'])
+
+        await print_roster(ctx.message, roster_message)
     except Exception as error:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! Error : {error} {error_details}").format(error=error, error_details=str(error)))
 
@@ -3033,7 +3044,7 @@ async def _add(message, gmap_link):
         else:
             roster_loc['gym_name'] = roster_loc_gym_code
             roster_loc['gym_code'] = roster_loc_gym_code
-            roster_loc['gmap_link'] = fetch_gmap_link(roster_loc_gym_code, ctx.message.channel)
+            roster_loc['gmap_link'] = fetch_gmap_link(roster_loc_gym_code, message.channel)
 
         roster.append(roster_loc)
         await print_roster(message)
@@ -3043,17 +3054,20 @@ async def _add(message, gmap_link):
 
 
 async def reindex_roster(roster):
-    current_index = 1
-    for roster_loc in roster:
-        roster_loc['index'] = current_index
-        current_index = current_index + 1
+    if len(roster) > 0:
+        current_index = roster[0]['index']
+
+        for roster_loc in roster:
+            roster_loc['index'] = current_index
+            current_index = current_index + 1
     return roster
+
 
 @Clembot.command(pass_context=True)
 @checks.raidpartychannel()
 async def remove(ctx):
     roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
-    roster_index = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
+
     if len(roster) < 1:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
         return
@@ -3061,22 +3075,34 @@ async def remove(ctx):
     args = ctx.message.clean_content[len("!remove"):]
     args_split = args.split()
 
+    location_number = 0
     if len(args_split) > 0:
         if args_split[0].isdigit():
-            index_to_remove = int(args_split[0]) - 1
+            location_number = int(args_split[0])
 
-    if 0 <= index_to_remove < len(roster):
-        del roster[index_to_remove]
-        await reindex_roster(roster)
+    if location_number == 0:
+        return
 
-        if roster_index:
-            if roster_index > len(roster):
-                roster_index = roster_index - 1
-            if len(roster) == 0:
-                roster_index = None
-            server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = roster_index
+    first_roster_index = roster[0]['index']
+    is_location_found = False
+    for roster_loc in roster:
+        if roster_loc['index'] == location_number:
+            is_location_found = True
+            roster.remove(roster_loc)
+            roster_message = _("Location # {location_number} has been removed from roster!").format(location_number=location_number)
+            break
 
-    await print_roster(ctx.message)
+    if is_location_found:
+        if len(roster) == 0:
+            server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = first_roster_index
+            await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {member}, {roster_message}").format(member=ctx.message.author.mention, roster_message=roster_message))
+        else:
+            await reindex_roster(roster)
+            await print_roster(ctx.message, roster_message)
+    else:
+        roster_message = _("Location # {location_number} does not exist on roster!").format(location_number=location_number)
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {member}, {roster_message}").format(member=ctx.message.author.mention, roster_message=roster_message))
+
     return
 
 
@@ -3086,36 +3112,29 @@ async def move(ctx):
 
     roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
     if len(roster) < 1:
-        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! No locations are added on the roster yet!"))
-        return
-
-    args = ctx.message.clean_content[5:]
-    args_split = args.split()
-
-    if len(args_split) > 0:
-        if args_split[0].isdigit():
-            current_index = int(args_split[0]) - 1
-    else:
-        current_index = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
-        if current_index is None:
-            current_index = 0
-
-    if current_index >= len(roster):
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
         return
 
-    server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = current_index + 1
-    await print_roster_with_highlight(ctx.message, current_index + 1)
+    # if all roster items are visited already, keep the number for later usage!
+    first_roster_index = roster[0]['index']
+
+    del roster[0]
+
+    if len(roster) == 0:
+        server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = first_roster_index
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {member}, all the locations on this roster are done!").format(member=ctx.message.author.mention))
+    else:
+        await print_roster(ctx.message, _("raid party is moving to the next location in the roster!"))
+
     return
 
 
-
-def get_roster_with_highlight(roster, highlight_roster_index):
+def get_roster_with_highlight(roster, highlight_roster_loc):
     roster_msg = ""
 
     try:
         for roster_loc in roster:
-            if highlight_roster_index == roster_loc['index']:
+            if highlight_roster_loc == roster_loc['index']:
                 marker = "**"
             else:
                 marker = ""
@@ -3126,20 +3145,21 @@ def get_roster_with_highlight(roster, highlight_roster_index):
     return roster_msg
 
 
-
 @Clembot.command(pass_context=True)
 async def raidpartyhelp(ctx):
     gymmsg = ("""
 {member} here are the commands to work with raid party. 
 **Note:** *<> are used for decoration only.* 
-
+**For Raid Organizer**
 `!raidparty <channel name>` creates a raid party channel
 `!add <pokemon or egg> <gym-code or gym name or location>` adds a location into the roster
 `!move` moves raid party to the next location in roster
 `!remove <location#>` removes specified location from roster
-** **
+
+**For Raid Pariticipants**
 `!roster` prints the current roster
-`!current` prints the current location of the raid party
+`!current` will tell you current location of the raid party
+`!next` will tell you where the raid party is headed next.
 ** ** 
 to update your status, choose from the following commands:
 ** **
@@ -3160,46 +3180,37 @@ or alternatively use the shortcuts
 @Clembot.command(pass_context=True)
 @checks.raidpartychannel()
 async def current(ctx):
-    roster_index = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
     roster = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster']
 
     if len(roster) < 1:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
         return
+    roster_index = roster[0]['index']
+    roster_message = _("Raid Party is at location # {location_number} on the roster!").format(location_number=roster_index)
 
-    if roster_index:
-        if roster_index > len(roster):
-            status_message = _("Raid party is at **{current}/{total}** location. Next location doesn't exist on roster!").format(current=roster_index, total=len(roster))
-            await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {status_message}").format(status_message=status_message))
-            return
-    else:
-        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! It seems raid party hasn't started yet! Please `!move` to start raiding!"))
-        return
-
-    await print_roster_with_highlight(ctx.message, roster_index)
+    await print_roster_with_highlight(ctx.message, roster_index, roster_message)
     return
 
 @Clembot.command(pass_context=True)
 @checks.raidpartychannel()
 async def next(ctx):
-
-    roster_index = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
     roster = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster']
 
     if len(roster) < 1:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
         return
+    roster_index = roster[0]['index']
 
-    if roster_index:
-        if roster_index > len(roster) - 1 :
-            status_message = _("Raid party is at **{current}/{total}** location. Next location doesn't exist on roster!").format(current=roster_index, total=len(roster))
-            await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {status_message}").format(status_message=status_message))
-            return
-    else:
-        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! It seems raid party hasn't started yet! Please `!move` to start raiding!"))
+    if len(roster) < 2:
+        status_message = _("Raid party is at **{current}/{total}** location. Next location doesn't exist on roster!").format(current=roster_index, total=roster_index)
+        await Clembot.send_message(ctx.message.channel,content=_("Beep Beep! {status_message}").format(status_message=status_message))
         return
 
-    await print_roster_with_highlight(ctx.message, roster_index + 1)
+    roster_index = roster[1]['index']
+
+    roster_message=_("Raid Party will be headed next to location # {location_number} on the roster!").format(location_number=roster_index)
+
+    await print_roster_with_highlight(ctx.message, roster_index, roster_message)
     return
 
 @Clembot.command(pass_context=True)
@@ -3208,51 +3219,48 @@ async def roster(ctx):
     await print_roster(ctx.message)
 
 
-async def print_roster_with_highlight(message, highlight_roster_index):
+async def print_roster_with_highlight(message, highlight_roster_loc, roster_message = None):
     roster = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster']
 
-    if highlight_roster_index:
-        roster_index = highlight_roster_index
+    if highlight_roster_loc:
+        roster_index = highlight_roster_loc
     else:
-        roster_index = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster_index']
         if len(roster) < 1:
             await Clembot.send_message(message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
             return
 
-        if roster_index:
-            if roster_index >= len(roster):
-                await Clembot.send_message(message.channel, content=_("Beep Beep! No more locations remaining on roster!"))
+    roster_msg = ""
+    highlighted_loc = None
+    for roster_loc in roster:
+        if highlight_roster_loc == roster_loc['index']:
+            marker = "**"
+            highlighted_loc = roster_loc
         else:
-            await Clembot.send_message(message.channel, content=_("Beep Beep! It seems raid party hasn't started yet! Please `!move` to start raiding!"))
-            return
-
-
-    roster_loc = roster[roster_index - 1]
-    roster_msg = get_roster_with_highlight(roster,roster_loc)
+            marker = ""
+        roster_msg += _("\n{marker1}[#{number}] [{gym}]({link}) - {pokemon}{marker2}").format(number=roster_loc['index'], pokemon=roster_loc['mon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'],marker1=marker,marker2=marker)
 
     raid_party_image_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
     raid_img_url = raid_party_image_url
     # "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
 
-    embed_title = _("Click here for directions for Location **[#{highlight_roster_index}]**!").format(highlight_roster_index=highlight_roster_index)
-    roster_loc_gmap_link = roster_loc['gmap_link']
+    embed_title = _("Click here for directions for Location **[#{highlight_roster_loc}]**!").format(highlight_roster_loc=highlight_roster_loc)
+    roster_loc_gmap_link = highlighted_loc['gmap_link']
 
     raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title), url=roster_loc_gmap_link, description=roster_msg )
     raid_embed.set_thumbnail(url=raid_img_url)
-    try:
-        await Clembot.send_message(message.channel, content=_("Beep Beep! {member} raid party is now at Location **[#{number}] {gym} for {pokemon}**").format(member=message.author.mention,number=roster_loc['index'], pokemon=roster_loc['mon'].capitalize(), gym=roster_loc['gym_name']), embed=raid_embed)
-    except Exception as error:
-        print(str(error))
+
+    await Clembot.send_message(message.channel, content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention,roster_message=roster_message), embed=raid_embed)
 
     return
 
-async def print_roster(message):
+async def print_roster(message, roster_message=None):
     roster = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster']
-    roster_index = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster_index']
 
     if len(roster) < 1:
         await Clembot.send_message(message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!raidpartyhelp` to see how you can manage raid party!"))
         return
+
+    roster_index = roster[0]['index']
 
     roster_msg = get_roster_with_highlight(roster,roster_index)
 
@@ -3262,9 +3270,7 @@ async def print_roster(message):
     # "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
 
     if roster_index:
-
-        current_roster = roster[roster_index-1]
-
+        current_roster = roster[0]
         embed_title = _("Raid Party is at Location # {index}. Click here for directions!").format(index=roster_index)
         raid_party_image_url = current_roster['gmap_link']
     else:
@@ -3273,14 +3279,13 @@ async def print_roster(message):
 
     raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}" ).format(embed_title=embed_title), url=raid_party_image_url,description=roster_msg)
     raid_embed.set_thumbnail(url=raid_img_url)
-    try:
-        await Clembot.send_message(message.channel, content = _("Beep Beep! {member} here is the raid party roster..").format(member=message.author.mention), embed = raid_embed)
-    except Exception as error:
-        print(error)
 
+    if roster_message:
+        await Clembot.send_message(message.channel, content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention,roster_message=roster_message), embed=raid_embed)
+    else:
+        await Clembot.send_message(message.channel, content=_("Beep Beep! {member} here is the raid party roster: ").format(member=message.author.mention), embed=raid_embed)
 
-
-
+    return
 
 
 @Clembot.command(pass_context=True)
