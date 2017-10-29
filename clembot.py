@@ -2453,7 +2453,7 @@ or alternatively use the shortcuts
 `!i`, `!c`, `!h` or `!x`
 ** **
 
-Also, see `!beep raidpartyowner` for Raid Party management commands!
+Also, see `!beep raidowner` for Raid Party management commands!
 """)
 
 
