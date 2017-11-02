@@ -1162,8 +1162,11 @@ async def want(ctx):
     channel = message.channel
     if checks.check_wantchannel(ctx):
         entered_want = message.content[6:].lower()
-        if entered_want not in pkmn_info['pokemon_list']:
-            await Clembot.send_message(channel, spellcheck(entered_want))
+        if entered_want not in pkmn_info['raid_list']:
+            if entered_want not in pkmn_info['pokemon_list']:
+                await Clembot.send_message(channel, spellcheck(entered_want))
+            else:
+                await Clembot.send_message(channel, _("Beep Beep! {member} only raid bosses are allowed to be notified!").format(member=ctx.message.author.mention))
             return
         role = discord.utils.get(server.roles, name=entered_want)
         # Create role if it doesn't exist yet
@@ -1204,8 +1207,11 @@ async def unwant(ctx):
         if checks.check_wantchannel(ctx):
             entered_unwant = ctx.message.content[8:].lower()
             role = discord.utils.get(ctx.message.server.roles, name=entered_unwant)
-            if entered_unwant not in pkmn_info['pokemon_list']:
-                await Clembot.send_message(ctx.message.channel, spellcheck(entered_unwant))
+            if entered_unwant not in pkmn_info['raid_list']:
+                if entered_unwant not in pkmn_info['pokemon_list']:
+                    await Clembot.send_message(channel, spellcheck(entered_unwant))
+                else:
+                    await Clembot.send_message(channel, _("Beep Beep! {member} only raid bosses are allowed to be notified!").format(member=ctx.message.author.mention))
                 return
             else:
                 # If user is not already wanting the Pokemon,
