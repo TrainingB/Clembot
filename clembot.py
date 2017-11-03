@@ -2108,7 +2108,7 @@ async def _raidegg(message):
             await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
             return
 
-    if gym_info is None and 4 <= raid_details.__len__() <= 5:
+    if gym_info is None and 2 <= raid_details.__len__() <= 5:
         raid_details_gym_code = raid_details.upper()
         raid_details_gym_info = get_gym_info(raid_details_gym_code)
         if raid_details_gym_info:
@@ -2565,13 +2565,16 @@ async def coming(ctx, *, count: str = None):
     of 1.
     Otherwise, this command expects at least one word in your message to be a number,
     and will assume you are a group with that many people."""
-    try:
-        if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['type'] == "egg":
-            if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['pokemon'] == "":
-                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Please wait until the raid egg has hatched before announcing you're coming or present."))
-                return
-    except:
-        pass
+    # try:
+    #     if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['type'] == "egg":
+    #         if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['pokemon'] == "":
+    #             if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['egglevel'] == "5":
+    #                 await Clembot.send_message(ctx.message.channel, _("Beep Beep! Please use `!raid assume <pokemon>` to confirm the pokemon before announcing you're coming."))
+    #             else:
+    #                 await Clembot.send_message(ctx.message.channel, _("Beep Beep! Please wait until the raid egg has hatched before announcing you're coming."))
+    #             return
+    # except:
+    #     pass
 
     trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
 
@@ -2600,13 +2603,13 @@ async def here(ctx, *, count: str = None):
     from that command. Otherwise, assumes you are a group of 1.
     Otherwise, this command expects at least one word in your message to be a number,
     and will assume you are a group with that many people."""
-    try:
-        if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['type'] == "egg":
-            if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['pokemon'] == "":
-                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Please wait until the raid egg has hatched before announcing you're coming or present."))
-                return
-    except:
-        pass
+    # try:
+    #     if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['type'] == "egg":
+    #         if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['pokemon'] == "":
+    #             await Clembot.send_message(ctx.message.channel, _("Beep Beep! Please wait until the raid egg has hatched before announcing you're coming or present."))
+    #             return
+    # except:
+    #     pass
 
     trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
 
