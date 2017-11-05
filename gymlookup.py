@@ -58,6 +58,9 @@ for gym_info in get_gym_info_for('R'):
     print("{gym_code} - {gym_name}".format(gym_code=gym_info.get('gym_code'),gym_name=gym_info.get('gym_name')))
     a = 1
 
+
+print(get_gym_info("CAN"))
+
 raidmsg_original="""!add 34°10'23.1"N 118°21'16.7"W
 https://goo.gl/maps/9kmoz2SJTgs"""
 
