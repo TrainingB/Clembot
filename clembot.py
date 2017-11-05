@@ -3295,7 +3295,7 @@ async def remove(ctx):
 
     if is_location_found:
         if len(roster) == 0:
-            server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = first_roster_index
+            # server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = first_roster_index
             await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {member}, {roster_message}").format(member=ctx.message.author.mention, roster_message=roster_message))
         else:
             await reindex_roster(roster)
@@ -3377,6 +3377,30 @@ async def current(ctx):
     await print_roster_with_highlight(ctx.message, roster_index, roster_message)
     return
 
+
+@Clembot.command(pass_context=True)
+async def makeitraidparty(ctx):
+
+    message = ctx.message
+
+    server_dict[message.server]['raidchannel_dict'][message.channel] = {
+        'reportcity': message.channel.name,
+        'trainer_dict': {},
+        'exp': None,  # No expiry
+        'manual_timer': False,
+        'active': True,
+        'raidmessage': None,
+        'type': 'raidparty',
+        'pokemon': None,
+        'egglevel': '0',
+        'suggested_start': False,
+        'roster': [],
+        'roster_index': None
+    }
+
+    await Clembot.send_message(message.channel, content=_("Beep Beep! It's a raid party channel now!"))
+
+    return
 
 @Clembot.command(pass_context=True)
 @checks.raidpartychannel()
