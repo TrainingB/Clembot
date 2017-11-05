@@ -81,6 +81,8 @@ type_list = []
 raid_info = {}
 active_raids = []
 gym_info_list = {}
+egg_timer = 0
+raid_timer = 0
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -95,6 +97,8 @@ def load_config():
     global raid_info
     global gym_info_file
     global gym_info_list
+    global egg_timer
+    global raid_timer
 
     # Load configuration
     with open(os.path.join(script_path, "config.json"), "r") as fd:
@@ -123,6 +127,8 @@ def load_config():
 
     # Set spelling dictionary to our list of Pokemon
     spelling.set_dictionary(pkmn_info['pokemon_list'])
+    egg_timer = config['egg-timer']
+    raid_timer = config['raid-timer']
 
 load_config()
 
@@ -1379,7 +1385,7 @@ async def _raid(message):
                 endmins = 0
             else:
                 endmins = int(args_split[-1].split(":")[1])
-            raidexp = 60 * endhours + endmins
+            raidexp = raid_timer * endhours + endmins
             del args_split[-1]
         else:
             raidexp = False
@@ -1438,7 +1444,7 @@ Please type `!beep` if you need a refresher of Clembot commands!
     server_dict[message.server]['raidchannel_dict'][raid_channel] = {
         'reportcity' : message.channel.name,
         'trainer_dict' : {},
-        'exp' : time.time() + 60 * 60, # One hour from now
+        'exp' : time.time() + raid_timer * 60, # One hour from now
         'manual_timer' : False, # No one has explicitly set the timer, Clembot is just assuming 2 hours
         'active' : True,
         'raidmessage' : raidmessage,
@@ -1492,7 +1498,7 @@ async def _timerset(channel, exptime):
 
     try:
         s = exptime * 60
-        if s >= 3600:
+        if s >= raid_timer * 60:
             await Clembot.send_message(channel, _("Beep Beep...that's too long. {raidtype} currently last no more than one hour...").format(raidtype=raidtype))
             return
         if s < 0:
@@ -1556,7 +1562,7 @@ async def timerset(ctx):
         if h is "": h = "0"
         if m is "": m = "0"
         if h.isdigit() and m.isdigit():
-            raidexp = 60 * int(h) + int(m)
+            raidexp = raid_timer * int(h) + int(m)
         else:
             await Clembot.send_message(ctx.message.channel, "Beep Beep! I couldn't understand your time format. Try again like this: **!timerset <minutes>**")
             return
@@ -2094,7 +2100,7 @@ async def _raidegg(message):
                 endmins = 0
             else:
                 endmins = int(args_split[-1].split(":")[1])
-            raidexp = 60 * endhours + endmins
+            raidexp = egg_timer * endhours + endmins
             del args_split[-1]
 
 
@@ -2177,7 +2183,7 @@ Please type `!beep` if you need a refresher of Clembot commands!
         server_dict[message.server]['raidchannel_dict'][raid_channel] = {
             'reportcity' : message.channel.name,
             'trainer_dict' : {},
-            'exp' : time.time() + 60 * 60, # One hour from now
+            'exp' : time.time() + egg_timer * 60, # One hour from now
             'manual_timer' : False, # No one has explicitly set the timer, Clembot is just assuming 2 hours
             'active' : True,
             'raidmessage' : raidmessage,
@@ -2235,7 +2241,7 @@ async def _eggtoraid(entered_raid, raid_channel):
     egg_report = eggdetails['raidreport']
     raid_message = eggdetails['raidmessage']
     raid_messageauthor = raid_message.mentions[0]
-    raidexp = eggdetails['exp'] + 60 * 60
+    raidexp = eggdetails['exp'] + raid_timer * 60
     suggested_start = eggdetails['suggested_start']
     if entered_raid not in pkmn_info['pokemon_list']:
         await Clembot.send_message(raid_channel, spellcheck(entered_raid))
