@@ -1498,8 +1498,11 @@ async def _timerset(channel, exptime):
 
     try:
         s = exptime * 60
-        if s >= raid_timer * 60:
-            await Clembot.send_message(channel, _("Beep Beep...that's too long. {raidtype} currently last no more than one hour...").format(raidtype=raidtype))
+        if raidtype == "Raids" and s > raid_timer * 60:
+            await Clembot.send_message(channel, _("Beep Beep...that's too long. {raidtype} currently last no more than {timer} minutes...").format(raidtype=raidtype, timer=raid_timer))
+            return
+        elif raidtype == "Eggs" and s > egg_timer * 60:
+            await Clembot.send_message(channel, _("Beep Beep...that's too long. {raidtype} currently last no more than {timer} minutes...").format(raidtype=raidtype, timer=egg_timer))
             return
         if s < 0:
             await Clembot.send_message(channel, _("Beep Beep...I can't do that! No negative numbers, please!"))
