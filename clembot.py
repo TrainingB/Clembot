@@ -83,6 +83,7 @@ active_raids = []
 gym_info_list = {}
 egg_timer = 0
 raid_timer = 0
+icon_list = {}
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -99,6 +100,7 @@ def load_config():
     global gym_info_list
     global egg_timer
     global raid_timer
+    global icon_list
 
     # Load configuration
     with open(os.path.join(script_path, "config.json"), "r") as fd:
@@ -125,6 +127,10 @@ def load_config():
     with open(os.path.join(script_path, "gym_info.json"), "r") as fd:
         gym_info_list = json.load(fd)
 
+    with open(os.path.join(script_path, "icon.json"), "r") as fd:
+        icon_list = json.load(fd)
+
+
     # Set spelling dictionary to our list of Pokemon
     spelling.set_dictionary(pkmn_info['pokemon_list'])
     egg_timer = config['egg-timer']
@@ -134,7 +140,7 @@ load_config()
 
 Clembot.config = config
 
-poke_alarm_image_url = "https://raw.githubusercontent.com/kvangent/PokeAlarm/master/icons/{0}.png?width=80&height=80"
+poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
 floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png"
 """
 
@@ -145,6 +151,13 @@ Helper functions
 ======================
 
 """
+
+def get_icon_url(pokedex_number):
+    url = icon_list.get(str(pokedex_number))
+    if url:
+        return url
+    return None
+
 # Given a Pokemon name, return a list of its
 # weaknesses as defined in the type chart
 def get_type(server, pkmn_number):
@@ -1190,7 +1203,7 @@ async def want(ctx):
             await Clembot.add_roles(ctx.message.author, role)
             want_number = pkmn_info['pokemon_list'].index(entered_want) + 1
             want_img_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(want_number)) #This part embeds the sprite
-            want_img_url = poke_alarm_image_url.format(str(want_number))  # This part embeds the sprite
+            want_img_url = get_icon_url(want_number)  # This part embeds the sprite
             want_embed = discord.Embed(colour=discord.Colour(0x2ecc71))
             want_embed.set_thumbnail(url=want_img_url)
             await Clembot.send_message(channel, content=_("Beep Beep! Got it! {member} wants {pokemon}").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()), embed=want_embed)
@@ -1315,7 +1328,7 @@ async def _wild(message):
             await asyncio.sleep(0.5)
         wild_number = pkmn_info['pokemon_list'].index(entered_wild) + 1
         wild_img_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(wild_number))
-        wild_img_url = poke_alarm_image_url.format(str(wild_number))  # This part embeds the sprite
+        wild_img_url = get_icon_url(wild_number) # This part embeds the sprite
         wild_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the wild {pokemon}!").format(pokemon=entered_wild.capitalize()),url=wild_gmaps_link,description=_("This is just my best guess!"),colour=discord.Colour(0x2ecc71))
         wild_embed.set_thumbnail(url=wild_img_url)
         await Clembot.send_message(message.channel, content=_("Beep Beep! Wild {pokemon} reported by {member}! Details: {location_details}").format(pokemon=wild.mention, member=message.author.mention, location_details=wild_details), embed=wild_embed)
@@ -1430,7 +1443,7 @@ async def _raid(message):
         await asyncio.sleep(0.5)
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
-    raid_img_url = poke_alarm_image_url.format(str(raid_number))  # This part embeds the sprite
+    raid_img_url = get_icon_url(raid_number)  # This part embeds the sprite
     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"),url=raid_gmaps_link,description=_("Weaknesses: {weakness_list}").format(weakness_list=weakness_to_str(message.server, get_weaknesses(entered_raid))),colour=discord.Colour(0x2ecc71))
     raid_embed.set_thumbnail(url=raid_img_url)
     raidreport = await Clembot.send_message(message.channel, content = _("Beep Beep! {pokemon} raid reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
@@ -1915,7 +1928,7 @@ async def _exraid(message):
         await asyncio.sleep(0.5)
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
-    raid_img_url = poke_alarm_image_url.format(str(raid_number))  # This part embeds the sprite
+    raid_img_url = get_icon_url(raid_number) # This part embeds the sprite
     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the EX raid!"),url=raid_gmaps_link,description=_("Weaknesses: {weakness_list}").format(weakness_list=weakness_to_str(message.server, get_weaknesses(entered_raid))),colour=discord.Colour(0x2ecc71))
     raid_embed.set_thumbnail(url=raid_img_url)
     raidreport = await Clembot.send_message(message.channel, content = _("Beep Beep! {pokemon} EX raid reported by {member}! Details: {location_details}. Send proof of your invite to this EX raid to an admin and coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
@@ -2275,7 +2288,7 @@ async def _eggtoraid(entered_raid, raid_channel):
 
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
-    raid_img_url = poke_alarm_image_url.format(str(raid_number))  # This part embeds the sprite
+    raid_img_url = get_icon_url(raid_number)  # This part embeds the sprite
     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"),url=raid_gmaps_link,description=_("Weaknesses: {weakness_list}").format(weakness_list=weakness_to_str(raid_channel.server, get_weaknesses(entered_raid))),colour=discord.Colour(0x2ecc71))
     raid_embed.set_thumbnail(url=raid_img_url)
     raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=raid_channel.mention)

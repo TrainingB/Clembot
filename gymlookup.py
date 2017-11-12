@@ -12,23 +12,37 @@ from datetime import tzinfo, timedelta, datetime
 
 raid_info = {}
 gym_info_list = {}
-
+icon_list = {}
 script_path = os.path.dirname(os.path.realpath(__file__))
 
 def load_config():
     global raid_info
     global gym_info_list
+    global icon_list
 
     with open(os.path.join(script_path, "raid_info.json"), "r") as fd:
         raid_info = json.load(fd)
 
     with open(os.path.join(script_path, "gym_info.json"), "r") as fd:
         gym_info_list = json.load(fd)
-    # if gym_info_file:
-    #     gym_info_list = gym_info_file.get('gym_info')
+
+    with open(os.path.join(script_path, "icon.json"), "r") as fd:
+        icon_list = json.load(fd)
 
 load_config()
 
+
+
+
+def get_icon_url(pokedex_number):
+    url = icon_list.get(pokedex_number)
+    if url:
+        return url
+    return None
+
+
+
+print (get_icon_url(str(19)))
 
 
 # print(gym_info_list.get('AAMU'))
