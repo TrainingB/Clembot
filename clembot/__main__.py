@@ -2393,8 +2393,7 @@ async def process_map_link(message, newloc=None):
     oldraidmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidmessage']
     oldreportmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidreport']
     oldembed = oldraidmsg.embeds[0]
-    newembed = discord.Embed(title=oldembed['title'], url=newloc, description=oldembed['description'],
-                             colour=message.server.me.colour)
+    newembed = discord.Embed(title=oldembed['title'], url=newloc, colour=message.server.me.colour)
     newembed.set_thumbnail(url=oldembed['thumbnail']['url'])
     newraidmsg = await Clembot.edit_message(oldraidmsg, new_content=oldraidmsg.content, embed=newembed)
     newreportmsg = await Clembot.edit_message(oldreportmsg, new_content=oldreportmsg.content, embed=newembed)
@@ -3017,8 +3016,8 @@ async def gym(ctx):
             gym_location_update = await ask_confirmation(ctx.message, "Do you want to update this raid's location?",
                                                          "Updating raid's location...", "Thank you",
                                                          "Too late! try again!")
-        # elif check_raidparty_channel(ctx.message.channel):
-        #     gym_location_update = True
+        elif check_raidparty_channel(ctx.message.channel):
+             gym_location_update = True
 
         if gym_location_update:
             await process_map_link(ctx.message, gym_location)
@@ -3486,25 +3485,28 @@ async def ask_confirmation(message, rusure_message, yes_message, no_message, tim
     author = message.author
     channel = message.channel
 
+    reaction_list = ['✅', '❎']
+    #reaction_list = ['❔', '✅', '❎']
+
     rusure = await Clembot.send_message(channel, _("Beep Beep! {message}".format(message=rusure_message)))
-    await Clembot.add_reaction(rusure, "?")  # checkmark
-    await Clembot.add_reaction(rusure, "?")  # cross
+    await Clembot.add_reaction(rusure, "✅")  # checkmark
+    await Clembot.add_reaction(rusure, "❎")  # cross
 
     def check(react, user):
         if user.id != author.id:
             return False
         return True
 
-    res = await Clembot.wait_for_reaction(['?', '?'], message=rusure, check=check, timeout=60)
+    res = await Clembot.wait_for_reaction(reaction_list, message=rusure, check=check, timeout=60)
 
     if res is not None:
-        if res.reaction.emoji == "?":
+        if res.reaction.emoji == "❎":
             await Clembot.delete_message(rusure)
             confirmation = await Clembot.send_message(channel, _("Beep Beep! {message}".format(message=no_message)))
             await asyncio.sleep(3)
             await Clembot.delete_message(confirmation)
             return False
-        elif res.reaction.emoji == "?":
+        elif res.reaction.emoji == "✅":
             await Clembot.delete_message(rusure)
             confirmation = await Clembot.send_message(channel, _("Beep Beep! {message}".format(message=yes_message)))
             await asyncio.sleep(3)
