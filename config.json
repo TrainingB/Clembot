@@ -4,7 +4,7 @@
 
 "//": "Server information",
 
-"//": "Language you want for Meowth.",
+"//": "Language you want for Clembot.",
 "//": "fr, en",
 "bot-language": "en",
 "pokemon-language": "en",
@@ -15,13 +15,13 @@
 
 "//": "Bot token ID, needed for authentication.",
 "//": "This is found on the app page when you click to reveal the bot user's token",
-"bot_token": "MzgyMzg3Mjc0NzUyNzIwOTQ4.DPU9cg.ZXQndJ03cGDuZtfzYzNjHOUcHmU",
+"bot_token": "MzYzOTE3MzI4ODgwMTA3NTIy.DLIlyA.foU5FEtMoU-_C59kfNMRtDiPAqc",
 
 "//": "Default bot prefix. Used if server has not set one.",
 "default_prefix":"!",
 
-"//": "Define Meowth's master id (that's you).",
-"//": "Meowth will only take admin commands from the user with this id",
+"//": "Define Clembot's master id (that's you).",
+"//": "Clembot will only take admin commands from the user with this id",
 "master": "289657500167438336",
 
 "//": "Limit egg assumed hatches to certain egg levels.",
