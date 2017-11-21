@@ -1839,10 +1839,10 @@ async def _raid(message):
     gym_info = get_gym_info(gym_code)
     if gym_info:
         del raid_split[-1]
-    if raid_split[-1].isdigit():
+    if len(raid_split)>= 1 and raid_split[-1].isdigit():
         raidexp = int(raid_split[-1])
         del raid_split[-1]
-    elif ":" in raid_split[-1]:
+    elif len(raid_split)>= 1 and ":" in raid_split[-1]:
         raid_split[-1] = re.sub(r"[a-zA-Z]", "", raid_split[-1])
         if raid_split[-1].split(":")[0] == "":
             endhours = 0
