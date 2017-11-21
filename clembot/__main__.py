@@ -2688,6 +2688,7 @@ async def _raidegg(message):
         raid_details_gym_info = get_gym_info(raid_details_gym_code)
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
+            raid_details = gym_info['gym_name']
 
     if egg_level > 5 or egg_level == 0:
         await Clembot.send_message(message.channel, _("Beep Beep! Raid egg levels are only from 1-5!"))
