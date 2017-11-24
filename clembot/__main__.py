@@ -2559,7 +2559,7 @@ async def _raidparty(message):
 ** **
 `!beep raidparty` lists all the command Clembot has to offer for a raid party!
 `!beep raidowner` lists all the command which can be used to manage the raid party!
-    """).format(member=message.author.mention, citychannel=raid_channel.mention)
+    """).format(member=message.author.mention, raid_channel=raid_channel.mention)
 
     raidmessage = await Clembot.send_message(raid_channel, content=raidmsg)
 
@@ -3253,7 +3253,7 @@ async def here(ctx, *, count: str = None):
     await _here(ctx.message, count)
 
 
-@Clembot.command(pass_context=True)
+@Clembot.command(pass_context=True, aliases=["x"])
 @checks.activeraidchannel()
 async def cancel(ctx):
     """Indicate you are no longer interested in a raid.
@@ -3720,8 +3720,8 @@ async def _interest(ctx):
             name_list.append("**" + user.name + "**")
             maybe_list.append(user.mention)
     if ctx_maybecount > 0:
-        if now.time().replace(tzinfo=tzlocal) >= datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(
-                tzinfo=tzlocal) <= datetime.time(21, 0).replace(tzinfo=tzlocal):
+        if now.time().replace(tzinfo=tzlocal) >= datetime.datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(
+                tzinfo=tzlocal) <= datetime.datetime.time(21, 0).replace(tzinfo=tzlocal):
             maybe_exstr = _(
                 " including {trainer_list} and the people with them! Let them know if there is a group forming").format(
                 trainer_list=", ".join(maybe_list))
@@ -4226,8 +4226,8 @@ async def where(ctx):
         if len(args_split) > 0:
             if args_split[0].isdigit():
                 location_number = int(args_split[0])
-
-        if location_number == 0:
+        else:
+            await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! Give more details! Usage: `!where <location #>`"))
             return
 
         for roster_loc_at in roster:
@@ -4239,8 +4239,8 @@ async def where(ctx):
                                                       location=emojify_numbers(roster_loc['index']),
                                                       pokemon=roster_loc['mon'].capitalize(),
                                                       gym=roster_loc['gym_name']))
-                break
-
+                return
+        await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have location {location_number}.".format(location_number=emojify_numbers(location_number))))
         return
 
     except Exception as error:
