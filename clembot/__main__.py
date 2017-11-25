@@ -3721,7 +3721,7 @@ async def _interest(ctx):
     if ctx_maybecount > 0:
         if datetime.time(5, 0).replace(tzinfo=tzlocal) <= now.time().replace(tzinfo=tzlocal) >= datetime.time(21, 0).replace(tzinfo=tzlocal):
             maybe_exstr = _(" including {trainer_list} and the people with them! Let them know if there is a group forming").format(trainer_list=", ".join(maybe_list))
-        else
+        else:
             maybe_exstr = _(
                 " including {trainer_list} and the people with them! Let them know if there is a group forming").format(trainer_list=", ".join(name_list))
     listmsg = (_("Beep Beep! {trainer_count} interested{including_string}!").format(trainer_count=str(ctx_maybecount),
