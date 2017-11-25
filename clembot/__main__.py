@@ -30,7 +30,6 @@ from errors import custom_error_handling
 # --B--
 # ---- dependencies
 import time
-from datetime import tzinfo, timedelta, datetime
 import pytz
 from pytz import timezone
 
@@ -710,7 +709,7 @@ async def on_ready():
     Clembot.owner = discord.utils.get(Clembot.get_all_members(), id=config["master"])
     await _print(Clembot.owner, _(
         "Starting up..."))  # prints to the terminal or cmd prompt window upon successful connection to Discord
-    Clembot.uptime = datetime.now()
+    Clembot.uptime = datetime.datetime.now()
     owners = []
     msg_success = 0
     msg_fail = 0
@@ -911,7 +910,7 @@ async def configure(ctx):
                 continue
     # configure main
     if configcancel == False and (
-                    firstconfig == True or configgoto == "all" or configgoto == "main" or configgoto == "allmain"):
+                            firstconfig == True or configgoto == "all" or configgoto == "main" or configgoto == "allmain"):
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(),
                                                               description="Main Functions include:\n - **!want** and creating tracked Pokemon roles \n - **!wild** Pokemon reports\n - **!raid** reports and channel creation for raid management.\nIf you don't want __any__ of the Pokemon tracking or Raid management features, you may want to disable them.\n\nRespond with: **N** to disable, or **Y** to enable:").set_author(
             name="Main Functions", icon_url=Clembot.user.avatar_url))
@@ -941,7 +940,7 @@ async def configure(ctx):
                 continue
     # configure main-raid
     if configcancel == False and server_dict_temp['other'] is True and (
-                    firstconfig == True or configgoto == "all" or configgoto == "raid" or configgoto == "allmain"):
+                            firstconfig == True or configgoto == "all" or configgoto == "raid" or configgoto == "allmain"):
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(),
                                                               description="Do you want **!raid** reports enabled? If you want __only__ the **!wild** feature for reports, you may want to disable this.\n\nRespond with: **N** to disable, or **Y** to enable:").set_author(
             name="Raid Reports", icon_url=Clembot.user.avatar_url))
@@ -968,7 +967,7 @@ async def configure(ctx):
                 continue
     # configure main-wild
     if configcancel == False and server_dict_temp['other'] is True and (
-                    firstconfig == True or configgoto == "all" or configgoto == "wild" or configgoto == "allmain"):
+                            firstconfig == True or configgoto == "all" or configgoto == "wild" or configgoto == "allmain"):
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(),
                                                               description="Do you want **!wild** reports enabled? If you want __only__ the **!raid** feature for reports, you may want to disable this.\n\nRespond with: **N** to disable, or **Y** to enable:").set_author(
             name="Wild Reports", icon_url=Clembot.user.avatar_url))
@@ -995,8 +994,8 @@ async def configure(ctx):
                 continue
     # configure main-channels
     if configcancel == False and server_dict_temp['other'] is True and (
-            server_dict_temp['wildset'] is True or server_dict_temp['raidset'] is True) and (
-                    firstconfig == True or configgoto == "all" or configgoto == "regions" or configgoto == "allmain"):
+                    server_dict_temp['wildset'] is True or server_dict_temp['raidset'] is True) and (
+                            firstconfig == True or configgoto == "all" or configgoto == "regions" or configgoto == "allmain"):
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(),
                                                               description="Pokemon raid or wild reports are contained within one or more channels. Each channel will be able to represent different areas/communities. I'll need you to provide a list of channels in your server you will allow reports from in this format: `channel-name, channel-name, channel-name`\n\nIf you do not require raid and wild reporting, you may want to disable this function.\n\nRespond with: **N** to disable, or the **channel-name** list to enable, each seperated with a comma and space:").set_author(
             name="Reporting Channels", icon_url=Clembot.user.avatar_url))
@@ -1032,8 +1031,8 @@ async def configure(ctx):
                     continue
     # configure main-locations
     if configcancel == False and server_dict_temp['other'] is True and (
-            server_dict_temp['wildset'] is True or server_dict_temp['raidset'] is True) and (
-                    firstconfig == True or configgoto == "all" or configgoto == "regions" or configgoto == "allmain"):
+                    server_dict_temp['wildset'] is True or server_dict_temp['raidset'] is True) and (
+                            firstconfig == True or configgoto == "all" or configgoto == "regions" or configgoto == "allmain"):
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(),
                                                               description="""For each report, I generate Google Maps links to give people directions to raids and spawns! To do this, I need to know which suburb/town/region each report channel represents, to ensure we get the right location in the map. For each report channel you provided, I will need it's corresponding general location using only letters and spaces, with each location seperated by a comma and space.\n\nExample: `kansas city mo, hull uk, sydney nsw australia`\n\nEach location will have to be in the same order as you provided the channels in the previous question.\n\nRespond with: **location info, location info, location info** each matching the order of the previous channel list:""").set_author(
             name="Report Locations", icon_url=Clembot.user.avatar_url))
@@ -1061,7 +1060,7 @@ async def configure(ctx):
                                                               description="Report Locations are set"))
     # configure main-want
     if configcancel == False and server_dict_temp['other'] is True and (
-                    firstconfig == True or configgoto == "all" or configgoto == "want" or configgoto == "allmain"):
+                            firstconfig == True or configgoto == "all" or configgoto == "want" or configgoto == "allmain"):
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(),
                                                               description="""The **!want** and **!unwant** commands let you add or remove roles for Pokemon that will be mentioned in reports. This let you get notifications on the Pokemon you want to track. I just need to know what channels you want to allow people to manage their pokemon with the **!want** and **!unwant** command. If you pick a channel that doesn't exist, I'll make it for you.\n\nIf you don't ant to allow the management of tracked Pokemon roles, then you may want to disable this feature.\n\nRepond with: **N** to disable, or the **channel-name** list to enable, each seperated by a comma and space.""").set_author(
             name="Pokemon Notifications", icon_url=Clembot.user.avatar_url))
@@ -1129,7 +1128,7 @@ async def configure(ctx):
                 break
     # configure main-timezone
     if configcancel == False and server_dict_temp['other'] is True and server_dict_temp['raidset'] is True and (
-                    firstconfig == True or configgoto == "all" or configgoto == "timezone" or configgoto == "allmain"):
+                            firstconfig == True or configgoto == "all" or configgoto == "timezone" or configgoto == "allmain"):
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_(
             "To help coordinate raids reports for you, I need to know what timezone you're in! The current 24-hr time UTC is {utctime}. How many hours off from that are you?\n\nRespond with: A number from **-12** to **12**:").format(
             utctime=strftime("%H:%M", time.gmtime()))).set_author(name="Timezone Configuration",
@@ -1446,7 +1445,7 @@ End admin commands
 async def _uptime(bot):
     """Shows info about Clembot"""
     time_start = bot.uptime
-    time_now = datetime.now()
+    time_now = datetime.datetime.now()
     ut = (relativedelta(time_now, time_start))
     ut.years, ut.months, ut.days, ut.hours, ut.minutes
     if ut.years >= 1:
@@ -1839,10 +1838,10 @@ async def _raid(message):
     gym_info = get_gym_info(gym_code)
     if gym_info:
         del raid_split[-1]
-    if len(raid_split)>= 1 and raid_split[-1].isdigit():
+    if len(raid_split) >= 1 and raid_split[-1].isdigit():
         raidexp = int(raid_split[-1])
         del raid_split[-1]
-    elif len(raid_split)>= 1 and ":" in raid_split[-1]:
+    elif len(raid_split) >= 1 and ":" in raid_split[-1]:
         raid_split[-1] = re.sub(r"[a-zA-Z]", "", raid_split[-1])
         if raid_split[-1].split(":")[0] == "":
             endhours = 0
@@ -2047,7 +2046,7 @@ async def timerset(ctx, timer):
     if checks.check_exraidchannel(ctx):
         if checks.check_eggchannel(ctx):
             tzlocal = tz.tzoffset(None, server_dict[server]['offset'] * 3600)
-            now = datetime.now()
+            now = datetime.datetime.now()
             timer_split = message.clean_content.lower().split()
             del timer_split[0]
             try:
@@ -2972,7 +2971,7 @@ async def gymlookup(ctx):
 
     for gym_info in get_gym_info_for(gym_code):
         gym_message_output += (
-        "{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
+            "{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
 
     if gym_message_output:
         await Clembot.send_message(ctx.message.channel, content=gym_message_output)
@@ -3017,7 +3016,7 @@ async def gym(ctx):
                                                          "Updating raid's location...", "Thank you",
                                                          "Too late! try again!")
         elif check_raidparty_channel(ctx.message.channel):
-             gym_location_update = True
+            gym_location_update = True
 
         if gym_location_update:
             await process_map_link(ctx.message, gym_location)
@@ -3486,7 +3485,7 @@ async def ask_confirmation(message, rusure_message, yes_message, no_message, tim
     channel = message.channel
 
     reaction_list = ['✅', '❎']
-    #reaction_list = ['❔', '✅', '❎']
+    # reaction_list = ['❔', '✅', '❎']
 
     rusure = await Clembot.send_message(channel, _("Beep Beep! {message}".format(message=rusure_message)))
     await Clembot.add_reaction(rusure, "✅")  # checkmark
@@ -3679,8 +3678,10 @@ async def new(ctx):
         oldraidmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidmessage']
         oldreportmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidreport']
         oldembed = oldraidmsg.embeds[0]
-        newembed = discord.Embed(title=oldembed['title'], url=newloc, description=oldembed['description'],
-                                 colour=message.server.me.colour)
+        newembed = discord.Embed(title=oldembed['title'], url=newloc, colour=message.server.me.colour)
+        newembed.add_field(name=oldembed['fields'][0]['name'], value=oldembed['fields'][0]['value'], inline=True)
+        newembed.add_field(name=oldembed['fields'][1]['name'], value=oldembed['fields'][1]['value'], inline=True)
+        newembed.set_footer(text=oldembed['footer']['text'], icon_url=oldembed['footer']['icon_url'])
         newembed.set_thumbnail(url=oldembed['thumbnail']['url'])
         newraidmsg = await Clembot.edit_message(oldraidmsg, new_content=oldraidmsg.content, embed=newembed)
         newreportmsg = await Clembot.edit_message(oldreportmsg, new_content=oldreportmsg.content, embed=newembed)
@@ -3692,16 +3693,14 @@ async def new(ctx):
             user = await Clembot.get_user_info(trainer)
             if trainer_dict[user.id]['status'] == 'omw':
                 otw_list.append(user.mention)
-        await Clembot.send_message(message.channel, content=_(
-            "Beep Beep! Someone has suggested a different location for the raid! Trainers {trainer_list}: make sure you are headed to the right place!").format(
-            trainer_list=", ".join(otw_list)), embed=newembed)
+        await Clembot.send_message(message.channel, content=_("Beep Beep! Someone has suggested a different location for the raid! Trainers {trainer_list}: make sure you are headed to the right place!").format(trainer_list=", ".join(otw_list)), embed=newembed)
         return
 
 
 async def _interest(ctx):
     ctx_maybecount = 0
     tzlocal = tz.tzoffset(None, server_dict[ctx.message.channel.server]['offset'] * 3600)
-    now = datetime.now().replace(tzinfo=tzlocal)
+    now = datetime.datetime.now().replace(tzinfo=tzlocal)
     # Grab all trainers who are maybe and sum
     # up their counts
     trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
@@ -3720,15 +3719,11 @@ async def _interest(ctx):
             name_list.append("**" + user.name + "**")
             maybe_list.append(user.mention)
     if ctx_maybecount > 0:
-        if now.time().replace(tzinfo=tzlocal) >= datetime.datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(
-                tzinfo=tzlocal) <= datetime.datetime.time(21, 0).replace(tzinfo=tzlocal):
-            maybe_exstr = _(
-                " including {trainer_list} and the people with them! Let them know if there is a group forming").format(
-                trainer_list=", ".join(maybe_list))
+       if datetime.time(5, 0).replace(tzinfo=tzlocal) <= now.time().replace(tzinfo=tzlocal) >= datetime.time(21, 0).replace(tzinfo=tzlocal):
+            maybe_exstr = _(" including {trainer_list} and the people with them! Let them know if there is a group forming").format(trainer_list=", ".join(maybe_list))
         else:
             maybe_exstr = _(
-                " including {trainer_list} and the people with them! Let them know if there is a group forming").format(
-                trainer_list=", ".join(name_list))
+                " including {trainer_list} and the people with them! Let them know if there is a group forming").format(trainer_list=", ".join(name_list))
     listmsg = (_("Beep Beep! {trainer_count} interested{including_string}!").format(trainer_count=str(ctx_maybecount),
                                                                                     including_string=maybe_exstr))
 
@@ -3738,7 +3733,7 @@ async def _interest(ctx):
 async def _otw(ctx):
     ctx_omwcount = 0
     tzlocal = tz.tzoffset(None, server_dict[ctx.message.channel.server]['offset'] * 3600)
-    now = datetime.now().replace(tzinfo=tzlocal)
+    now = datetime.datetime.now().replace(tzinfo=tzlocal)
     # Grab all trainers who are :omw: and sum
     # up their counts
     trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
@@ -3757,18 +3752,11 @@ async def _otw(ctx):
             name_list.append("**" + user.name + "**")
             otw_list.append(user.mention)
     if ctx_omwcount > 0:
-        try:
-            if now.time().replace(tzinfo=tzlocal) >= datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(
-                    tzinfo=tzlocal) <= datetime.time(21, 0).replace(tzinfo=tzlocal):
-                otw_exstr = _(
-                    " including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(
-                    trainer_list=", ".join(otw_list))
-            else:
-                otw_exstr = _(
-                    " including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(
-                    trainer_list=", ".join(name_list))
-        except Exception as error:
-            print(error)
+
+        if now.time().replace(tzinfo=tzlocal) >= datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(tzinfo=tzlocal) <= datetime.time(21, 0).replace(tzinfo=tzlocal):
+            otw_exstr = _(" including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(trainer_list=", ".join(otw_list))
+        else:
+            otw_exstr = _(" including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(trainer_list=", ".join(name_list))
     listmsg = (_("Beep Beep! {trainer_count} on the way{including_string}!").format(trainer_count=str(ctx_omwcount),
                                                                                     including_string=otw_exstr))
     return listmsg
@@ -3777,7 +3765,7 @@ async def _otw(ctx):
 async def _waiting(ctx):
     ctx_waitingcount = 0
     tzlocal = tz.tzoffset(None, server_dict[ctx.message.channel.server]['offset'] * 3600)
-    now = datetime.now().replace(tzinfo=tzlocal)
+    now = datetime.datetime.now().replace(tzinfo=tzlocal)
     # Grab all trainers who are :here: and sum
     # up their counts
     trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
@@ -3797,8 +3785,7 @@ async def _waiting(ctx):
             waiting_list.append(user.mention)
     try:
         if ctx_waitingcount > 0:
-            if now.time().replace(tzinfo=tzlocal) >= datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(
-                    tzinfo=tzlocal) <= datetime.time(21, 0).replace(tzinfo=tzlocal):
+            if now.time().replace(tzinfo=tzlocal) >= datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(tzinfo=tzlocal) <= datetime.time(21, 0).replace(tzinfo=tzlocal):
                 waiting_exstr = _(
                     " including {trainer_list} and the people with them! Be considerate and let them know if and when you'll be there").format(
                     trainer_list=", ".join(waiting_list))
@@ -3809,8 +3796,8 @@ async def _waiting(ctx):
     except Exception as error:
         print(error)
     listmsg = (
-    _("Beep Beep! {trainer_count} waiting at the raid{including_string}!").format(trainer_count=str(ctx_waitingcount),
-                                                                                  including_string=waiting_exstr))
+        _("Beep Beep! {trainer_count} waiting at the raid{including_string}!").format(trainer_count=str(ctx_waitingcount),
+                                                                                      including_string=waiting_exstr))
     return listmsg
 
 
