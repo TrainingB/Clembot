@@ -30,6 +30,7 @@ from errors import custom_error_handling
 # --B--
 # ---- dependencies
 import time
+from datetime import timedelta
 import pytz
 from pytz import timezone
 
@@ -2132,7 +2133,7 @@ def convert_into_time(time_as_text):
 
 def fetch_channel_expire_time(channel) -> datetime:
     local_expire_secs = server_dict[channel.server]['raidchannel_dict'][channel]['exp']
-    raid_expires_at = datetime.fromtimestamp(local_expire_secs)
+    raid_expires_at = datetime.datetime.fromtimestamp(local_expire_secs)
 
     server_dict[channel.server]['raidchannel_dict'][channel]['expiry_timestamp'] = raid_expires_at
 
@@ -2141,7 +2142,7 @@ def fetch_channel_expire_time(channel) -> datetime:
 
 def convert_into_current_time(channel, time_hour_and_min_only):
     offset = server_dict[channel.server]['offset']
-    current_time = datetime.utcnow() + timedelta(hours=offset)
+    current_time = datetime.datetime.utcnow() + timedelta(hours=offset)
 
     start_time = current_time.replace(hour=time_hour_and_min_only.tm_hour, minute=time_hour_and_min_only.tm_min)
     return start_time
@@ -2161,7 +2162,7 @@ async def validate_start_time(channel, start_time):
     raid_expires_at = fetch_channel_expire_time(channel)
 
     offset = server_dict[channel.server]['offset']
-    current_datetime = datetime.utcnow() + timedelta(hours=offset)
+    current_datetime = datetime.datetime.utcnow() + timedelta(hours=offset)
 
     suggested_start_time = convert_into_current_time(channel, start_time)
 
