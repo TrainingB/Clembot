@@ -222,6 +222,8 @@ def activeraidchannel():
         if check_raidchannel(ctx):
             if check_raidactive(ctx):
                 return True
+        elif check_raidpartychannel(ctx):
+            return True
         raise errors.ActiveRaidChannelCheckFail()
     return commands.check(predicate)
 
