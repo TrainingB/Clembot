@@ -2945,10 +2945,15 @@ Please type `!beep` if you need a refresher of Clembot commands!
                         trainer_dict[trainer]['status'] == 'waiting':
             user = await Clembot.get_user_info(trainer)
             trainer_list.append(user.mention)
-    if len(raid_info['raid_eggs']['EX']['pokemon']) > 1 or eggdetails['egglevel'].isdigit():
-        await Clembot.send_message(raid_channel, content=_(
-            "Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nIf you couldn't before, you're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(
-            trainer_list=", ".join(trainer_list), pokemon=raid.mention), embed=raid_embed)
+			
+#or len(raid_info['raid_eggs']['EX']['pokemon']) > 1 			
+    try:
+        if eggdetails['egglevel'].isdigit() : 
+            await Clembot.send_message(raid_channel, content=_(
+                "Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nIf you couldn't before, you're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(
+                trainer_list=", ".join(trainer_list), pokemon=raid.mention), embed=raid_embed)
+    except Exception as error:
+        print(error)
 
 
 @Clembot.command(pass_context=True)
@@ -3753,13 +3758,9 @@ async def _otw(ctx):
             name_list.append("**" + user.name + "**")
             otw_list.append(user.mention)
     if ctx_omwcount > 0:
+        otw_exstr = _(" including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(trainer_list=", ".join(otw_list))
 
-        if now.time().replace(tzinfo=tzlocal) >= datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(tzinfo=tzlocal) <= datetime.time(21, 0).replace(tzinfo=tzlocal):
-            otw_exstr = _(" including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(trainer_list=", ".join(otw_list))
-        else:
-            otw_exstr = _(" including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(trainer_list=", ".join(name_list))
-    listmsg = (_("Beep Beep! {trainer_count} on the way{including_string}!").format(trainer_count=str(ctx_omwcount),
-                                                                                    including_string=otw_exstr))
+    listmsg = (_("Beep Beep! {trainer_count} on the way{including_string}!").format(trainer_count=str(ctx_omwcount),including_string=otw_exstr))
     return listmsg
 
 

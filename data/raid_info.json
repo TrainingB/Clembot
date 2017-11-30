@@ -4,7 +4,7 @@
 		"1": {
 			"egg": "normal",
 			"egg_img": "ic_raid_egg_normal.png",
-			"pokemon": [2,5,8,11],
+			"pokemon": [2,5,8,11,129],
 			"oldpokemon": [159,156,153,129]
 		},
 		"2": {

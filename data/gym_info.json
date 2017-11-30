@@ -713,6 +713,12 @@
     "longlat": "34.211392,-118.337543",
     "gmap_link": "https://www.google.com/maps/place/34.211392,-118.337543"
   },
+  "THCH": {
+    "gym_code": "THDA",
+    "gym_name": "The Dabney Building",
+    "longlat": "34.150916,-118.34054",
+    "gmap_link": "https://www.google.com/maps/place/34.150916,-118.34054"
+  },
   "THPR": {
     "gym_code": "THPR",
     "gym_name": "The Propeller",
