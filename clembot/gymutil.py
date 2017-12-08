@@ -6,10 +6,10 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 
 def load_gyms():
     global city_wide_gym_list
-    with open(os.path.join(script_path+"\..\data\gyminfo", "burbankca.json"), "r") as fd:
+    with open(os.path.join(script_path,"..","data","gyminfo", "burbankca.json"), "r") as fd:
         city_wide_gym_list['BURBANKCA'] = json.load(fd)
 
-    with open(os.path.join(script_path+"\..\data\gyminfo", "quincyil.json"), "r") as fd:
+    with open(os.path.join(script_path,"..","data","gyminfo", "quincyil.json"), "r") as fd:
         city_wide_gym_list['QUINCYIL'] = json.load(fd)
 
 # --B--
@@ -60,6 +60,8 @@ def get_matching_gym_info(gym_code_prefix, city_state=None):
                 matching_gyms.append(city_wide_gym_list.get(city_state_element).get(gym_code))
 
     return matching_gyms
+
+
 
 
 # load_gyms()
