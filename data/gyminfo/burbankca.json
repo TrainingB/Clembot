@@ -433,10 +433,10 @@
     "lat_long": "34.190145,-118.361185",
     "gmap_link": "https://www.google.com/maps/place/34.190145,-118.361185"
   },
-  "GEYO": {
+  "SPST": {
     "city_state": "BURBANKCA",
-    "gym_code": "GEYO",
-    "gym_name": "GET YOUR LEVEL BADGE",
+    "gym_code": "SPST",
+    "gym_name": "Sprint Store Downtown Burbank",
     "lat_long": "34.182433,-118.311266",
     "gmap_link": "https://www.google.com/maps/place/34.182433,-118.311266"
   },
@@ -783,17 +783,17 @@
     "lat_long": "34.206129,-118.341333",
     "gmap_link": "https://www.google.com/maps/place/34.206129,-118.341333"
   },
-  "ST(E": {
+  "STEM": {
     "city_state": "BURBANKCA",
-    "gym_code": "ST(E",
-    "gym_name": "Starbucks (Empire Center)",
+    "gym_code": "STEM",
+    "gym_name": "Starbucks Empire Center",
     "lat_long": "34.191494,-118.328926",
     "gmap_link": "https://www.google.com/maps/place/34.191494,-118.328926"
   },
-  "ST(T": {
+  "STTO": {
     "city_state": "BURBANKCA",
-    "gym_code": "ST(T",
-    "gym_name": "Starbucks (Toluca Lake)",
+    "gym_code": "STTO",
+    "gym_name": "Starbucks Toluca Lake",
     "lat_long": "34.15251,-118.34579",
     "gmap_link": "https://www.google.com/maps/place/34.15251,-118.34579"
   },
@@ -831,6 +831,13 @@
     "gym_name": "The Chapel",
     "lat_long": "34.211392,-118.337543",
     "gmap_link": "https://www.google.com/maps/place/34.211392,-118.337543"
+  },
+  "THDA": {
+    "city_state": "BURBANKCA",
+    "gym_code": "THDA",
+    "gym_name": "The Dabney Building",
+    "lat_long": "34.150916,-118.34054",
+    "gmap_link": "https://www.google.com/maps/place/34.150916,-118.34054"
   },
   "THPR": {
     "city_state": "BURBANKCA",
@@ -954,7 +961,7 @@
   "WAME": {
     "city_state": "BURBANKCA",
     "gym_code": "WAME",
-    "gym_name": "War Memorial at McCambridge Pa",
+    "gym_name": "War Memorial at McCambridge Park",
     "lat_long": "34.19033,-118.321191",
     "gmap_link": "https://www.google.com/maps/place/34.19033,-118.321191"
   },
