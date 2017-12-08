@@ -289,6 +289,13 @@
   "SUPA": {
     "city_state": "QUNICYIL",
     "gym_code": "SUPA",
+    "gym_name": "Sunset Park",
+    "lat_long": "39.950421,-91.41398",
+    "gmap_link": "https://www.google.com/maps/place/39.950421,-91.41398"
+  },
+  "SUPA2": {
+    "city_state": "QUNICYIL",
+    "gym_code": "SUPA2",
     "gym_name": "Sunset Park 2",
     "lat_long": "39.94619,-91.412865",
     "gmap_link": "https://www.google.com/maps/place/39.94619,-91.412865"

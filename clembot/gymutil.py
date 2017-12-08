@@ -67,7 +67,7 @@ def get_matching_gym_info(gym_code_prefix, city_state=None):
 # print(get_gym_info("CLCO", city_state=["BURBANKCA"]))
 #
 #
-# print(get_matching_gym_info("VI", city_state=["QUINCYIL"]))
+# print(get_matching_gym_info("SUPA", city_state=["QUINCYIL"]))
 #
 # print(get_matching_gym_info("VI", city_state=["BURBANKCA"]))
 

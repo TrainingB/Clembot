@@ -172,10 +172,10 @@ def _set_prefix(bot, server, prefix):
 def get_city_list(message):
     city_list = []
     try:
-        city_channel = server_dict[message.server]['city_channels'].get(message.channel.name).replace(" ","").upper()
+        city_channel = server_dict[message.server]['city_channels'].get(message.channel.name)
 
         if city_channel:
-            city_list.append(city_channel)
+            city_list.append(city_channel.replace(" ","").upper())
             return city_list
 
         for key in server_dict[message.server]['city_channels'].keys():
@@ -310,23 +310,23 @@ def print_emoji_name(server, emoji_string):
 
 # --B--
 
-def extract_longlat_from(gmap_link):
-    longlat = gmap_link.replace("http://maps.google.com/maps?q=", "")
-    longlat = longlat.replace("https://maps.google.com/maps?q=", "")
-    longlat = longlat.replace("https://www.google.com/maps/place/", "")
+def extract_lat_long_from(gmap_link):
+    lat_long = gmap_link.replace("http://maps.google.com/maps?q=", "")
+    lat_long = lat_long.replace("https://maps.google.com/maps?q=", "")
+    lat_long = lat_long.replace("https://www.google.com/maps/place/", "")
 
     pattern = re.compile("^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$")
 
-    if pattern.match(longlat):
-        return longlat
+    if pattern.match(lat_long):
+        return lat_long
 
     return None
 
 
-def fetch_gmap_image_link(longlat):
+def fetch_gmap_image_link(lat_long):
     key = "AIzaSyCoS20_EWol8TgnAiTk1417ybvUIRoEIQw"
     gmap_base_url = "https://maps.googleapis.com/maps/api/staticmap?center={0}&markers=color:red%7C{1}&maptype=roadmap&size=250x125&zoom=15&key={2}".format(
-        longlat, longlat, key)
+        lat_long, lat_long, key)
 
     return gmap_base_url
 
@@ -3014,9 +3014,9 @@ async def gymlookup(ctx):
     gym_message_output = ""
     try :
 
-        city_state_list = get_city_list(ctx)
+        city_state_list = get_city_list(ctx.message)
 
-        for gym_info in gymutil.get_matching_gym_info(gym_code, city_state= get_city_list(ctx)):
+        for gym_info in gymutil.get_matching_gym_info(gym_code, city_state= city_state_list):
             if len(city_state_list) == 1 :
                 gym_message_output += ("{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
             else:
@@ -3057,7 +3057,7 @@ async def gym(ctx):
     gym_info = None
 
     if gym_code:
-        gym_info = gymutil.get_gym_info(gym_code, get_city_list(ctx.message))
+        gym_info = gymutil.get_gym_info(gym_code, city_state= get_city_list(ctx.message))
 
     if gym_info:
         gym_location = gym_info['gmap_link']
@@ -3070,7 +3070,7 @@ async def gym(ctx):
         raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title),
                                    url=gym_location, description=embed_desription)
 
-        embed_map_image_url = fetch_gmap_image_link(gym_info['longlat'])
+        embed_map_image_url = fetch_gmap_image_link(gym_info['lat_long'])
         raid_embed.set_image(url=embed_map_image_url)
         roster_message = "here are the gym details! "
 
@@ -3929,7 +3929,7 @@ async def update(ctx):
         if gym_info:
             roster_loc['gym_name'] = gym_info['gym_name']
             roster_loc['gym_code'] = gym_info['gym_code']
-            roster_loc['longlat'] = gym_info['longlat']
+            roster_loc['lat_long'] = gym_info['lat_long']
             args_split.remove(arg)
 
         elif arg in pkmn_info['pokemon_list']:
@@ -3941,7 +3941,7 @@ async def update(ctx):
                 roster_loc['gmap_link'] = gmap_link
                 roster_loc['gym_name'] = "location " + str(roster_loc['index'])
                 roster_loc['gym_code'] = "location " + str(roster_loc['index'])
-                roster_loc['longlat'] = extract_longlat_from(gmap_link)
+                roster_loc['lat_long'] = extract_lat_long_from(gmap_link)
             else:
                 await print_roster_with_highlight(ctx.message, location_number,
                                                   "Beep Beep...I am not sure what to update; valid choices are **pokemon, gym-code or link to the location**!".format(
@@ -4000,13 +4000,13 @@ async def add(ctx):
             roster_loc['gym_name'] = gym_info['gym_name']
             roster_loc['gym_code'] = gym_info['gym_code']
             roster_loc['gmap_link'] = gym_info['gmap_link']
-            roster_loc['longlat'] = gym_info['longlat']
+            roster_loc['lat_long'] = gym_info['lat_long']
         else:
             roster_loc_label = "".join(args_split)
             roster_loc['gym_name'] = roster_loc_label
             roster_loc['gym_code'] = roster_loc_label
             roster_loc['gmap_link'] = fetch_gmap_link(roster_loc_label, ctx.message.channel)
-            roster_loc['longlat'] = None
+            roster_loc['lat_long'] = None
 
         roster.append(roster_loc)
 
@@ -4058,7 +4058,7 @@ async def _add(message, gmap_link):
             roster_loc['gmap_link'] = gmap_link
             roster_loc['gym_name'] = "location " + str(roster_loc['index'])
             roster_loc['gym_code'] = "location " + str(roster_loc['index'])
-            roster_loc['longlat'] = extract_longlat_from(gmap_link)
+            roster_loc['lat_long'] = extract_lat_long_from(gmap_link)
             roster.append(roster_loc)
 
             roster_message = _("Location {location_number} has been been added to roster!").format(
@@ -4350,11 +4350,11 @@ async def print_roster_with_highlight(message, highlight_roster_loc, roster_mess
 
         roster_msg = ""
         highlighted_loc = None
-        longlat = None
+        lat_long = None
         for roster_loc in roster:
             if highlight_roster_loc == roster_loc['index']:
                 highlighted_loc = roster_loc
-                longlat = roster_loc['longlat']
+                lat_long = roster_loc['lat_long']
                 break
 
         raid_party_image_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
@@ -4368,14 +4368,14 @@ async def print_roster_with_highlight(message, highlight_roster_loc, roster_mess
         embed_map_image_url = None
 
         embed_desription = "*location link doesn't support preview...*"
-        if longlat:
+        if lat_long:
             embed_desription = ""
 
         raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title),
                                    url=roster_loc_gmap_link, image=raid_img_url, description=embed_desription)
         raid_embed.set_thumbnail(url=raid_img_url)
-        if longlat:
-            embed_map_image_url = fetch_gmap_image_link(longlat)
+        if lat_long:
+            embed_map_image_url = fetch_gmap_image_link(lat_long)
             raid_embed.set_image(url=embed_map_image_url)
 
         await Clembot.send_message(message.channel, content=_("Beep Beep! {member} {roster_message}").format(
