@@ -29,6 +29,7 @@ from errors import custom_error_handling
 
 # --B--
 # ---- dependencies
+import gymutil
 import time
 from datetime import timedelta
 import pytz
@@ -100,8 +101,6 @@ def load_config():
     global type_chart
     global type_list
     global raid_info
-    global gym_info_file
-    global gym_info_list
     global egg_timer
     global raid_timer
     global icon_list
@@ -127,17 +126,18 @@ def load_config():
         type_chart = json.load(fd)
     with open(os.path.join('data', 'type_list.json'), "r") as fd:
         type_list = json.load(fd)
-    # --B--
-    with open(os.path.join('data', "gym_info.json"), "r") as fd:
-        gym_info_list = json.load(fd)
 
     with open(os.path.join('data', "icon.json"), "r") as fd:
         icon_list = json.load(fd)
 
     # Set spelling dictionary to our list of Pokemon
     spelling.set_dictionary(pkmn_info['pokemon_list'])
+
+    # --B--
     egg_timer = config['egg-timer']
     raid_timer = config['raid-timer']
+
+    gymutil.load_gyms()
 
 
 load_config()
@@ -167,6 +167,31 @@ def get_icon_url(pokedex_number):
 
 def _set_prefix(bot, server, prefix):
     bot.server_dict[server]["prefix"] = prefix
+
+
+def get_city_list(message):
+    city_list = []
+    try:
+        city_channel = server_dict[message.server]['city_channels'].get(message.channel.name).replace(" ","").upper()
+
+        if city_channel:
+            city_list.append(city_channel)
+            return city_list
+
+        for key in server_dict[message.server]['city_channels'].keys():
+            city_name = server_dict[message.server]['city_channels'].get(key)
+            city_key = city_name.replace(" ","").upper()
+            city_list.append(city_key)
+
+    except Exception as error:
+        print (error)
+
+    return city_list
+
+# @Clembot.command(pass_context=True)
+# async def test(ctx):
+#     await Clembot.send_message(ctx.message.channel,content=get_city_list(ctx))
+
 
 
 # Given a Pokemon name, return a list of its
@@ -284,24 +309,6 @@ def print_emoji_name(server, emoji_string):
 
 
 # --B--
-def get_gym_info(gym_code, attribute=None):
-    gym_info = gym_info_list.get(gym_code.upper())
-    if gym_info:
-        if attribute:
-            return gym_info[attribute]
-        else:
-            return gym_info
-    return None
-
-
-def get_gym_info_for(gym_code_prefix):
-    matching_gyms = []
-
-    for gym_code in gym_info_list.keys():
-        if gym_code.startswith(gym_code_prefix):
-            matching_gyms.append(gym_info_list.get(gym_code))
-    return matching_gyms
-
 
 def extract_longlat_from(gmap_link):
     longlat = gmap_link.replace("http://maps.google.com/maps?q=", "")
@@ -325,11 +332,14 @@ def fetch_gmap_image_link(longlat):
 
 
 def fetch_gmap_link(gym_code, channel):
-    details_list = gym_code.split()
-    report_channel = server_dict[channel.server]['raidchannel_dict'][channel]['reportcity']
-    city_channel = server_dict[channel.server]['city_channels'][report_channel]
-    loc_list = city_channel.split()
-    return "https://www.google.com/maps/search/?api=1&query={0}+{1}".format('+'.join(details_list), '+'.join(loc_list))
+    try :
+        details_list = gym_code.split()
+        report_channel = server_dict[channel.server]['raidchannel_dict'][channel]['reportcity']
+        city_channel = server_dict[channel.server]['city_channels'][report_channel]
+        loc_list = city_channel.split()
+        return "https://www.google.com/maps/search/?api=1&query={0}+{1}".format('+'.join(details_list), '+'.join(loc_list))
+    except Exception as error:
+        return "https://www.google.com/maps/search/?api=1&query={0}+{1}"
 
 
 # Given an arbitrary string, create a Google Maps
@@ -448,8 +458,7 @@ If this was in error, reset the raid with **!timerset**"""))
                     if trainer_dict[trainer]['status'] == 'maybe':
                         user = await Clembot.get_user_info(trainer)
                         maybe_list.append(user.mention)
-                await Clembot.send_message(channel, _(
-                    """**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**. This channel will be deactivated until I get an update and I'll delete it in 15 minutes if I don't hear anything.""").format(
+                await Clembot.send_message(channel, _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**. This channel will be deactivated until I get an update and I'll delete it in 15 minutes if I don't hear anything.""").format(
                     trainer_list=", ".join(maybe_list)))
             delete_time = server_dict[server]['raidchannel_dict'][channel]['exp'] + (15 * 60) - time.time()
         else:
@@ -483,6 +492,11 @@ To reactivate the channel, use **!timerset** to set the timer again."""))
                     logger.info("Expire_Channel - Channel Deleted - " + channel.name)
         except:
             pass
+
+
+@Clembot.command(pass_context=True)
+async def expire(ctx):
+    await expiry_check(ctx.message.channel)
 
 
 async def channel_cleanup(loop=True):
@@ -1836,7 +1850,7 @@ async def _raid(message):
     gym_info = None
 
     gym_code = raid_split[-1].upper()
-    gym_info = get_gym_info(gym_code)
+    gym_info = gymutil.get_gym_info(gym_code, city_state= get_city_list(message))
     if gym_info:
         del raid_split[-1]
     if len(raid_split) >= 1 and raid_split[-1].isdigit():
@@ -1884,7 +1898,7 @@ async def _raid(message):
 
     if gym_info is None and 4 <= raid_details.__len__() <= 5:
         raid_details_gym_code = raid_details.upper()
-        raid_details_gym_info = get_gym_info(raid_details_gym_code)
+        raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state= get_city_list(message))
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
 
@@ -2188,6 +2202,30 @@ async def validate_start_time(channel, start_time):
 
     return suggested_start_time
 
+
+
+
+
+
+@Clembot.command(pass_context=True)
+async def embed(ctx):
+    message = ctx.message
+    raid_img_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
+
+    bosslist1 = ["Line 1", "Line 2"]
+    bosslist2 = ["Line 1", "Line 2"]
+
+    raid_title = _("Beep Beep! A raid party is being organized by {member} in {channel}!").format(member=message.author, channel = message.channel.mention)
+
+    raid_embed = discord.Embed(title=raid_title, url="", colour=message.server.me.colour)
+    # raid_embed.add_field(name="**Possible Bosses:**",value=_("{bosslist1}").format(bosslist1="\n".join(bosslist1)), inline=True)
+    # raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(bosslist2)),inline=True)
+    raid_embed.set_footer(text=_("Reported by {author}").format(author=message.author.name),icon_url=message.author.avatar_url)
+    raid_embed.set_thumbnail(url=raid_img_url)
+    raidreport = await Clembot.send_message(message.channel, content=_(
+        "Beep Beep! Sample Embed Test"), embed=raid_embed)
+
+    return
 
 @Clembot.command(pass_context=True)
 @checks.raidchannel()
@@ -2637,7 +2675,7 @@ async def _raidegg(message):
 
     if raidegg_split[-1].isalpha():
         gym_code = raidegg_split[-1].upper()
-        gym_info = get_gym_info(gym_code)
+        gym_info = gymutil.get_gym_info(gym_code, city_state= get_city_list(message))
         if gym_info:
             del raidegg_split[-1]
     if raidegg_split[0].isdigit():
@@ -2684,7 +2722,7 @@ async def _raidegg(message):
 
     if gym_info is None and 2 <= raid_details.__len__() <= 5:
         raid_details_gym_code = raid_details.upper()
-        raid_details_gym_info = get_gym_info(raid_details_gym_code)
+        raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state= get_city_list(message))
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
             raid_details = gym_info['gym_name']
@@ -2757,7 +2795,7 @@ Please type `!beep` if you need a refresher of Clembot commands!
         server_dict[message.server]['raidchannel_dict'][raid_channel] = {
             'reportcity': message.channel.name,
             'trainer_dict': {},
-            'exp': time.time() + 60 * 60,  # One hour from now
+            'exp': time.time() + egg_timer * 60,  # One hour from now
             'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
             'active': True,
             'raidmessage': raidmessage,
@@ -2945,10 +2983,10 @@ Please type `!beep` if you need a refresher of Clembot commands!
                         trainer_dict[trainer]['status'] == 'waiting':
             user = await Clembot.get_user_info(trainer)
             trainer_list.append(user.mention)
-			
-#or len(raid_info['raid_eggs']['EX']['pokemon']) > 1 			
+
+#or len(raid_info['raid_eggs']['EX']['pokemon']) > 1
     try:
-        if eggdetails['egglevel'].isdigit() : 
+        if eggdetails['egglevel'].isdigit() :
             await Clembot.send_message(raid_channel, content=_(
                 "Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nIf you couldn't before, you're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(
                 trainer_list=", ".join(trainer_list), pokemon=raid.mention), embed=raid_embed)
@@ -2974,17 +3012,39 @@ async def gymlookup(ctx):
 
     gym_code = args_split[0].upper()
     gym_message_output = ""
+    try :
 
-    for gym_info in get_gym_info_for(gym_code):
-        gym_message_output += (
-            "{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
+        city_state_list = get_city_list(ctx)
 
-    if gym_message_output:
-        await Clembot.send_message(ctx.message.channel, content=gym_message_output)
-    else:
-        await Clembot.send_message(ctx.message.channel,
-                                   content="Beep Beep...Hmmm, no matches found for {gym_code}".format(
-                                       gym_code=gym_code))
+        for gym_info in gymutil.get_matching_gym_info(gym_code, city_state= get_city_list(ctx)):
+            if len(city_state_list) == 1 :
+                gym_message_output += ("{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
+            else:
+                gym_message_output += ("{gym_code} \t- {gym_name} ({city_state})\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name'), city_state=gym_info.get('city_state')))
+
+        if gym_message_output:
+            await Clembot.send_message(ctx.message.channel, content=gym_message_output)
+        else:
+            await Clembot.send_message(ctx.message.channel,
+                                       content="Beep Beep...Hmmm, no matches found for {gym_code}".format(
+                                           gym_code=gym_code))
+    except Exception as error:
+        await Clembot.send_message(ctx.message.channel, content=error)
+
+@Clembot.command(pass_context=True)
+async def status(ctx):
+    try :
+
+        status_map= dict(server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel])
+
+        status_map.pop('raidreport')
+        status_map.pop('raidmessage')
+
+        await Clembot.send_message(ctx.message.channel,content=json.dumps(status_map, indent=4, sort_keys=True))
+
+    except Exception as error:
+        print(error)
+
 
 
 @Clembot.command(pass_context=True, aliases=["g"])
@@ -2997,7 +3057,7 @@ async def gym(ctx):
     gym_info = None
 
     if gym_code:
-        gym_info = get_gym_info(gym_code)
+        gym_info = gymutil.get_gym_info(gym_code, get_city_list(ctx.message))
 
     if gym_info:
         gym_location = gym_info['gmap_link']
@@ -3864,7 +3924,7 @@ async def update(ctx):
             return
 
         arg = args_split[0]
-        gym_info = get_gym_info(arg)
+        gym_info = gymutil.get_gym_info(arg, city_state= get_city_list(ctx.message))
 
         if gym_info:
             roster_loc['gym_name'] = gym_info['gym_name']
@@ -3873,7 +3933,7 @@ async def update(ctx):
             args_split.remove(arg)
 
         elif arg in pkmn_info['pokemon_list']:
-            roster_loc['mon'] = arg
+            roster_loc['pokemon'] = arg
             args_split.remove(arg)
         else:
             gmap_link = extract_link_from_text("".join(args_split))
@@ -3925,7 +3985,7 @@ async def add(ctx):
                 return
 
         roster_loc_gym_code = args_split[1]
-        gym_info = get_gym_info(roster_loc_gym_code)
+        gym_info = gymutil.get_gym_info(roster_loc_gym_code, city_state= get_city_list(ctx.message))
 
         roster_loc = {}
 
@@ -3934,7 +3994,7 @@ async def add(ctx):
         else:
             roster_loc['index'] = roster[-1]['index'] + 1
 
-        roster_loc['mon'] = roster_loc_mon
+        roster_loc['pokemon'] = roster_loc_mon
 
         if gym_info:
             roster_loc['gym_name'] = gym_info['gym_name']
@@ -4000,6 +4060,7 @@ async def _add(message, gmap_link):
             roster_loc['gym_code'] = "location " + str(roster_loc['index'])
             roster_loc['longlat'] = extract_longlat_from(gmap_link)
             roster.append(roster_loc)
+
             roster_message = _("Location {location_number} has been been added to roster!").format(
                 location_number=emojify_numbers(roster_loc['index']))
 
@@ -4226,7 +4287,7 @@ async def where(ctx):
                 await print_roster_with_highlight(ctx.message, roster_loc['index'],
                                                   "Location {location} - {gym} - {pokemon}".format(
                                                       location=emojify_numbers(roster_loc['index']),
-                                                      pokemon=roster_loc['mon'].capitalize(),
+                                                      pokemon=roster_loc['pokemon'].capitalize(),
                                                       gym=roster_loc['gym_name']))
                 return
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have location {location_number}.".format(location_number=emojify_numbers(location_number))))
