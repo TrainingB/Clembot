@@ -3199,16 +3199,7 @@ beepgym = ("""
 
 `!gym <gym-code>` brings up the google maps location of the gym.
 
-Note : **gym-code** is **first two letters** of **first two words** of gym name 
-
-in most cases it means 4 characters with following exceptions:
-FO - Fountain 
-SI - Silhoutte
-F-ST - F-104 Starfighter
-ROE. - Robert E. Gross Park
-SPST - Sprint Store Downtown Burbank
-BUVIL - Buena Vista Library 
-BUVIP - Buena Vista Park 
+Note : **gym-code** is **first two letters** of **first two words** of gym name with some exceptions
 
 `!gymlookup <code>` looks up all gyms starting with code. 
 ** **
