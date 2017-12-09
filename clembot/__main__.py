@@ -499,7 +499,7 @@ If this was in error, reset the raid with **!timerset**"""))
             if not alreadyexpired:
                 await Clembot.send_message(channel, _("""This channel timer has expired! The channel has been deactivated and will be deleted in 5 minutes.
 To reactivate the channel, use **!timerset** to set the timer again."""))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel))
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=5).seconds - convert_to_epoch(fetch_current_time(channel))
             expiremsg = _("**This {pokemon} raid has expired!**").format(pokemon=server_dict[channel.server]['raidchannel_dict'][channel]['pokemon'].capitalize())
         await asyncio.sleep(delete_time)
         # If the channel has already been deleted from the dict, someone
