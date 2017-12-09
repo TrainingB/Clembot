@@ -32,6 +32,7 @@ from errors import custom_error_handling
 import gymutil
 import time
 from datetime import timedelta
+import calendar
 import pytz
 from pytz import timezone
 
@@ -481,7 +482,7 @@ async def expire_channel(channel):
             if not alreadyexpired:
                 await Clembot.send_message(channel, _("""This channel has been successfully reported as a duplicate and will be deleted in 1 minute. Check the channel list for the other raid channel to coordinate in!
 If this was in error, reset the raid with **!timerset**"""))
-            delete_time = fetch_channel_expire_time(channel) + timedelta(minutes=1) - fetch_current_time(channel)
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel))
         elif server_dict[server]['raidchannel_dict'][channel]['type'] == 'egg':
             if not alreadyexpired:
                 maybe_list = []
@@ -492,13 +493,13 @@ If this was in error, reset the raid with **!timerset**"""))
                         maybe_list.append(user.mention)
                 await Clembot.send_message(channel, _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**. This channel will be deactivated until I get an update and I'll delete it in 15 minutes if I don't hear anything.""").format(
                     trainer_list=", ".join(maybe_list)))
-            delete_time = fetch_channel_expire_time(channel) + timedelta(minutes=15) - fetch_current_time(channel)
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=15).seconds - convert_to_epoch(fetch_current_time(channel))
             expiremsg = _("**This level {level} raid egg has expired!**").format(level=server_dict[channel.server]['raidchannel_dict'][channel]['egglevel'])
         else:
             if not alreadyexpired:
                 await Clembot.send_message(channel, _("""This channel timer has expired! The channel has been deactivated and will be deleted in 5 minutes.
 To reactivate the channel, use **!timerset** to set the timer again."""))
-            delete_time = fetch_channel_expire_time(channel) + timedelta(minutes=5) - fetch_current_time(channel)
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel))
             expiremsg = _("**This {pokemon} raid has expired!**").format(pokemon=server_dict[channel.server]['raidchannel_dict'][channel]['pokemon'].capitalize())
         await asyncio.sleep(delete_time)
         # If the channel has already been deleted from the dict, someone
@@ -2178,6 +2179,9 @@ def convert_into_time(time_as_text):
         start_time = None
 
     return start_time
+
+def convert_to_epoch(current_time):
+    return calendar.timegm(current_time.utctimetuple())
 
 
 def fetch_channel_expire_time(channel) -> datetime:
