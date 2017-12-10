@@ -452,6 +452,7 @@ async def expiry_check(channel):
 async def expire_channel(channel):
     server = channel.server
     alreadyexpired = False
+    print("Expire_Channel - " + channel.name)
     logger.info("Expire_Channel - " + channel.name)
     # If the channel exists, get ready to delete it.
     # Otherwise, just clean up the dict since someone
@@ -493,13 +494,13 @@ If this was in error, reset the raid with **!timerset**"""))
                         maybe_list.append(user.mention)
                 await Clembot.send_message(channel, _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**. This channel will be deactivated until I get an update and I'll delete it in 15 minutes if I don't hear anything.""").format(
                     trainer_list=", ".join(maybe_list)))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=15).seconds - convert_to_epoch(fetch_current_time(channel))
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel))
             expiremsg = _("**This level {level} raid egg has expired!**").format(level=server_dict[channel.server]['raidchannel_dict'][channel]['egglevel'])
         else:
             if not alreadyexpired:
                 await Clembot.send_message(channel, _("""This channel timer has expired! The channel has been deactivated and will be deleted in 5 minutes.
 To reactivate the channel, use **!timerset** to set the timer again."""))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=5).seconds - convert_to_epoch(fetch_current_time(channel))
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel))
             expiremsg = _("**This {pokemon} raid has expired!**").format(pokemon=server_dict[channel.server]['raidchannel_dict'][channel]['pokemon'].capitalize())
         await asyncio.sleep(delete_time)
         # If the channel has already been deleted from the dict, someone
@@ -3081,15 +3082,19 @@ async def gymlookup(ctx):
 async def status(ctx):
     try:
 
-        status_map = dict(server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel])
 
+        status_map = dict(server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel])
+        print(status_map)
         status_map.pop('raidreport')
         status_map.pop('raidmessage')
+        exp = status_map.pop('exp')
 
+        status_map['exp'] = exp.isoformat()
         await Clembot.send_message(ctx.message.channel, content=json.dumps(status_map, indent=4, sort_keys=True))
 
     except Exception as error:
-        print(error)
+        await Clembot.send_message(ctx.message.channel, content=error)
+
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["g"])
@@ -4099,7 +4104,7 @@ async def _add(message, gmap_link):
             else:
                 roster_loc['index'] = roster[-1]['index'] + 1
 
-            roster_loc['mon'] = roster_loc_mon
+            roster_loc['pokemon'] = roster_loc_mon
             roster_loc['gmap_link'] = gmap_link
             roster_loc['gym_name'] = "location " + str(roster_loc['index'])
             roster_loc['gym_code'] = "location " + str(roster_loc['index'])
@@ -4211,7 +4216,7 @@ def get_roster_with_highlight(roster, highlight_roster_loc):
             else:
                 marker = ""
             roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon}{marker2}").format(
-                number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['mon'].capitalize(),
+                number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(),
                 gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], marker1=marker, marker2=marker)
     except Exception as error:
         print(error)
