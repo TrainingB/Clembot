@@ -193,7 +193,10 @@ def get_city_list(message):
         for key in server_dict[message.server]['city_channels'].keys():
             city_name = server_dict[message.server]['city_channels'].get(key)
             city_key = city_name.replace(" ", "").upper()
-            city_list.append(city_key)
+            if city_list.__contains__(city_key):
+                pass
+            else:
+                city_list.append(city_key)
 
     except Exception as error:
         print(error)
