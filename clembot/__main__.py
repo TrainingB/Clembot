@@ -2350,7 +2350,6 @@ Message **!starting** when the raid is beginning to clear the raid's 'here' list
         'egglevel': 'EX',
         'suggested_start': False
     }
-        'manual_timer': False, 'active': True, 'raidmessage': raidmessage, 'raidreport': raidreport, 'address': raid_details, 'type': 'egg', 'pokemon': '', 'egglevel': 'EX', 'suggested_start': False}
 
     await Clembot.send_message(raid_channel, content=_("Beep Beep! Hey {member}, if you can, set the time the EX Raid begins using **!timerset <date and time>** so others can check it with **!timer**. **<date and time>** should look exactly as it appears on your invitation.").format(member=message.author.mention))
 
