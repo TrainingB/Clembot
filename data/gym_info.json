@@ -797,12 +797,6 @@
     "longlat": "34.163294,-118.339482",
     "gmap_link": "https://www.google.com/maps/place/34.163294,-118.339482"
   },
-  "VIPA": {
-    "gym_code": "VIPA",
-    "gym_name": "Vickroy Park",
-    "longlat": "34.186131,-118.337445",
-    "gmap_link": "https://www.google.com/maps/place/34.186131,-118.337445"
-  },
   "VIBA": {
     "gym_code": "VIBA",
     "gym_name": "Victory Baptist Church",
@@ -814,6 +808,20 @@
     "gym_name": "Villa Cabrini Park",
     "longlat": "34.215491,-118.337181",
     "gmap_link": "https://www.google.com/maps/place/34.215491,-118.337181"
+  },
+    "VIMA": {
+    "city_state": "BURBANKCA",
+    "gym_code": "VIMA",
+    "gym_name": "Virgin Mary and Child at Dignity Memorial Garden",
+    "lat_long": "34.1905411,-118.3619786",
+    "gmap_link": "https://www.google.com/maps/place/34.1905411,-118.3619786"
+  },
+  "VIPA": {
+    "city_state": "BURBANKCA",
+    "gym_code": "VIPA",
+    "gym_name": "Vickroy Park",
+    "lat_long": "34.186131,-118.337445",
+    "gmap_link": "https://www.google.com/maps/place/34.186131,-118.337445"
   },
   "WADA": {
     "gym_code": "WADA",
