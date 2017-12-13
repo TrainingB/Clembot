@@ -363,12 +363,17 @@
     "lat_long": "34.180561,-118.332313",
     "gmap_link": "https://www.google.com/maps/place/34.180561,-118.332313"
   },
-  "FADO": {
-    "city_state": "BURBANKCA",
-    "gym_code": "FADO",
+  "FADOP": {
+    "gym_code": "FADOP",
     "gym_name": "Fancy Dog Parade",
-    "lat_long": "34.164626,-118.360802",
+    "longlat": "34.164626,-118.360802",
     "gmap_link": "https://www.google.com/maps/place/34.164626,-118.360802"
+  },
+  "FADOS": {
+    "gym_code": "FADOS",
+    "gym_name": "Faster Donuts San Fernando",
+    "longlat": "34.171809,-118.29604",
+    "gmap_link": "  http://maps.google.com/maps?q=34.171809,-118.29604"
   },
   "FILU": {
     "city_state": "BURBANKCA",
@@ -488,6 +493,12 @@
     "gym_name": "Handy Market",
     "lat_long": "34.171665,-118.335178",
     "gmap_link": "https://www.google.com/maps/place/34.171665,-118.335178"
+  },
+  "HIDE": {
+    "gym_code": "HIDE",
+    "gym_name": "Hillside Deli",
+    "longlat": "34.1884037,-118.3075303",
+    "gmap_link": "https://www.google.com/maps/place/34.1884037,-118.3075303"
   },
   "HIFI": {
     "city_state": "BURBANKCA",
