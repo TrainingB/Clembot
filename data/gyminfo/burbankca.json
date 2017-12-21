@@ -1021,7 +1021,7 @@
   "TOTO": {
     "gym_code": "TOTO",
     "gym_name": "Toluca Towers Fountain",
-    "longlat": "34.155752,-118.361376",
+    "lat_long": "34.155752,-118.361376",
     "gmap_link": "http://maps.google.com/maps?q=34.155752,-118.361376"
   }
 }
