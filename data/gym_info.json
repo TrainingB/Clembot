@@ -876,5 +876,11 @@
     "gym_name": "Yoga Lotus",
     "longlat": "34.164806,-118.359614",
     "gmap_link": "https://www.google.com/maps/place/34.164806,-118.359614"
+  },
+  "TOTO": {
+    "gym_code": "TOTO",
+    "gym_name": "Toluca Towers Fountain",
+    "longlat": "34.155752,-118.361376",
+    "gmap_link": "http://maps.google.com/maps?q=34.155752,-118.361376"
   }
 }
