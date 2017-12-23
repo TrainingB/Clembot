@@ -24,7 +24,9 @@ for server in server_dict_old:
 		server_dict_new[server.id]['want_channel_list'].append(channel.id)
 
 	for channel in server_dict_old[server]['raidchannel_dict']:
-		server_dict_new[server.id]['raidchannel_dict'][channel.id] = {
+		try:
+			print("processing : {server}.{channel}".format(server=channel.server, channel=channel))
+			server_dict_new[server.id]['raidchannel_dict'][channel.id] = {
 			'address': server_dict_old[server]['raidchannel_dict'][channel]['address'],
 			'reportcity': server_dict_old[server]['raidchannel_dict'][channel]['reportcity'],
 			'trainer_dict' : server_dict_old[server]['raidchannel_dict'][channel]['trainer_dict'],
@@ -37,6 +39,9 @@ for server in server_dict_old:
 			'pokemon': server_dict_old[server]['raidchannel_dict'][channel]['pokemon'],
 			'egglevel': server_dict_old[server]['raidchannel_dict'][channel]['egglevel']
 			}
+		except Exception as error:
+			print("Error processing : {server}.{channel}".format(server=channel.server, channel=channel))
+			continue
 
 with tempfile.NamedTemporaryFile('wb', delete=False) as tf:
 	pickle.dump(server_dict_new, tf)
