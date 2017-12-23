@@ -443,7 +443,7 @@ async def expiry_check(channel):
             try:
                 if server_dict[server.id]['raidchannel_dict'][channel.id]['active'] is True:
                     if server_dict[server.id]['raidchannel_dict'][channel.id]['exp'] is not None:
-                        print("{channel} => {expiry} vs {current}".format(channel=channel.name,expiry=server_dict[server.id]['raidchannel_dict'][channel.id]['exp'],current=fetch_current_time(channel.server.id)))
+                        # print("{channel} => {expiry} vs {current}".format(channel=channel.name,expiry=server_dict[server.id]['raidchannel_dict'][channel.id]['exp'],current=fetch_current_time(channel.server.id)))
 
                         if server_dict[server.id]['raidchannel_dict'][channel.id]['exp'] <= fetch_current_time(channel.server.id):
                             if server_dict[server.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
