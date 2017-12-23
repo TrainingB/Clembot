@@ -33,6 +33,7 @@ import gymutil
 import time
 from datetime import timedelta
 import calendar
+import copy
 import pytz
 from pytz import timezone
 
@@ -50,7 +51,7 @@ logger = init_loggers()
 def _get_prefix(bot, message):
     server = message.server
     try:
-        set_prefix = bot.server_dict[server]["prefix"]
+        set_prefix = bot.server_dict[server.id]["prefix"]
     except KeyError:
         set_prefix = None
     default_prefix = bot.config["default_prefix"]
@@ -79,6 +80,9 @@ except OSError:
 
 server_dict = Clembot.server_dict
 
+
+
+
 config = {}
 pkmn_info = {}
 type_chart = {}
@@ -89,6 +93,12 @@ gym_info_list = {}
 egg_timer = 0
 raid_timer = 0
 icon_list = {}
+GOOGLE_API_KEY = ""
+GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
+
+
+# GOOGLE_API_KEY = "AIzaSyCoS20_EWol8TgnAiTk1417ybvUIRoEIQw"
+# GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -105,6 +115,8 @@ def load_config():
     global egg_timer
     global raid_timer
     global icon_list
+    global GOOGLE_API_KEY
+    global GOOGLE_MAPS_URL
 
     # Load configuration
     with open("config.json", "r") as fd:
@@ -137,13 +149,16 @@ def load_config():
     # --B--
     egg_timer = config['egg-timer']
     raid_timer = config['raid-timer']
-
+    GOOGLE_API_KEY = config['google-api-key']
+    GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
     gymutil.load_gyms()
 
 
 load_config()
 
 Clembot.config = config
+
+
 
 poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
 floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png"
@@ -162,7 +177,7 @@ Helper functions
 
 
 def clembot_time_in_server_timezone(message):
-    server_offset = server_dict[message.channel.server]['offset']
+    server_offset = server_dict[message.channel.server.id]['offset']
     clembot_offset = -8
 
     return time.time() + 3600 * (server_offset - clembot_offset)
@@ -174,24 +189,23 @@ def get_icon_url(pokedex_number):
         return url
     else:
         return "http://floatzel.net/pokemon/black-white/sprites/images/{pokedex}.png".format(pokedex=pokedex_number)
-    return None
 
 
 def _set_prefix(bot, server, prefix):
-    bot.server_dict[server]["prefix"] = prefix
+    bot.server_dict[server.id]["prefix"] = prefix
 
 
 def get_city_list(message):
     city_list = []
     try:
-        city_channel = server_dict[message.server]['city_channels'].get(message.channel.name)
+        city_channel = server_dict[message.server.id]['city_channels'].get(message.channel.name)
 
         if city_channel:
             city_list.append(city_channel.replace(" ", "").upper())
             return city_list
 
-        for key in server_dict[message.server]['city_channels'].keys():
-            city_name = server_dict[message.server]['city_channels'].get(key)
+        for key in server_dict[message.server.id]['city_channels'].keys():
+            city_name = server_dict[message.server.id]['city_channels'].get(key)
             city_key = city_name.replace(" ", "").upper()
             if city_list.__contains__(city_key):
                 pass
@@ -365,12 +379,12 @@ def fetch_gmap_image_link(lat_long):
 
     return gmap_base_url
 
-
+# fix for links for general location add
 def fetch_gmap_link(gym_code, channel):
     try:
         details_list = gym_code.split()
-        report_channel = server_dict[channel.server]['raidchannel_dict'][channel]['reportcity']
-        city_channel = server_dict[channel.server]['city_channels'][report_channel]
+        report_channel = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['reportcity']
+        city_channel = server_dict[channel.server.id]['city_channels'][report_channel]
         loc_list = city_channel.split()
         return "https://www.google.com/maps/search/?api=1&query={0}+{1}".format('+'.join(details_list), '+'.join(loc_list))
     except Exception as error:
@@ -381,8 +395,15 @@ def fetch_gmap_link(gym_code, channel):
 # query using the configured hints
 def create_gmaps_query(details, channel):
     details_list = details.split()
-    loc_list = server_dict[channel.server]['city_channels'][channel.name].split()
+    loc_list = server_dict[channel.server.id]['city_channels'][channel.name].split()
     return "https://www.google.com/maps/search/?api=1&query={0}+{1}".format('+'.join(details_list), '+'.join(loc_list))
+
+def get_raid_channel_dict(message):
+    raid_channel_dict = server_dict[message.server.id]['raidchannel_dict']
+    if message.channel.id in raid_channel_dict:
+        return raid_channel_dict[message.channel.id]
+    else:
+        return None
 
 
 # Given a User, check that it is Clembot's master
@@ -411,7 +432,7 @@ def spellcheck(word):
 
 
 async def expiry_check(channel):
-    logger.info("Expiry_Check - " + channel.name)
+    logger.info("Expiry_Check - "+channel.name)
     server = channel.server
     global active_raids
     if channel not in active_raids:
@@ -420,15 +441,15 @@ async def expiry_check(channel):
         await asyncio.sleep(0.5)  # wait for assume
         while True:
             try:
-                if server_dict[server]['raidchannel_dict'][channel]['active'] is True:
-                    if server_dict[server]['raidchannel_dict'][channel]['exp'] is not None:
-                        print("{channel} => {expiry} vs {current}".format(channel=channel.name,expiry=server_dict[server]['raidchannel_dict'][channel]['exp'],current=fetch_current_time(channel)))
+                if server_dict[server.id]['raidchannel_dict'][channel.id]['active'] is True:
+                    if server_dict[server.id]['raidchannel_dict'][channel.id]['exp'] is not None:
+                        print("{channel} => {expiry} vs {current}".format(channel=channel.name,expiry=server_dict[server.id]['raidchannel_dict'][channel.id]['exp'],current=fetch_current_time(channel.server.id)))
 
-                        if server_dict[server]['raidchannel_dict'][channel]['exp'] <= fetch_current_time(channel):
-                            if server_dict[server]['raidchannel_dict'][channel]['type'] == 'egg':
-                                pokemon = server_dict[server]['raidchannel_dict'][channel]['pokemon']
-                                if pokemon != '':
-                                    logger.info("Expire_Channel - Egg Auto Hatched - " + channel.name)
+                        if server_dict[server.id]['raidchannel_dict'][channel.id]['exp'] <= fetch_current_time(channel.server.id):
+                            if server_dict[server.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
+                                pokemon = server_dict[server.id]['raidchannel_dict'][channel.id]['pokemon']
+                                if pokemon:
+                                    logger.info("Expire_Channel - Egg Auto Hatched - "+channel.name)
                                     try:
                                         active_raids.remove(channel)
                                     except ValueError:
@@ -448,80 +469,82 @@ async def expiry_check(channel):
             await asyncio.sleep(30)
             continue
 
-
 async def expire_channel(channel):
     server = channel.server
     alreadyexpired = False
-    print("Expire_Channel - " + channel.name)
+    #print("Expire_Channel - " + channel.name)
     logger.info("Expire_Channel - " + channel.name)
     # If the channel exists, get ready to delete it.
     # Otherwise, just clean up the dict since someone
     # else deleted the actual channel at some point.
 
     channel_exists = Clembot.get_channel(channel.id)
-    if channel_exists is None:
+    if channel_exists is None and Clembot.is_logged_in and not Clembot.is_closed:
         try:
-            del server_dict[channel.server]['raidchannel_dict'][channel]
+            del server_dict[channel.server.id]['raidchannel_dict'][channel.id]
         except KeyError:
             pass
         return
     else:
         dupechannel = False
-        if server_dict[server]['raidchannel_dict'][channel]['active'] == False:
+        if server_dict[server.id]['raidchannel_dict'][channel.id]['active'] == False:
             alreadyexpired = True
         else:
-            server_dict[server]['raidchannel_dict'][channel]['active'] = False
+            server_dict[server.id]['raidchannel_dict'][channel.id]['active'] = False
         logger.info("Expire_Channel - Channel Expired - " + channel.name)
         try:
-            testvar = server_dict[server]['raidchannel_dict'][channel]['duplicate']
+            testvar = server_dict[server.id]['raidchannel_dict'][channel.id]['duplicate']
         except KeyError:
-            server_dict[server]['raidchannel_dict'][channel]['duplicate'] = 0
-        if server_dict[server]['raidchannel_dict'][channel]['duplicate'] >= 3:
+            server_dict[server.id]['raidchannel_dict'][channel.id]['duplicate'] = 0
+        if server_dict[server.id]['raidchannel_dict'][channel.id]['duplicate'] >= 3:
             dupechannel = True
-            server_dict[server]['raidchannel_dict'][channel]['duplicate'] = 0
-            server_dict[server]['raidchannel_dict'][channel]['exp'] = fetch_current_time(channel)
+            server_dict[server.id]['raidchannel_dict'][channel.id]['duplicate'] = 0
+            server_dict[server.id]['raidchannel_dict'][channel.id]['exp'] = fetch_current_time(channel.server.id)
             if not alreadyexpired:
                 await Clembot.send_message(channel, _("""This channel has been successfully reported as a duplicate and will be deleted in 1 minute. Check the channel list for the other raid channel to coordinate in!
 If this was in error, reset the raid with **!timerset**"""))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel))
-        elif server_dict[server]['raidchannel_dict'][channel]['type'] == 'egg':
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel.server.id))
+        elif server_dict[server.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
             if not alreadyexpired:
                 maybe_list = []
-                trainer_dict = copy.deepcopy(server_dict[channel.server]['raidchannel_dict'][channel]['trainer_dict'])
+                trainer_dict = copy.deepcopy(server_dict[channel.server.id]['raidchannel_dict'][channel.id]['trainer_dict'])
                 for trainer in trainer_dict.keys():
                     if trainer_dict[trainer]['status'] == 'maybe':
                         user = await Clembot.get_user_info(trainer)
                         maybe_list.append(user.mention)
                 await Clembot.send_message(channel, _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**. This channel will be deactivated until I get an update and I'll delete it in 15 minutes if I don't hear anything.""").format(trainer_list=", ".join(maybe_list)))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=15).seconds - convert_to_epoch(fetch_current_time(channel))
-            expiremsg = _("**This level {level} raid egg has expired!**").format(level=server_dict[channel.server]['raidchannel_dict'][channel]['egglevel'])
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=15).seconds - convert_to_epoch(fetch_current_time(channel.server.id))
+            expiremsg = _("**This level {level} raid egg has expired!**").format(level=server_dict[channel.server.id]['raidchannel_dict'][channel.id]['egglevel'])
         else:
             if not alreadyexpired:
                 await Clembot.send_message(channel, _("""This channel timer has expired! The channel has been deactivated and will be deleted in 5 minutes.
 To reactivate the channel, use **!timerset** to set the timer again."""))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel)) + timedelta(minutes=5).seconds - convert_to_epoch(fetch_current_time(channel))
-            expiremsg = _("**This {pokemon} raid has expired!**").format(pokemon=server_dict[channel.server]['raidchannel_dict'][channel]['pokemon'].capitalize())
-        await asyncio.sleep(delete_time)
+            delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=5).seconds - convert_to_epoch(fetch_current_time(channel.server.id))
+            expiremsg = _("**This {pokemon} raid has expired!**").format(pokemon=server_dict[channel.server.id]['raidchannel_dict'][channel.id]['pokemon'].capitalize())
+        if delete_time:
+            await asyncio.sleep(delete_time)
         # If the channel has already been deleted from the dict, someone
         # else got to it before us, so don't do anything.
         # Also, if the channel got reactivated, don't do anything either.
 
         try:
-            if server_dict[channel.server]['raidchannel_dict'][channel]['active'] == False:
+            if server_dict[channel.server.id]['raidchannel_dict'][channel.id]['active'] == False and Clembot.is_logged_in and not Clembot.is_closed:
                 if dupechannel:
-                    reportmsg = server_dict[channel.server]['raidchannel_dict'][channel]['raidreport']
                     try:
+                        report_channel = discord.utils.get(channel.server.channels, name = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['reportcity'])
+                        reportmsg = await Clembot.get_message(report_channel, server_dict[channel.server.id]['raidchannel_dict'][channel.id]['raidreport'])
                         await Clembot.delete_message(reportmsg)
                     except:
                         pass
                 else:
-                    reportmsg = server_dict[channel.server]['raidchannel_dict'][channel]['raidreport']
                     try:
-                        await Clembot.edit_message(reportmsg, embed=discord.Embed(description=expiremsg, colour=channel.server.me.colour))
-                    except discord.errors.NotFound:
+                        report_channel = discord.utils.get(channel.server.channels, name = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['reportcity'])
+                        reportmsg = await Clembot.get_message(report_channel, server_dict[channel.server.id]['raidchannel_dict'][channel.id]['raidreport'])
+                        await Clembot.edit_message(reportmsg, embed=discord.Embed(description=expiremsg,colour=channel.server.me.colour))
+                    except:
                         pass
                 try:
-                    del server_dict[channel.server]['raidchannel_dict'][channel]
+                    del server_dict[channel.server.id]['raidchannel_dict'][channel.id]
                 except KeyError:
                     pass
                     # channel doesn't exist anymore in serverdict
@@ -535,20 +558,15 @@ To reactivate the channel, use **!timerset** to set the timer again."""))
             pass
 
 
-@Clembot.command(pass_context=True, hidden=True)
-async def expire(ctx):
-    await expiry_check(ctx.message.channel)
-
-
 async def channel_cleanup(loop=True):
-    while True:
+    while Clembot.is_logged_in and not Clembot.is_closed:
         global active_raids
         serverdict_chtemp = copy.deepcopy(server_dict)
         logger.info("Channel_Cleanup ------ BEGIN ------")
 
-        # for every server in save data
-        for server in serverdict_chtemp.keys():
-
+        #for every server in save data
+        for serverid in serverdict_chtemp.keys():
+            server = Clembot.get_server(serverid)
             log_str = "Channel_Cleanup - Server: " + server.name
             logger.info(log_str + " - BEGIN CHECKING SERVER")
 
@@ -556,11 +574,14 @@ async def channel_cleanup(loop=True):
             dict_channel_delete = []
             discord_channel_delete = []
 
-            # check every raid channel data for each server
-            for channel in serverdict_chtemp[server]['raidchannel_dict']:
-                log_str = "Channel_Cleanup - Server: " + server.name
-                log_str = log_str + ": Channel:" + channel.name
-                logger.info(log_str + " - CHECKING")
+            #check every raid channel data for each server
+            for channelid in serverdict_chtemp[serverid]['raidchannel_dict']:
+                channel = Clembot.get_channel(channelid)
+                if channel is None:
+                    continue
+                log_str = "Channel_Cleanup - Server: "+server.name
+                log_str = log_str+": Channel:"+channel.name
+                logger.info(log_str+" - CHECKING")
 
                 channelmatch = Clembot.get_channel(channel.id)
 
@@ -570,14 +591,14 @@ async def channel_cleanup(loop=True):
                     logger.info(log_str + " - DOESN'T EXIST IN DISCORD")
                 # otherwise, if clembot can still see the channel in discord
                 else:
-                    logger.info(log_str + " - EXISTS IN DISCORD")
-                    # if the channel save data shows it's not an active raid
-                    if serverdict_chtemp[server]['raidchannel_dict'][channel]['active'] == False:
+                    logger.info(log_str+" - EXISTS IN DISCORD")
+                    #if the channel save data shows it's not an active raid
+                    if serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['active'] == False:
 
-                        if serverdict_chtemp[server]['raidchannel_dict'][channel]['type'] == 'egg':
+                        if serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['type'] == 'egg':
 
                             # and if it has been expired for longer than 15 minutes already
-                            if serverdict_chtemp[server]['raidchannel_dict'][channel]['exp'] < fetch_current_time(channel) - timedelta(minutes=15):
+                            if serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.server.id) - timedelta(minutes=15):
                                 # list the channel to be removed from save data
                                 dict_channel_delete.append(channel)
 
@@ -590,7 +611,7 @@ async def channel_cleanup(loop=True):
                         else:
 
                             # and if it has been expired for longer than 5 minutes already
-                            if serverdict_chtemp[server]['raidchannel_dict'][channel]['exp'] < fetch_current_time(channel) - timedelta(minutes=5):
+                            if serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.server.id) - timedelta(minutes=5):
                                 # list the channel to be removed from save data
                                 dict_channel_delete.append(channel)
 
@@ -605,16 +626,16 @@ async def channel_cleanup(loop=True):
                         continue
 
                     # if the channel save data shows it as an active raid still
-                    elif serverdict_chtemp[server]['raidchannel_dict'][channel]['active'] == True:
+                    elif serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['active'] == True:
 
                         # if it's an exraid
-                        if serverdict_chtemp[server]['raidchannel_dict'][channel]['type'] == 'exraid':
+                        if serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['type'] == 'exraid':
 
                             logger.info(log_str + " - EXRAID")
                             continue
 
                         # and if it has been expired for longer than 5 minutes already
-                        elif serverdict_chtemp[server]['raidchannel_dict'][channel]['exp'] and serverdict_chtemp[server]['raidchannel_dict'][channel]['exp'] < fetch_current_time(channel) - timedelta(minutes=5):
+                        elif serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['exp'] and serverdict_chtemp[server.id]['raidchannel_dict'][channel.id]['exp'] < fetch_current_time(channel.server.id) - timedelta(minutes=5):
 
                             # list the channel to be removed from save data
                             dict_channel_delete.append(channel)
@@ -626,8 +647,7 @@ async def channel_cleanup(loop=True):
                             continue
 
                         # or if the expiry time for the channel has already passed within 5 minutes
-                        elif serverdict_chtemp[server]['raidchannel_dict'][channel]['exp'] <= fetch_current_time(channel):
-
+                        elif serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['exp'] and serverdict_chtemp[serverid]['raidchannel_dict'][channelid]['exp'] <= fetch_current_time(channel.server.id):
                             # list the channel to be sent to the channel expiry function
                             event_loop.create_task(expire_channel(channel))
 
@@ -644,15 +664,15 @@ async def channel_cleanup(loop=True):
             # for every channel listed to have save data deleted
             for c in dict_channel_delete:
                 try:
-                    # attempt to delete the channel from save data
-                    del server_dict[server]['raidchannel_dict'][c]
+                    #attempt to delete the channel from save data
+                    del server_dict[serverid]['raidchannel_dict'][c.id]
                     logger.info("Channel_Cleanup - Channel Savedata Cleared - " + c.name)
                 except KeyError:
                     pass
 
                 try:
                     # delete channel if it still exists in discord
-                    Clembot.delete_channel(c)
+                    await Clembot.delete_channel(c)
                     logger.info("Channel_Cleanup - Channel Deleted - " + c.name)
                 except:
                     logger.info("Channel_Cleanup - Channel Deletion Failure - " + c.name)
@@ -679,9 +699,13 @@ async def channel_cleanup(loop=True):
         await asyncio.sleep(600)  # 600 default
         continue
 
+@Clembot.command(pass_context=True, hidden=True)
+@checks.is_owner()
+async def cleanup():
+    await channel_cleanup()
 
 async def server_cleanup(loop=True):
-    while True:
+    while Clembot.is_logged_in and not Clembot.is_closed:
         serverdict_srvtemp = copy.deepcopy(server_dict)
         logger.info("Server_Cleanup ------ BEGIN ------")
 
@@ -690,7 +714,8 @@ async def server_cleanup(loop=True):
         bot_server_list = []
         dict_server_delete = []
 
-        for server in serverdict_srvtemp.keys():
+        for serverid in serverdict_srvtemp.keys():
+            server = Clembot.get_server(serverid)
             dict_server_list.append(server)
         for server in Clembot.servers:
             bot_server_list.append(server)
@@ -701,7 +726,7 @@ async def server_cleanup(loop=True):
         for s in dict_server_delete:
             try:
                 del server_dict[s]
-                logger.info("Server_Cleanup - Cleared " + s.name + " from save data")
+                logger.info("Server_Cleanup - Cleared "+s.name+" from save data")
             except KeyError:
                 pass
 
@@ -719,7 +744,7 @@ async def _print(owner, message):
     if 'launcher' in sys.argv[1:]:
         if 'debug' not in sys.argv[1:]:
             await Clembot.send_message(owner, message)
-    print(message)
+    #print(message)
     logger.info(message)
 
 
@@ -756,8 +781,7 @@ The trainer_dict contains "trainer" elements, which have the following fields:
 'count'  : the number of trainers in the party
 """
 
-team_msg = " or ".join(["`!team {0}`".format(team) for team in config['team_dict'].keys()])
-
+team_msg = " or ".join(["**!team {0}**".format(team) for team in config['team_dict'].keys()])
 
 @Clembot.event
 async def on_ready():
@@ -772,10 +796,10 @@ async def on_ready():
     for server in Clembot.servers:
         users += len(server.members)
         try:
-            if server not in server_dict:
-                server_dict[server] = {'want_channel_list': [], 'offset': 0, 'welcome': False, 'welcomechan': '', 'wantset': False, 'raidset': False, 'wildset': False, 'team': False, 'want': False, 'other': False, 'done': False, 'raidchannel_dict': {}}
+            if server.id not in server_dict:
+                server_dict[server.id] = {'want_channel_list': [], 'offset': 0, 'welcome': False, 'welcomechan': '', 'wantset': False, 'raidset': False, 'wildset': False, 'team': False, 'want': False, 'other': False, 'done': False, 'raidchannel_dict' : {}}
         except KeyError:
-            server_dict[server] = {'want_channel_list': [], 'offset': 0, 'welcome': False, 'welcomechan': '', 'wantset': False, 'raidset': False, 'wildset': False, 'team': False, 'want': False, 'other': False, 'done': False, 'raidchannel_dict': {}}
+            server_dict[server.id] = {'want_channel_list': [], 'offset': 0, 'welcome': False, 'welcomechan': '', 'wantset': False, 'raidset': False, 'wildset': False, 'team': False, 'want': False, 'other': False, 'done': False, 'raidchannel_dict': {}}
 
         owners.append(server.owner)
 
@@ -787,16 +811,16 @@ async def on_ready():
 @Clembot.event
 async def on_server_join(server):
     owner = server.owner
-    server_dict[server] = {'want_channel_list': [], 'offset': 0, 'welcome': False, 'welcomechan': '', 'wantset': False, 'raidset': False, 'wildset': False, 'team': False, 'want': False, 'other': False, 'done': False, 'raidchannel_dict': {}}
+    server_dict[server.id] = {'want_channel_list': [], 'offset': 0, 'welcome': False, 'welcomechan': '', 'wantset': False, 'raidset': False, 'wildset': False, 'team': False, 'want': False, 'other': False, 'done': False, 'raidchannel_dict': {}}
     await Clembot.send_message(owner, _("Beep Beep! I'm Clembot, a Discord helper bot for Pokemon Go communities, and someone has invited me to your server! Type **!help** to see a list of things I can do, and type **!configure** in any channel of your server to begin!"))
 
 
 @Clembot.event
 async def on_server_remove(server):
     try:
-        if server in server_dict[server]:
+        if server.id in server_dict:
             try:
-                del server_dict[server]
+                del server_dict[server.id]
             except KeyError:
                 pass
     except KeyError:
@@ -809,15 +833,29 @@ async def configure(ctx):
     server = ctx.message.server
     owner = ctx.message.author
     server_dict_check = {'want_channel_list': [], 'offset': 0, 'welcome': False, 'welcomechan': '', 'wantset': False, 'raidset': False, 'wildset': False, 'team': False, 'want': False, 'other': False, 'done': False, 'raidchannel_dict': {}}
-    server_dict_temp = copy.deepcopy(server_dict[server])
+    server_dict_temp = copy.deepcopy(server_dict[server.id])
     firstconfig = False
     configcancel = False
     if server_dict_check == server_dict_temp:
         firstconfig = True
+    try:
+        if server_dict_temp['other']:
+            pass
+        else:
+            pass
+    except KeyError:
+        server_dict_temp['other']=False
+    try:
+        if server_dict_temp['want_channel_list']:
+            pass
+        else:
+            pass
+    except KeyError:
+        server_dict_temp['want_channel_list'] = []
     configmessage = "Beep Beep! That's Right! Welcome to the configuration for Clembot the Pokemon Go Helper Bot! I will be guiding you through some setup steps to get me setup on your server.\n\n**Role Setup**\nBefore you begin the configuration, please make sure my role is moved to the top end of the server role hierarchy. It can be under admins and mods, but must be above team ands general roles. [Here is an example](http://i.imgur.com/c5eaX1u.png)"
     if firstconfig == False:
-        if server_dict_temp['other'] == True:
-            configreplylist = ['all', 'team', 'welcome', 'main', 'regions', 'raid', 'wild', 'want', 'timezone', 'allmain']
+        if server_dict_temp['other']:
+            configreplylist = ['all','team','welcome','main','regions','raid','wild','want','timezone','allmain']
             configmessage += """\n\n**Welcome Back**\nThis isn't your first time configurating. You can either reconfigure everything by replying with **all** or reply with one of the following to configure that specific setting:\n\n**all** - To redo configuration\n**team** - For Team Assignment configuration\n**welcome** - For Welcome Message configuration\n**main** - For main command configuration\n**raid** - for raid command configuration\n**wild** - for wild command configuration\n**regions** - For configuration of reporting channels or map links\n**want** - for want/unwant command configuration and channel\n**timezone** - For timezone configuration\n**allmain** - For main, regions, raid, wild, want, timezone configuration"""
             configmessage += "\n\nReply with **cancel** at any time throughout the questions to cancel the configure process."
             await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=configmessage).set_author(name=_("Clembot Configuration - {0}").format(server), icon_url=Clembot.user.avatar_url))
@@ -1055,8 +1093,8 @@ async def configure(ctx):
                                 want_channel = discord.utils.get(server.channels, name=want_channel_name)
                                 if want_channel == None:
                                     want_channel = await Clembot.create_channel(server, want_channel_name)
-                                if want_channel not in server_dict_temp['want_channel_list']:
-                                    server_dict_temp['want_channel_list'].append(want_channel)
+                                if want_channel.id not in server_dict_temp['want_channel_list']:
+                                    server_dict_temp['want_channel_list'].append(want_channel.id)
                             break
                         except:
                             await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("Beep Beep! You didn't give me enough permissions to create channels! Please check my permissions and that my role is above general roles. Let me know if you'd like me to check again.\n\nRespond with: **Y** to try again, or **N** to skip and create the missing channels yourself.")))
@@ -1104,7 +1142,7 @@ async def configure(ctx):
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.green(), description="Timezone set"))
     server_dict_temp['done'] = True
     if configcancel == False:
-        server_dict[server] = server_dict_temp
+        server_dict[server.id] = server_dict_temp
         await Clembot.send_message(owner, embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="Beep Beep! Alright! Your settings have been saved and I'm ready to go! If you need to change any of these settings, just type **!configure** in your server again."))
 
 
@@ -1112,7 +1150,7 @@ async def configure(ctx):
 async def on_member_join(member):
     """Welcome message to the server and some basic instructions."""
     server = member.server
-    if server_dict[server]['done'] == False or server_dict[server]['welcome'] == False:
+    if server_dict[server.id]['done'] == False or server_dict[server.id]['welcome'] == False:
         return
 
     # Build welcome message
@@ -1120,15 +1158,15 @@ async def on_member_join(member):
     admin_message = _(" If you have any questions just ask an admin.")
 
     welcomemessage = _("Beep Beep! Welcome to {server_name}, {new_member_name}! ")
-    if server_dict[server]['team'] == True:
+    if server_dict[server.id]['team'] == True:
         welcomemessage += _("Set your team by typing {team_command}.").format(team_command=team_msg)
     welcomemessage += admin_message
 
-    if server_dict[server]['welcomechan'] == "dm":
+    if server_dict[server.id]['welcomechan'] == "dm":
         await Clembot.send_message(member, welcomemessage.format(server_name=server.name, new_member_name=member.mention))
 
     else:
-        default = discord.utils.get(server.channels, name=server_dict[server]['welcomechan'])
+        default = discord.utils.get(server.channels, name=server_dict[server.id]['welcomechan'])
         if not default:
             pass
         else:
@@ -1436,7 +1474,7 @@ async def about(ctx):
     embed_colour = ctx.message.server.me.colour or discord.Colour.lighter_grey()
 
     about = ("I'm Clembot! A Pokemon Go helper bot for Discord!\n\n"
-             "I was created by [{original_author_name}]({original_author_repo}) and then [{author_name}]({author_repo}) evolved me further.\n\n"
+             "I was made by [{original_author_name}]({original_author_repo}) and then [{author_name}]({author_repo}) evolved me further.\n\n"
              "[Join our server]({server_invite}) if you have any questions or feedback.\n\n"
              "".format(original_author_name=original_author_name, original_author_repo=original_author_repo, author_name=author_name, author_repo=author_repo, server_invite=server_url))
 
@@ -1631,6 +1669,7 @@ async def all(ctx):
     await Clembot.remove_roles(author, *remove_roles)
     if count == 0:
         await Clembot.send_message(channel, content=_("{0}, you have no pokemon in your want list.").format(author.mention, count))
+        return
     await Clembot.send_message(channel, content=_("{0}, I've removed {1} pokemon from your want list.").format(author.mention, count))
     return
 
@@ -1692,7 +1731,7 @@ async def _wild(message):
 async def raid(ctx):
     """Report an ongoing raid.
 
-    Usage: !raid <pokemon name> <location or gym-code> [<timer>]
+    Usage: !raid <species> <location> [minutes]
     Clembot will insert the details (really just everything after the species name) into a
     Google maps link and post the link to the same channel the report was made in.
     Clembot's message will also include the type weaknesses of the boss.
@@ -1703,24 +1742,31 @@ async def raid(ctx):
 
 async def _raid(message):
     fromegg = False
-    if message.channel.name not in server_dict[message.server]['city_channels'].keys():
-        if message.channel in server_dict[message.channel.server]['raidchannel_dict'] and server_dict[message.channel.server]['raidchannel_dict'][message.channel]['type'] == 'egg':
+    if message.channel.name not in server_dict[message.server.id]['city_channels'].keys():
+        if message.channel.id in server_dict[message.channel.server.id]['raidchannel_dict'] and server_dict[message.channel.server.id]['raidchannel_dict'][message.channel.id]['type'] == 'egg':
             fromegg = True
+            eggdetails = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]
+            egglevel = eggdetails['egglevel']
         else:
             await Clembot.send_message(message.channel, _("Beep Beep! Please restrict raid reports to a city channel!"))
             return
     raid_split = message.clean_content.lower().split()
     del raid_split[0]
     if fromegg is True:
+        eggdetails = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]
+        egglevel = eggdetails['egglevel']
         if raid_split[0] == 'assume':
-            if server_dict[message.channel.server]['raidchannel_dict'][message.channel]['active'] == False:
+            if config['allow_assume'][egglevel] == "False":
+                await Clembot.send_message(message.channel, _("Beep Beep! **!raid assume** is not allowed in this level egg."))
+                return
+            if server_dict[message.channel.server.id]['raidchannel_dict'][message.channel.id]['active'] == False:
                 await _eggtoraid(raid_split[1].lower(), message.channel)
                 return
             else:
                 await _eggassume(" ".join(raid_split), message.channel)
                 return
         else:
-            if server_dict[message.channel.server]['raidchannel_dict'][message.channel]['active'] == False:
+            if server_dict[message.channel.server.id]['raidchannel_dict'][message.channel.id]['active'] == False:
                 await _eggtoraid(" ".join(raid_split).lower(), message.channel)
                 return
             else:
@@ -1730,6 +1776,7 @@ async def _raid(message):
         await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
         return
     entered_raid = re.sub("[\@]", "", raid_split[0].lower())
+    entered_raid = get_name(entered_raid).lower() if entered_raid.isdigit() else entered_raid
     del raid_split[0]
 
     gym_info = None
@@ -1813,11 +1860,22 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 """).format(pokemon=raid.mention, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await Clembot.send_message(raid_channel, content=raidmsg, embed=raid_embed)
-
-    server_dict[message.server]['raidchannel_dict'][raid_channel] = {'reportcity': message.channel.name, 'trainer_dict': {}, 'exp': fetch_current_time(message.channel) + timedelta(minutes=raid_timer),  # One hour from now
+    print(server_dict[message.server.id]['raidchannel_dict'])
+    server_dict[message.server.id]['raidchannel_dict'][raid_channel.id] = {
+		'reportcity': message.channel.name,
+		'trainer_dict': {},
+		'exp': fetch_current_time(message.channel.server.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
         'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
-        'active': True, 'raidmessage': raidmessage, 'raidreport': raidreport, 'address': raid_details, 'type': 'raid', 'pokemon': entered_raid, 'egglevel': '0', 'suggested_start': False}
-
+        'active': True,
+        'raidmessage' : raidmessage.id,
+        'raidreport' : raidreport.id,
+		'address': raid_details,
+		'type': 'raid',
+		'pokemon': entered_raid,
+		'egglevel': '0',
+		'suggested_start': False
+		}
+    print(server_dict[message.server.id]['raidchannel_dict'])
     if raidexp is not False:
         await _timerset(raid_channel, raidexp)
     else:
@@ -1826,26 +1884,27 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 
 
 # Print raid timer
-async def print_raid_timer(channel):
-    localexpire = fetch_channel_expire_time(channel)
-    # localexpire = localexpiresecs - timedelta(hours=server_dict[channel.server]['offset'])
+async def print_raid_timer(channel_id):
+    channel = Clembot.get_channel(channel_id)
+    localexpire = fetch_channel_expire_time(channel_id)
+    # localexpire = localexpiresecs - timedelta(hours=server_dict[channel.server.id]['offset'])
     timerstr = ""
-    if server_dict[channel.server]['raidchannel_dict'][channel]['type'] == 'egg':
+    if server_dict[channel.server.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
         raidtype = "egg"
         raidaction = "hatch"
     else:
         raidtype = "raid"
         raidaction = "end"
-    if not server_dict[channel.server]['raidchannel_dict'][channel]['active']:
+    if not server_dict[channel.server.id]['raidchannel_dict'][channel.id]['active']:
         timerstr += _("Beep Beep! This {raidtype}'s timer has already expired as of {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
     else:
-        if server_dict[channel.server]['raidchannel_dict'][channel]['egglevel'] == "EX" or server_dict[channel.server]['raidchannel_dict'][channel]['type'] == "exraid":
-            if server_dict[channel.server]['raidchannel_dict'][channel]['manual_timer']:
+        if server_dict[channel.server.id]['raidchannel_dict'][channel.id]['egglevel'] == "EX" or server_dict[channel.server.id]['raidchannel_dict'][channel.id]['type'] == "exraid":
+            if server_dict[channel.server.id]['raidchannel_dict'][channel.id]['manual_timer']:
                 timerstr += _("Beep Beep! This {raidtype} will {raidaction} on {expiry_day} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_day=strftime("%B %d", localexpire), expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
             else:
                 timerstr += _("Beep Beep! No one told me when the {raidtype} will {raidaction}, so I'm assuming it will {raidaction} on {expiry_day} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_day=localexpire.strftime("%B %d"), expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
         else:
-            if server_dict[channel.server]['raidchannel_dict'][channel]['manual_timer']:
+            if server_dict[channel.server.id]['raidchannel_dict'][channel.id]['manual_timer']:
                 timerstr += _("Beep Beep! This {raidtype} will {raidaction} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
             else:
                 timerstr += _("Beep Beep! No one told me when the {raidtype} will {raidaction}, so I'm assuming it will {raidaction} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
@@ -1865,7 +1924,7 @@ async def timerset(ctx, timer):
     channel = message.channel
     server = message.server
     if checks.check_raidactive(ctx) and not checks.check_exraidchannel(ctx):
-        if server_dict[server]['raidchannel_dict'][channel]['type'] == 'egg':
+        if server_dict[server.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
             raidtype = "Raid Egg"
             maxtime = egg_timer
         else:
@@ -1892,7 +1951,7 @@ async def timerset(ctx, timer):
 
     if checks.check_exraidchannel(ctx):
         if checks.check_eggchannel(ctx):
-            tzlocal = tz.tzoffset(None, server_dict[server]['offset'] * 3600)
+            tzlocal = tz.tzoffset(None, server_dict[server.id]['offset'] * 3600)
             now = datetime.datetime.now()
             timer_split = message.clean_content.lower().split()
             del timer_split[0]
@@ -1914,26 +1973,26 @@ def _timercheck(time, maxtime):
     return time > maxtime
 
 
-async def _timerset(raidchannel, exptime):
-    server = raidchannel.server
+async def _timerset(channel, exptime):
+    server = channel.server
     exptime = int(exptime)
     # Clembot saves the timer message in the channel's 'exp' field.
 
-    expire = fetch_current_time(raidchannel) + timedelta(minutes=exptime)
+    expire = fetch_current_time(channel.server.id) + timedelta(minutes=exptime)
 
     # Update timestamp
-    server_dict[server]['raidchannel_dict'][raidchannel]['exp'] = expire
+    server_dict[server.id]['raidchannel_dict'][channel.id]['exp'] = expire
     # Reactivate channel
-    if not server_dict[server]['raidchannel_dict'][raidchannel]['active']:
-        await Clembot.send_message(raidchannel, "The channel has been reactivated.")
-    server_dict[server]['raidchannel_dict'][raidchannel]['active'] = True
+    if not server_dict[server.id]['raidchannel_dict'][channel.id]['active']:
+        await Clembot.send_message(channel, "The channel has been reactivated.")
+    server_dict[server.id]['raidchannel_dict'][channel.id]['active'] = True
     # Mark that timer has been manually set
-    server_dict[server]['raidchannel_dict'][raidchannel]['manual_timer'] = True
+    server_dict[server.id]['raidchannel_dict'][channel.id]['manual_timer'] = True
     # Send message
-    timerstr = await print_raid_timer(raidchannel)
-    await Clembot.send_message(raidchannel, timerstr)
+    timerstr = await print_raid_timer(channel.id)
+    await Clembot.send_message(channel, timerstr)
     # Trigger expiry checking
-    event_loop.create_task(expiry_check(raidchannel))
+    event_loop.create_task(expiry_check(channel))
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -1943,7 +2002,7 @@ async def timer(ctx):
 
     Usage: !timer
     The expiry time should have been previously set with !timerset."""
-    timerstr = await print_raid_timer(ctx.message.channel)
+    timerstr = await print_raid_timer(ctx.message.channel.id)
     await Clembot.send_message(ctx.message.channel, timerstr)
 
 
@@ -1962,14 +2021,23 @@ def print_time(timestamp):
     return timestamp.strftime("%I:%M %p") + " (" + timestamp.strftime("%H:%M") + ")"
 
 
-def convert_into_time(time_as_text):
-    try:
-        start_time = time.strptime(time_as_text, '%I:%M %p')
-    except ValueError:
-        # try:
-        #     start_time = time.strptime(time_as_text, '%H:%M')
-        # except ValueError:
-        start_time = None
+def convert_into_time(time_as_text, require_am_pm=True):
+    time_format = ['%I:%M %p', '%I:%M%p']
+
+    for format in time_format:
+        try:
+            start_time = time.strptime(time_as_text, format)
+            break
+        except ValueError:
+            start_time = None
+            continue
+
+    if start_time == None and require_am_pm == False:
+        try:
+            start_time = time.strptime(time_as_text, '%H:%M')
+        except ValueError:
+            start_time = None
+            pass
 
     return start_time
 
@@ -1978,24 +2046,23 @@ def convert_to_epoch(current_time):
     return calendar.timegm(current_time.utctimetuple())
 
 
-def fetch_channel_expire_time(channel) -> datetime:
-    local_expire_secs = server_dict[channel.server]['raidchannel_dict'][channel]['exp']
-    # raid_expires_at = datetime.datetime.fromtimestamp(local_expire_secs)
-    #
-    # server_dict[channel.server]['raidchannel_dict'][channel]['expiry_timestamp'] = raid_expires_at
+def fetch_channel_expire_time(channel_id) -> datetime:
+    channel = Clembot.get_channel(channel_id)
+    if channel:
+        expire_at = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['exp']
+        return expire_at
+    return None
 
-    return local_expire_secs  # raid_expires_at
 
+def fetch_current_time(server_id):
 
-def fetch_current_time(channel):
-    offset = server_dict[channel.server]['offset']
+    offset = server_dict[server_id]['offset']
     current_time = datetime.datetime.utcnow() + timedelta(hours=offset)
-
     return current_time
 
 
 def convert_into_current_time(channel, time_hour_and_min_only):
-    offset = server_dict[channel.server]['offset']
+    offset = server_dict[channel.server.id]['offset']
     current_time = datetime.datetime.utcnow() + timedelta(hours=offset)
 
     start_time = current_time.replace(hour=time_hour_and_min_only.tm_hour, minute=time_hour_and_min_only.tm_min)
@@ -2013,14 +2080,14 @@ def validate_raid_start_time(raid_starts_at, raid_reported_at, raid_expires_at):
 
 
 async def validate_start_time(channel, start_time):
-    raid_expires_at = fetch_channel_expire_time(channel)
+    raid_expires_at = fetch_channel_expire_time(channel.id)
 
-    offset = server_dict[channel.server]['offset']
+    offset = server_dict[channel.server.id]['offset']
     current_datetime = datetime.datetime.utcnow() + timedelta(hours=offset)
 
     suggested_start_time = convert_into_current_time(channel, start_time)
 
-    is_raid_egg = server_dict[channel.server]['raidchannel_dict'][channel]['type'] == "egg"
+    is_raid_egg = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['type'] == "egg"
 
     # modified time for raidegg
     if is_raid_egg:
@@ -2073,15 +2140,15 @@ async def start(ctx):
     Usage: !start <hh:mm>
     Works only in raid channels, can be set or overridden by anyone.
     Clembot displays the end time in HH:MM local time."""
-    if ctx.message.channel in server_dict[ctx.message.server]['raidchannel_dict']:
+    if ctx.message.channel.id in server_dict[ctx.message.server.id]['raidchannel_dict']:
         try:
-            if server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['type'] == 'exraid':
+            if server_dict[ctx.message.channel.server.id]['raidchannel_dict'][ctx.message.channel.id]['type'] == 'exraid':
                 await Clembot.send_message(ctx.message.channel, _("start isn't supported for exraids."))
                 return
         except KeyError:
             pass
         args = ctx.message.content.lstrip("!start ")
-        start_time = convert_into_time(args)
+        start_time = convert_into_time(args, False)
 
         if start_time is None:
             await Clembot.send_message(ctx.message.channel, _("Beep Beep... I couldn't understand your time format. Try again like this: `!start HH:MM AM/PM`"))
@@ -2090,19 +2157,20 @@ async def start(ctx):
         raid_starts_at = await validate_start_time(ctx.message.channel, start_time)
         if raid_starts_at:
             try:
-                server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['suggested_start'] = raid_starts_at
+                server_dict[ctx.message.channel.server.id]['raidchannel_dict'][ctx.message.channel.id]['suggested_start'] = raid_starts_at
                 await Clembot.send_message(ctx.message.channel, _("Beep Beep! {member} suggested the start time : {starttime}").format(member=ctx.message.author.mention, starttime=print_24_hour(raid_starts_at)))
             except Exception as error:
                 print(error)
             return
 
 
-async def print_start_time(channel):
+async def print_start_time(channel_id):
+    channel = Clembot.get_channel(channel_id)
     timerstr = ""
-    if not server_dict[channel.server]['raidchannel_dict'][channel]['suggested_start']:
+    if not server_dict[channel.server.id]['raidchannel_dict'][channel.id]['suggested_start']:
         timerstr = ("Beep Beep! No start time has been suggested for this raid!")
     else:
-        start_time = server_dict[channel.server]['raidchannel_dict'][channel]['suggested_start']
+        start_time = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['suggested_start']
         timerstr += _("Beep Beep! The suggested start time for this raid is {start_time}!").format(start_time=print_24_hour(start_time))
 
     return timerstr
@@ -2115,21 +2183,21 @@ Triggerable through commands or through emoji
 
 
 async def _maybe(message, count):
-    trainer_dict = server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict']
+    trainer_dict = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
     if count == 1:
         await Clembot.send_message(message.channel, _("Beep Beep! {member} is interested!").format(member=message.author.mention))
     else:
         await Clembot.send_message(message.channel, _("Beep Beep! {member} is interested with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count))
     # Add trainer name to trainer list
-    if message.author.id not in server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict']:
+    if message.author.id not in server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']:
         trainer_dict[message.author.id] = {}
     trainer_dict[message.author.id]['status'] = "maybe"
     trainer_dict[message.author.id]['count'] = count
-    server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict'] = trainer_dict
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'] = trainer_dict
 
 
 async def _coming(message, count):
-    trainer_dict = server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict']
+    trainer_dict = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
 
     if count == 1:
         await Clembot.send_message(message.channel, _("Beep Beep! {member} is on the way!").format(member=message.author.mention))
@@ -2140,11 +2208,11 @@ async def _coming(message, count):
         trainer_dict[message.author.id] = {}
     trainer_dict[message.author.id]['status'] = "omw"
     trainer_dict[message.author.id]['count'] = count
-    server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict'] = trainer_dict
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'] = trainer_dict
 
 
 async def _here(message, count):
-    trainer_dict = server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict']
+    trainer_dict = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
     if count == 1:
         await Clembot.send_message(message.channel, _("Beep Beep! {member} is at the raid!").format(member=message.author.mention))
     else:
@@ -2154,7 +2222,7 @@ async def _here(message, count):
         trainer_dict[message.author.id] = {}
     trainer_dict[message.author.id]['status'] = "waiting"
     trainer_dict[message.author.id]['count'] = count
-    server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict'] = trainer_dict
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'] = trainer_dict
 
 
 async def _cancel(message):
@@ -2162,7 +2230,7 @@ async def _cancel(message):
     channel = message.channel
     server = message.server
     try:
-        t_dict = server_dict[server]['raidchannel_dict'][channel]['trainer_dict'][author.id]
+        t_dict = server_dict[server.id]['raidchannel_dict'][channel.id]['trainer_dict'][author.id]
     except KeyError:
         await Clembot.send_message(channel, _("Beep Beep! {member} has no status to cancel!").format(member=author.mention))
         return
@@ -2187,11 +2255,12 @@ async def _cancel(message):
 
 @Clembot.event
 async def on_message(message):
+    #print(server_dict)
     if message.server is not None:
-        raid_status = server_dict[message.server]['raidchannel_dict'].get(message.channel, None)
+        raid_status = server_dict[message.server.id]['raidchannel_dict'].get(message.channel.id, None)
         if raid_status is not None:
-            if server_dict[message.server]['raidchannel_dict'][message.channel]['active']:
-                trainer_dict = server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict']
+            if server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['active']:
+                trainer_dict = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
                 if message.author.id in trainer_dict:
                     count = trainer_dict[message.author.id]['count']
                 else:
@@ -2231,6 +2300,8 @@ def extract_link_from_text(text):
     return newloc
 
 
+
+
 async def process_map_link(message, newloc=None):
     if newloc == None:
         newloc = extract_link_from_text(message.content)
@@ -2238,28 +2309,41 @@ async def process_map_link(message, newloc=None):
     if newloc == None:
         return
 
-    if server_dict[message.server]['raidchannel_dict'][message.channel]['type'] == 'raidparty':
+    if server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['type'] == 'raidparty':
         await _add(message, newloc)
         return
-    oldraidmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidmessage']
-    oldreportmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidreport']
+    oldraidmsg = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidmessage']
+    oldreportmsg = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidreport']
     oldembed = oldraidmsg.embeds[0]
     newembed = discord.Embed(title=oldembed['title'], url=newloc, colour=message.server.me.colour)
     newembed.add_field(name=oldembed['fields'][0]['name'], value=oldembed['fields'][0]['value'], inline=True)
     newembed.add_field(name=oldembed['fields'][1]['name'], value=oldembed['fields'][1]['value'], inline=True)
     newembed.set_footer(text=oldembed['footer']['text'], icon_url=oldembed['footer']['icon_url'])
     newembed.set_thumbnail(url=oldembed['thumbnail']['url'])
-    newraidmsg = await Clembot.edit_message(oldraidmsg, new_content=oldraidmsg.content, embed=newembed)
-    newreportmsg = await Clembot.edit_message(oldreportmsg, new_content=oldreportmsg.content, embed=newembed)
-    server_dict[message.server]['raidchannel_dict'][message.channel]['raidmessage'] = newraidmsg
-    server_dict[message.server]['raidchannel_dict'][message.channel]['raidreport'] = newreportmsg
+    try:
+        newraidmsg = await Clembot.edit_message(oldraidmsg, new_content=oldraidmsg.content, embed=newembed)
+    except:
+        pass
+    try:
+        newreportmsg = await Clembot.edit_message(oldreportmsg, new_content=oldreportmsg.content, embed=newembed)
+    except:
+        pass
+
+
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidmessage'] = newraidmsg
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidreport'] = newreportmsg
     otw_list = []
-    trainer_dict = copy.deepcopy(server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict'])
+    trainer_dict = copy.deepcopy(server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == 'omw':
             user = await Clembot.get_user_info(trainer)
             otw_list.append(user.mention)
     await Clembot.send_message(message.channel, content=_("Beep Beep! Someone has suggested a different location for the raid! Trainers {trainer_list}: make sure you are headed to the right place!").format(trainer_list=", ".join(otw_list)), embed=newembed)
+    return
+
+@Clembot.command(pass_context=True, hidden=True)
+async def dict(ctx):
+
     return
 
 
@@ -2339,14 +2423,14 @@ Sending a Google Maps link will also update the raid location.
 Message **!starting** when the raid is beginning to clear the raid's 'here' list.""").format(member=message.author.mention, citychannel=channel.mention, location_details=raid_details)
     raidmessage = await Clembot.send_message(raid_channel, content=raidmsg, embed=raid_embed)
 
-    server_dict[message.server]['raidchannel_dict'][raid_channel] = {
+    server_dict[message.server.id]['raidchannel_dict'][raid_channel] = {
         'reportcity': channel.name,
         'trainer_dict': {},
         'exp': None,  # No expiry
         'manual_timer': False,
         'active': True,
-        'raidmessage': raidmessage,
-        'raidreport': raidreport,
+        'raidmessage': raidmessage.id,
+        'raidreport': raidreport.id,
         'address': raid_details,
         'type': 'egg',
         'pokemon': '',
@@ -2397,14 +2481,14 @@ async def _raidparty(message):
 
     raidmessage = await Clembot.send_message(raid_channel, content=raidmsg)
 
-    server_dict[message.server]['raidchannel_dict'][raid_channel] = {
+    server_dict[message.server.id]['raidchannel_dict'][raid_channel.id] = {
         'reportcity': message.channel.name,
         'trainer_dict': {},
         'exp': None,  # No expiry
         'manual_timer': False,
         'active': True,
         'raidmessage': None,
-        'raidreport': raidreport,
+        'raidreport': raidreport.id,
         'address': raid_details,
         'type': 'raidparty',
         'pokemon': None,
@@ -2413,6 +2497,7 @@ async def _raidparty(message):
         'roster': [],
         'roster_index': None
     }
+
 
     return
 
@@ -2499,7 +2584,7 @@ async def _raidegg(message):
         raidexp = False
 
     if raidexp is not False:
-        if _timercheck(raidexp, 60):
+        if _timercheck(raidexp, egg_timer):
             await Clembot.send_message(message.channel, _("Beep Beep...that's too long. Raid Eggs currently last no more than one hour..."))
             return
 
@@ -2538,8 +2623,11 @@ async def _raidegg(message):
         else:
             raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
             raid_channel_name = "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+        try:
+            raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
+        except Exception as error:
+            print(error)
 
-        raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
         raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{}".format(str(egg_img))
         raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.server.me.colour)
         raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
@@ -2575,9 +2663,21 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         #
         # When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
         raidmessage = await Clembot.send_message(raid_channel, content=raidmsg, embed=raid_embed)
-        server_dict[message.server]['raidchannel_dict'][raid_channel] = {'reportcity': message.channel.name, 'trainer_dict': {}, 'exp': fetch_current_time(message.channel) + timedelta(minutes=egg_timer),  # One hour from now
-            'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
-            'active': True, 'raidmessage': raidmessage, 'raidreport': raidreport, 'address': raid_details, 'type': 'egg', 'pokemon': '', 'egglevel': egg_level, 'suggested_start': False}
+
+        server_dict[message.server.id]['raidchannel_dict'][raid_channel.id] = {
+		'reportcity': message.channel.name, 
+		'trainer_dict': {}, 
+		'exp': fetch_current_time(message.channel.server.id) + timedelta(minutes=egg_timer),  # One hour from now
+		'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
+		'active': True, 
+		'raidmessage': raidmessage.id, 
+		'raidreport': raidreport.id, 
+		'address': raid_details, 
+		'type': 'egg', 
+		'pokemon': '', 
+		'egglevel': egg_level, 
+		'suggested_start': False
+		}
 
         if raidexp is not False:
             await _timerset(raid_channel, raidexp)
@@ -2588,7 +2688,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 
 
 async def _eggassume(args, raid_channel):
-    eggdetails = server_dict[raid_channel.server]['raidchannel_dict'][raid_channel]
+    eggdetails = server_dict[raid_channel.server.id]['raidchannel_dict'][raid_channel.id]
     egglevel = eggdetails['egglevel']
     if config['allow_assume'][egglevel] == "False":
         await Clembot.send_message(raid_channel, _("Beep Beep! **!raid assume** is not allowed in this level egg."))
@@ -2612,59 +2712,59 @@ async def _eggassume(args, raid_channel):
         raidrole = await Clembot.create_role(server=raid_channel.server, name=entered_raid, hoist=False, mentionable=True)
         await asyncio.sleep(0.5)
     await Clembot.send_message(raid_channel, _("Beep Beep! This egg will be assumed to be {pokemon} when it hatches!").format(pokemon=raidrole.mention))
-    server_dict[raid_channel.server]['raidchannel_dict'][raid_channel] = eggdetails
+    server_dict[raid_channel.server.id]['raidchannel_dict'][raid_channel] = eggdetails
     return
 
 
-async def _eggtoraid(entered_raid, raid_channel):
-    eggdetails = server_dict[raid_channel.server]['raidchannel_dict'][raid_channel]
+async def _eggtoraid(entered_raid, channel):
+    eggdetails = server_dict[channel.server.id]['raidchannel_dict'][channel.id]
     egglevel = eggdetails['egglevel']
+    reportcity = eggdetails['reportcity']
+    reportcitychannel = discord.utils.get(channel.server.channels, name=reportcity)
     manual_timer = eggdetails['manual_timer']
     trainer_dict = eggdetails['trainer_dict']
-    reportcity = eggdetails['reportcity']
-    reportcitychannel = discord.utils.get(raid_channel.server.channels, name=reportcity)
     egg_address = eggdetails['address']
-    egg_report = eggdetails['raidreport']
-    raid_message = eggdetails['raidmessage']
+    egg_report = await Clembot.get_message(reportcitychannel, eggdetails['raidreport'])
+    raid_message = await Clembot.get_message(channel, eggdetails['raidmessage'])
     try:
         raid_messageauthor = raid_message.mentions[0]
     except IndexError:
         raid_messageauthor = "<@" + raid_message.raw_mentions[0] + ">"
-        logger.info("Hatching Mention Failed - Trying alternative method: channel: {} (id: {}) - server: {} | Attempted mention: {}...".format(raid_channel.name, raid_channel.id, raid_channel.server.name, raid_message.content[:125]))
+        logger.info("Hatching Mention Failed - Trying alternative method: channel: {} (id: {}) - server: {} | Attempted mention: {}...".format(channel.name, channel.id, channel.server.name, raid_message.content[:125]))
 
     if eggdetails['egglevel'].isdigit():
         suggested_start = eggdetails['suggested_start']
         raidexp = eggdetails['exp'] + timedelta(minutes=raid_timer)
         hatchtype = "raid"
-        raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=raid_channel.mention)
+        raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=channel.mention)
 
     if entered_raid not in pkmn_info['pokemon_list']:
-        await Clembot.send_message(raid_channel, spellcheck(entered_raid))
+        await Clembot.send_message(channel, spellcheck(entered_raid))
         return
     else:
         if entered_raid not in pkmn_info['raid_list']:
-            await Clembot.send_message(raid_channel, _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
+            await Clembot.send_message(channel, _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
             return
         else:
             if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
-                await Clembot.send_message(raid_channel, _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
+                await Clembot.send_message(channel, _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
                 return
     raid_channel_name = entered_raid + "-" + sanitize_channel_name(egg_address)
     oldembed = raid_message.embeds[0]
     raid_gmaps_link = oldembed['url']
-    raid = discord.utils.get(raid_channel.server.roles, name=entered_raid)
+    raid = discord.utils.get(channel.server.roles, name=entered_raid)
     if raid is None:
-        raid = await Clembot.create_role(server=raid_channel.server, name=entered_raid, hoist=False, mentionable=True)
+        raid = await Clembot.create_role(server=channel.server, name=entered_raid, hoist=False, mentionable=True)
         await asyncio.sleep(0.5)
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
     raid_img_url = get_icon_url(raid_number)  # This part embeds the sprite
-    raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=raid_channel.server.me.colour)
-    raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(raid_channel.server, raid_number)), inline=True))
-    raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(raid_channel.server, get_weaknesses(entered_raid))), inline=True)
+    raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=channel.server.me.colour)
+    raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(channel.server, raid_number)), inline=True))
+    raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(channel.server, get_weaknesses(entered_raid))), inline=True)
     raid_embed.set_footer(text=_("Reported by @{author}").format(author=raid_messageauthor.name), icon_url=raid_messageauthor.avatar_url)
     raid_embed.set_thumbnail(url=raid_img_url)
-    await Clembot.edit_channel(raid_channel, name=raid_channel_name)
+    await Clembot.edit_channel(channel, name=raid_channel_name)
     raidmsg = _("""
 Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
 This channel will be deleted five minutes after the timer expires.
@@ -2706,14 +2806,14 @@ Please type `!beep` if you need a refresher of Clembot commands!
     except discord.errors.NotFound:
         pass
 
-    server_dict[raid_channel.server]['raidchannel_dict'][raid_channel] = {
+    server_dict[channel.server.id]['raidchannel_dict'][channel.id] = {
         'reportcity': reportcity,
         'trainer_dict': trainer_dict,
         'exp': raidexp,
         'manual_timer': manual_timer,
         'active': True,
-        'raidmessage': raid_message,
-        'raidreport': egg_report,
+        'raidmessage' : raid_message.id,
+        'raidreport' : egg_report.id,
         'address': egg_address,
         'type': hatchtype,
         'pokemon': entered_raid,
@@ -2722,7 +2822,7 @@ Please type `!beep` if you need a refresher of Clembot commands!
     }
 
     trainer_list = []
-    trainer_dict = server_dict[raid_channel.server]['raidchannel_dict'][raid_channel]['trainer_dict']
+    trainer_dict = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['trainer_dict']
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == 'maybe' or trainer_dict[trainer]['status'] == 'omw' or trainer_dict[trainer]['status'] == 'waiting':
             user = await Clembot.get_user_info(trainer)
@@ -2731,10 +2831,10 @@ Please type `!beep` if you need a refresher of Clembot commands!
             # or len(raid_info['raid_eggs']['EX']['pokemon']) > 1
     try:
         if eggdetails['egglevel'].isdigit():
-            await Clembot.send_message(raid_channel, content=_("Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nIf you couldn't before, you're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(trainer_list=", ".join(trainer_list), pokemon=raid.mention), embed=raid_embed)
+            await Clembot.send_message(channel, content=_("Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nIf you couldn't before, you're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(trainer_list=", ".join(trainer_list), pokemon=raid.mention), embed=raid_embed)
     except Exception as error:
         print(error)
-    event_loop.create_task(expiry_check(raid_channel))
+    event_loop.create_task(expiry_check(channel))
 
 @Clembot.command(pass_context=True, hidden=True)
 async def gymhelp(ctx):
@@ -2774,15 +2874,22 @@ async def gymlookup(ctx):
 
 @Clembot.command(pass_context=True, hidden=True)
 async def status(ctx):
+
     try:
 
-        status_map = dict(server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel])
-        print(status_map)
-        status_map.pop('raidreport')
-        status_map.pop('raidmessage')
-        exp = status_map.pop('exp')
+        raid_channel_dict = get_raid_channel_dict(ctx.message)
 
-        status_map['exp'] = exp.isoformat()
+        if raid_channel_dict is None:
+            await Clembot.send_message(ctx.message.channel, content="Beep Beep! This channel is not active anymore, feel free to tag any admin to clean it up!")
+            return
+        status_map = copy.deepcopy(server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id])
+        exp = status_map.pop('exp')
+        if exp:
+            status_map['exp'] = exp.strftime("%Y-%m-%d %H:%M:%S")
+
+        suggested_start = status_map.pop('suggested_start')
+        if suggested_start:
+            status_map['suggested_start'] = suggested_start.strftime("%Y-%m-%d %H:%M:%S")
         await Clembot.send_message(ctx.message.channel, content=json.dumps(status_map, indent=4, sort_keys=True))
 
     except Exception as error:
@@ -2828,16 +2935,18 @@ async def gym(ctx):
         await Clembot.send_message(ctx.message.channel, content="Beep Beep...Hmmm, that's a gym-code I am not aware of! Type `!beep gym` for more details to use it correctly!")
 
 
-def check_raid_channel(channel):
-    type = server_dict[channel.server]['raidchannel_dict'][channel]['type']
+def check_raid_channel(channel_id):
+    channel = Clembot.get_channel(channel_id)
+    type = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['type']
 
     if type == 'raid' or type == 'egg':
         return True
     return False
 
 
-def check_raidparty_channel(channel):
-    type = server_dict[channel.server]['raidchannel_dict'][channel]['type']
+def check_raidparty_channel(channel_id):
+    channel = Clembot.get_channel(channel_id)
+    type = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['type']
 
     if type == 'raidparty':
         return True
@@ -2964,7 +3073,7 @@ async def interested(ctx, *, count: str = None):
     Works only in raid channels. If message is omitted, assumes you are a group of 1.
     Otherwise, this command expects at least one word in your message to be a number,
     and will assume you are a group with that many people."""
-    trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
+    trainer_dict = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
     if count:
         if count.isdigit():
             count = int(count)
@@ -2992,14 +3101,14 @@ async def coming(ctx, *, count: str = None):
     Otherwise, this command expects at least one word in your message to be a number,
     and will assume you are a group with that many people."""
     #    try:
-    #        if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['type'] == "egg":
-    #           if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['pokemon'] == "":
+    #        if server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['type'] == "egg":
+    #           if server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['pokemon'] == "":
     #                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Please wait until the raid egg has hatched before announcing you're coming or present."))
     #                return
     #    except:
     #        pass
 
-    trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
+    trainer_dict = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
 
     if count:
         if count.isdigit():
@@ -3028,14 +3137,14 @@ async def here(ctx, *, count: str = None):
     Otherwise, this command expects at least one word in your message to be a number,
     and will assume you are a group with that many people."""
     # try:
-    #     if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['type'] == "egg":
-    #         if server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['pokemon'] == "":
+    #     if server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['type'] == "egg":
+    #         if server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['pokemon'] == "":
     #             await Clembot.send_message(ctx.message.channel, _("Beep Beep! Please wait until the raid egg has hatched before announcing you're coming or present."))
     #             return
     # except:
     #     pass
 
-    trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
+    trainer_dict = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
 
     if count:
         if count.isdigit():
@@ -3075,7 +3184,7 @@ async def starting(ctx):
     ctx_startinglist = []
     id_startinglist = []
 
-    trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
+    trainer_dict = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
 
     # Add all waiting trainers to the starting list
     for trainer in trainer_dict:
@@ -3087,7 +3196,7 @@ async def starting(ctx):
     # Go back and delete the trainers from the waiting list
     for trainer in id_startinglist:
         del trainer_dict[trainer]
-    server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict'] = trainer_dict
+    server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict'] = trainer_dict
 
     starting_str = _("Beep Beep! The group that was waiting is starting the raid! Trainers {trainer_list}, please respond with {here_emoji} or **!here** if you are waiting for another group!").format(trainer_list=", ".join(ctx_startinglist), here_emoji=parse_emoji(ctx.message.server, config['here_id']))
     if len(ctx_startinglist) == 0:
@@ -3112,25 +3221,34 @@ async def list(ctx):
         if checks.check_citychannel(ctx):
             activeraidnum = 0
             cty = channel.name
-            rc_d = server_dict[server]['raidchannel_dict']
+            rc_d = server_dict[server.id]['raidchannel_dict']
 
             raid_dict = {}
             egg_dict = {}
             exraid_list = []
             for r in rc_d:
-                if rc_d[r]['reportcity'] == cty and rc_d[r]['active'] and discord.utils.get(server.channels, id=r.id):
+                if rc_d[r]['reportcity'] == cty and rc_d[r]['active'] and discord.utils.get(server.channels, id=r):
                     exp = rc_d[r]['exp']
                     type = rc_d[r]['type']
-                    if type == 'egg':
+                    level = rc_d[r]['egglevel']
+                    if type == 'egg' and level.isdigit():
                         egg_dict[r] = exp
-                    elif type == 'exraid':
+                    elif type == 'exraid' or level == "EX":
                         exraid_list.append(r)
+                    elif type == 'raidparty':
+                        activeraidnum -= 1
+                        #ignore raid party
                     else:
                         raid_dict[r] = exp
 
                     activeraidnum += 1
 
             def list_output(r):
+                rchan = Clembot.get_channel(r)
+                # now = datetime.datetime.utcnow() + datetime.timedelta(hours=server_dict[server.id]['offset'])
+                # end = now + datetime.timedelta(seconds=rc_d[r]['exp']-time.time())
+                # now = fetch_current_time(rchan.server.id)
+                end = fetch_channel_expire_time(rchan.id)
                 output = ""
                 ctx_waitingcount = 0
                 ctx_omwcount = 0
@@ -3142,54 +3260,52 @@ async def list(ctx):
                         ctx_omwcount += trainer['count']
                     elif trainer['status'] == "maybe":
                         ctx_maybecount += trainer['count']
-                if rc_d[r]['type'] == 'exraid':
-                    expirytext = ""
+                if rc_d[r]['manual_timer'] == False:
+                    assumed_str = " (assumed)"
                 else:
-                    expiry_time = rc_d[r]['exp']
-                    localexpire = strftime("%I:%M%p", expiry_time)
-                    localexpire24 = strftime("%H:%M", expiry_time)
-                    if rc_d[r]['manual_timer'] == False:
-                        assumed_str = " (assumed)"
-                    else:
-                        assumed_str = ""
-                    if rc_d[r]['type'] == 'egg':
-                        expirytext = " - Hatches: {expiry} ({expiry24hr}){is_assumed}".format(expiry=localexpire, expiry24hr=localexpire24, is_assumed=assumed_str)
-                    else:
-                        expirytext = " - Expiry: {expiry} ({expiry24hr}){is_assumed}".format(expiry=localexpire, expiry24hr=localexpire24, is_assumed=assumed_str)
-                output += (_("    {raidchannel}{expiry_text}\n").format(raidchannel=r.mention, expiry_text=expirytext))
-                output += (_("    {interestcount} interested, {comingcount} coming, {herecount} here.\n").format(raidchannel=r.mention, interestcount=ctx_maybecount, comingcount=ctx_omwcount, herecount=ctx_waitingcount))
+                    assumed_str = ""
+                if rc_d[r]['egglevel'].isdigit() and int(rc_d[r]['egglevel']) > 0:
+                    expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
+                elif rc_d[r]['egglevel'] == "EX" or rc_d[r]['type'] == "exraid":
+                    expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%B %d at %I:%M %p (%H:%M)"),is_assumed=assumed_str)
+                else:
+                    expirytext = " - Expiry: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
+                output += (_("    {raidchannel}{expiry_text}\n").format(raidchannel=rchan.mention, expiry_text=expirytext))
+                output += (_("    {interestcount} interested, {comingcount} coming, {herecount} here.\n").format(raidchannel=rchan.mention, interestcount=ctx_maybecount, comingcount=ctx_omwcount, herecount=ctx_waitingcount))
                 return output
 
             if activeraidnum:
-                listmsg += (_("**Beep Beep! Here's the current raids for {0}**\n\n").format(cty.capitalize()))
+                listmsg += (_("Beep Beep! Here's the current raids for {0}\n\n").format(cty.capitalize()))
+            try:
+                if raid_dict:
+                    listmsg += (_("**Active Raids:**\n").format(cty.capitalize()))
+                    for rr, e in sorted(raid_dict.items(), key=itemgetter(1)):
+                        listmsg += list_output(rr)
+                    listmsg += "\n"
 
-            if raid_dict:
-                listmsg += (_("**Active Raids:**\n").format(cty.capitalize()))
-                for r, e in sorted(raid_dict.items(), key=itemgetter(1)):
-                    listmsg += list_output(r)
-                listmsg += "\n"
+                if egg_dict:
+                    listmsg += (_("**Raid Eggs:**\n").format(cty.capitalize()))
+                    for rr, e in sorted(egg_dict.items(), key=itemgetter(1)):
+                        listmsg += list_output(rr)
+                    listmsg += "\n"
 
-            if egg_dict:
-                listmsg += (_("**Raid Eggs:**\n").format(cty.capitalize()))
-                for r, e in sorted(egg_dict.items(), key=itemgetter(1)):
-                    listmsg += list_output(r)
-                listmsg += "\n"
+                if exraid_list:
+                    listmsg += (_("**EXRaids:**\n").format(cty.capitalize()))
+                    for rr in exraid_list:
+                        listmsg += list_output(rr)
 
-            if exraid_list:
-                listmsg += (_("**EXRaids:**\n").format(cty.capitalize()))
-                for r in exraid_list:
-                    listmsg += list_output(r)
-
-            if activeraidnum == 0:
-                await Clembot.send_message(channel, _("Beep Beep! No active raids! Report one with **!raid <name> <location>**."))
+                if activeraidnum == 0:
+                    await Clembot.send_message(channel, _("Beep Beep! No active raids! Report one with **!raid <name> <location>**."))
+                    return
+                else:
+                    await Clembot.send_message(channel, listmsg)
                 return
-            else:
-                await Clembot.send_message(channel, listmsg)
-                return
+            except Exception as error:
+                print(error)
 
         if checks.check_raidpartychannel(ctx):
             if checks.check_raidactive(ctx):
-                rc_d = server_dict[server]['raidchannel_dict'][channel]
+                rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
                 listmsg += await _interest(ctx)
                 listmsg += "\n" + await _otw(ctx)
                 listmsg += "\n" + await _waiting(ctx)
@@ -3198,19 +3314,19 @@ async def list(ctx):
 
         if checks.check_raidchannel(ctx):
             if checks.check_raidactive(ctx):
-                rc_d = server_dict[server]['raidchannel_dict'][channel]
+                rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
                 if rc_d['type'] == 'egg' and rc_d['pokemon'] == '':
                     listmsg += await _interest(ctx)
                     listmsg += "\n"
-                    listmsg += await print_raid_timer(channel)
-                    listmsg += "\n" + await print_start_time(channel)
+                    listmsg += await print_raid_timer(channel.id)
+                    listmsg += "\n" + await print_start_time(channel.id)
                 else:
                     listmsg += await _interest(ctx)
                     listmsg += "\n" + await _otw(ctx)
                     listmsg += "\n" + await _waiting(ctx)
                     if rc_d['type'] != 'exraid':
-                        listmsg += "\n" + await print_raid_timer(channel)
-                    listmsg += "\n" + await print_start_time(channel)
+                        listmsg += "\n" + await print_raid_timer(channel.id)
+                    listmsg += "\n" + await print_start_time(channel.id)
                 await Clembot.send_message(channel, listmsg)
                 return
 
@@ -3263,7 +3379,7 @@ async def clearstatus(ctx):
     Usage: !clearstatus
     Only usable by admins."""
     try:
-        server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict'] = {}
+        server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict'] = {}
         await Clembot.send_message(ctx.message.channel, "Beep Beep! Raid status lists have been cleared!")
     except KeyError:
         pass
@@ -3319,7 +3435,7 @@ async def duplicate(ctx):
     channel = ctx.message.channel
     author = ctx.message.author
     server = ctx.message.server
-    rc_d = server_dict[server]['raidchannel_dict'][channel]
+    rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
     t_dict = rc_d['trainer_dict']
     can_manage = channel.permissions_for(author).manage_channels
 
@@ -3369,7 +3485,7 @@ async def duplicate(ctx):
                 confirmation = await Clembot.send_message(channel, _("Duplicate Report cancelled."))
                 logger.info("Duplicate Report - Cancelled - " + channel.name + " - Report by " + author.name)
                 dupecount = 2
-                server_dict[server]['raidchannel_dict'][channel]['duplicate'] = dupecount
+                server_dict[server.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
                 await asyncio.sleep(10)
                 await Clembot.delete_message(confirmation)
                 return
@@ -3384,7 +3500,7 @@ async def duplicate(ctx):
             confirmation = await Clembot.send_message(channel, _("Duplicate Report Timed Out."))
             logger.info("Duplicate Report - Timeout - " + channel.name + " - Report by " + author.name)
             dupecount = 2
-            server_dict[server]['raidchannel_dict'][channel]['duplicate'] = dupecount
+            server_dict[server.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
             await asyncio.sleep(10)
             await Clembot.delete_message(confirmation)
     else:
@@ -3405,10 +3521,10 @@ async def location(ctx):
         message = ctx.message
         server = message.server
         channel = message.channel
-        rc_d = server_dict[server]['raidchannel_dict']
-        raidmsg = rc_d[channel]['raidmessage']
-        location = rc_d[channel]['address']
-        report_city = rc_d[channel]['reportcity']
+        rc_d = server_dict[server.id]['raidchannel_dict']
+        raidmsg = rc_d[channel.id]['raidmessage']
+        location = rc_d[channel.id]['address']
+        report_city = rc_d[channel.id]['reportcity']
         report_channel = discord.utils.get(server.channels, name=report_city)
         oldembed = raidmsg.embeds[0]
         locurl = oldembed['url']
@@ -3435,7 +3551,7 @@ async def new(ctx):
         await Clembot.send_message(message.channel, _("Beep Beep! We're missing the new location details! Usage: **!location new <new address>**"))
         return
     else:
-        report_city = server_dict[message.server]['raidchannel_dict'][message.channel]['reportcity']
+        report_city = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['reportcity']
         report_channel = discord.utils.get(message.server.channels, name=report_city)
 
         details = " ".join(location_split)
@@ -3452,9 +3568,9 @@ async def new(ctx):
         else:
             newloc = create_gmaps_query(details, report_channel)
 
-        server_dict[message.server]['raidchannel_dict'][message.channel]['address'] = details
-        oldraidmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidmessage']
-        oldreportmsg = server_dict[message.server]['raidchannel_dict'][message.channel]['raidreport']
+        server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['address'] = details
+        oldraidmsg = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidmessage']
+        oldreportmsg = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidreport']
         oldembed = oldraidmsg.embeds[0]
         newembed = discord.Embed(title=oldembed['title'], url=newloc, colour=message.server.me.colour)
         newembed.add_field(name=oldembed['fields'][0]['name'], value=oldembed['fields'][0]['value'], inline=True)
@@ -3463,10 +3579,10 @@ async def new(ctx):
         newembed.set_thumbnail(url=oldembed['thumbnail']['url'])
         newraidmsg = await Clembot.edit_message(oldraidmsg, new_content=oldraidmsg.content, embed=newembed)
         newreportmsg = await Clembot.edit_message(oldreportmsg, new_content=oldreportmsg.content, embed=newembed)
-        server_dict[message.server]['raidchannel_dict'][message.channel]['raidmessage'] = newraidmsg
-        server_dict[message.server]['raidchannel_dict'][message.channel]['raidreport'] = newreportmsg
+        server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidmessage'] = newraidmsg
+        server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidreport'] = newreportmsg
         otw_list = []
-        trainer_dict = server_dict[message.server]['raidchannel_dict'][message.channel]['trainer_dict']
+        trainer_dict = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
         for trainer in trainer_dict.keys():
             user = await Clembot.get_user_info(trainer)
             if trainer_dict[user.id]['status'] == 'omw':
@@ -3477,11 +3593,11 @@ async def new(ctx):
 
 async def _interest(ctx):
     ctx_maybecount = 0
-    tzlocal = tz.tzoffset(None, server_dict[ctx.message.channel.server]['offset'] * 3600)
-    now = datetime.datetime.now().replace(tzinfo=tzlocal)
+
+    now = fetch_current_time(ctx.message.channel.server.id)
     # Grab all trainers who are maybe and sum
     # up their counts
-    trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
+    trainer_dict = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
     for trainer in trainer_dict.values():
         if trainer['status'] == "maybe":
             ctx_maybecount += trainer['count']
@@ -3497,7 +3613,7 @@ async def _interest(ctx):
             name_list.append("**" + user.name + "**")
             maybe_list.append(user.mention)
     if ctx_maybecount > 0:
-        if datetime.time(5, 0).replace(tzinfo=tzlocal) <= now.time().replace(tzinfo=tzlocal) >= datetime.time(21, 0).replace(tzinfo=tzlocal):
+        if now.time() >= datetime.time(5,0) and now.time() <= datetime.time(21,0):
             maybe_exstr = _(" including {trainer_list} and the people with them! Let them know if there is a group forming").format(trainer_list=", ".join(maybe_list))
         else:
             maybe_exstr = _(" including {trainer_list} and the people with them! Let them know if there is a group forming").format(trainer_list=", ".join(maybe_list))
@@ -3508,11 +3624,11 @@ async def _interest(ctx):
 
 async def _otw(ctx):
     ctx_omwcount = 0
-    tzlocal = tz.tzoffset(None, server_dict[ctx.message.channel.server]['offset'] * 3600)
-    now = datetime.datetime.now().replace(tzinfo=tzlocal)
+    now = fetch_current_time(ctx.message.channel.server.id)
+
     # Grab all trainers who are :omw: and sum
     # up their counts
-    trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
+    trainer_dict = copy.deepcopy(server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict'])
     for trainer in trainer_dict.values():
         if trainer['status'] == "omw":
             ctx_omwcount += trainer['count']
@@ -3528,6 +3644,7 @@ async def _otw(ctx):
             name_list.append("**" + user.name + "**")
             otw_list.append(user.mention)
     if ctx_omwcount > 0:
+
         otw_exstr = _(" including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(trainer_list=", ".join(otw_list))
 
     listmsg = (_("Beep Beep! {trainer_count} on the way{including_string}!").format(trainer_count=str(ctx_omwcount), including_string=otw_exstr))
@@ -3536,11 +3653,11 @@ async def _otw(ctx):
 
 async def _waiting(ctx):
     ctx_waitingcount = 0
-    tzlocal = tz.tzoffset(None, server_dict[ctx.message.channel.server]['offset'] * 3600)
-    now = datetime.datetime.now().replace(tzinfo=tzlocal)
+    now = fetch_current_time(ctx.message.channel.server.id)
+
     # Grab all trainers who are :here: and sum
     # up their counts
-    trainer_dict = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['trainer_dict']
+    trainer_dict = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
     for trainer in trainer_dict.values():
         if trainer['status'] == "waiting":
             ctx_waitingcount += trainer['count']
@@ -3557,7 +3674,7 @@ async def _waiting(ctx):
             waiting_list.append(user.mention)
     try:
         if ctx_waitingcount > 0:
-            if now.time().replace(tzinfo=tzlocal) >= datetime.time(5, 0).replace(tzinfo=tzlocal) and now.time().replace(tzinfo=tzlocal) <= datetime.time(21, 0).replace(tzinfo=tzlocal):
+            if now.time() >= datetime.time(5,0) and now.time() <= datetime.time(21,0):
                 waiting_exstr = _(" including {trainer_list} and the people with them! Be considerate and let them know if and when you'll be there").format(trainer_list=", ".join(waiting_list))
             else:
                 waiting_exstr = _(" including {trainer_list} and the people with them! Be considerate and let them know if and when you'll be there").format(trainer_list=", ".join(name_list))
@@ -3589,7 +3706,7 @@ async def waiting(ctx):
 @checks.raidpartychannel()
 async def update(ctx):
     try:
-        roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
+        roster = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
         if len(roster) <= 0:
             await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
             return
@@ -3618,9 +3735,9 @@ async def update(ctx):
             await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! Location {location} doesn't exist on the roster!".format(location=emojify_numbers(location_number))))
             return
 
-        if len(args_split) > 1:
-            await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! That's too much to update... use `!update <location#> <pokemon-name or gym-code or google map link>`"))
-            return
+        # if len(args_split) > 1:
+        #     await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! That's too much to update... use `!update <location#> <pokemon-name or gym-code or google map link>`"))
+        #     return
 
         arg = args_split[0]
         gym_info = gymutil.get_gym_info(arg, city_state=get_city_list(ctx.message))
@@ -3629,6 +3746,7 @@ async def update(ctx):
             roster_loc['gym_name'] = gym_info['gym_name']
             roster_loc['gym_code'] = gym_info['gym_code']
             roster_loc['lat_long'] = gym_info['lat_long']
+            roster_loc['eta'] = None
             args_split.remove(arg)
 
         elif arg in pkmn_info['pokemon_list']:
@@ -3642,8 +3760,13 @@ async def update(ctx):
                 roster_loc['gym_code'] = "location " + str(roster_loc['index'])
                 roster_loc['lat_long'] = extract_lat_long_from(gmap_link)
             else:
-                await print_roster_with_highlight(ctx.message, location_number, "Beep Beep...I am not sure what to update; valid choices are **pokemon, gym-code or link to the location**!".format(location=emojify_numbers(location_number)))
-                return
+                time_as_text = " ".join(args_split)
+                eta = convert_into_time(time_as_text, False)
+                if eta:
+                    roster_loc['eta'] = time_as_text
+                else:
+                    await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! I am not sure what to update;... use `!update <location#> <pokemon-name | gym-code | google map link | eta>` "))
+                    return
 
         await print_roster_with_highlight(ctx.message, location_number, "Beep Beep! Location {location} has been updated.".format(location=emojify_numbers(location_number)))
         return
@@ -3656,8 +3779,8 @@ async def update(ctx):
 @checks.raidpartychannel()
 async def add(ctx):
     try:
-        roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
-        first_index = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index']
+        roster = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
+        first_index = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster_index']
         if first_index is None:
             first_index = 0
 
@@ -3692,7 +3815,8 @@ async def add(ctx):
             roster_loc['gmap_link'] = gym_info['gmap_link']
             roster_loc['lat_long'] = gym_info['lat_long']
         else:
-            roster_loc_label = "".join(args_split)
+            del args_split[0]
+            roster_loc_label = " ".join(args_split)
             roster_loc['gym_name'] = roster_loc_label
             roster_loc['gym_code'] = roster_loc_label
             roster_loc['gmap_link'] = fetch_gmap_link(roster_loc_label, ctx.message.channel)
@@ -3721,8 +3845,8 @@ async def _add(message, gmap_link):
         return
 
     try:
-        roster = server_dict[server]['raidchannel_dict'][channel]['roster']
-        first_index = server_dict[server]['raidchannel_dict'][channel]['roster_index']
+        roster = server_dict[server.id]['raidchannel_dict'][channel.id]['roster']
+        first_index = server_dict[server.id]['raidchannel_dict'][channel.id]['roster_index']
         roster_loc = {}
 
         roster_loc_gym_link = None
@@ -3766,7 +3890,7 @@ async def reindex_roster(roster):
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidpartychannel()
 async def remove(ctx):
-    roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
+    roster = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
 
     if len(roster) < 1:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
@@ -3794,7 +3918,7 @@ async def remove(ctx):
 
     if is_location_found:
         if len(roster) == 0:
-            # server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = first_roster_index
+            # server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster_index'] = first_roster_index
             await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {member}, {roster_message}").format(member=ctx.message.author.mention, roster_message=roster_message))
         else:
             await reindex_roster(roster)
@@ -3809,7 +3933,7 @@ async def remove(ctx):
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidpartychannel()
 async def move(ctx):
-    roster = server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster']
+    roster = server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
     if len(roster) < 1:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
         return
@@ -3820,7 +3944,7 @@ async def move(ctx):
     del roster[0]
 
     if len(roster) == 0:
-        server_dict[ctx.message.server]['raidchannel_dict'][ctx.message.channel]['roster_index'] = first_roster_index
+        server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster_index'] = first_roster_index
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {member}, all the locations on this roster are done!").format(member=ctx.message.author.mention))
     else:
         await print_roster(ctx.message, _("raid party is moving to the next location in the roster!"))
@@ -3837,7 +3961,7 @@ def get_roster_with_highlight(roster, highlight_roster_loc):
                 marker = "**"
             else:
                 marker = ""
-            roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon}{marker2}").format(number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], marker1=marker, marker2=marker)
+            roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon} - {eta}{marker2}").format(number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], eta=roster_loc.get('eta',None), marker1=marker, marker2=marker)
     except Exception as error:
         print(error)
 
@@ -3865,7 +3989,7 @@ async def raidpartyhelp(ctx):
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidpartychannel()
 async def current(ctx):
-    roster = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster']
+    roster = server_dict[ctx.message.channel.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
 
     if len(roster) < 1:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
@@ -3881,7 +4005,7 @@ async def current(ctx):
 async def makeitraidparty(ctx):
     message = ctx.message
 
-    server_dict[message.server]['raidchannel_dict'][message.channel] = {
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id] = {
         'reportcity': message.channel.name,
         'trainer_dict': {},
         'exp': None,  # No expiry
@@ -3906,7 +4030,7 @@ async def makeitraidparty(ctx):
 async def reset(ctx):
     message = ctx.message
 
-    server_dict[message.server]['raidchannel_dict'][message.channel] = {
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id] = {
         'reportcity': message.channel.name,
         'trainer_dict': {},
         'exp': None,  # No expiry
@@ -3930,7 +4054,7 @@ async def reset(ctx):
 @checks.raidpartychannel()
 async def where(ctx):
     try:
-        roster = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster']
+        roster = server_dict[ctx.message.channel.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
 
         if len(roster) < 1:
             await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
@@ -3963,7 +4087,7 @@ async def where(ctx):
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidpartychannel()
 async def next(ctx):
-    roster = server_dict[ctx.message.channel.server]['raidchannel_dict'][ctx.message.channel]['roster']
+    roster = server_dict[ctx.message.channel.server.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
 
     if len(roster) < 1:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
@@ -3989,14 +4113,10 @@ async def roster(ctx):
     await print_roster(ctx.message)
 
 
-GOOGLE_API_KEY = "AIzaSyCoS20_EWol8TgnAiTk1417ybvUIRoEIQw"
-
-GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
-
 
 async def print_roster_with_highlight(message, highlight_roster_loc, roster_message=None):
     try:
-        roster = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster']
+        roster = server_dict[message.channel.server.id]['raidchannel_dict'][message.channel.id]['roster']
 
         if highlight_roster_loc:
             roster_index = highlight_roster_loc
@@ -4028,7 +4148,12 @@ async def print_roster_with_highlight(message, highlight_roster_loc, roster_mess
             embed_desription = ""
 
         raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title), url=roster_loc_gmap_link, image=raid_img_url, description=embed_desription)
+        raid_embed.add_field(name="**Raid Boss:**", value=_("{raidboss}").format(raidboss=roster_loc['pokemon'].capitalize()), inline=True)
+        raid_embed.add_field(name="**Location Details:**", value=_("{location}").format(location=roster_loc['gym_name']), inline=True)
+        if 'eta' in roster_loc:
+            raid_embed.add_field(name="**ETA:**", value=_("{eta}").format(eta=roster_loc['eta']), inline=True)
         raid_embed.set_thumbnail(url=raid_img_url)
+        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
         if lat_long:
             embed_map_image_url = fetch_gmap_image_link(lat_long)
             raid_embed.set_image(url=embed_map_image_url)
@@ -4041,7 +4166,7 @@ async def print_roster_with_highlight(message, highlight_roster_loc, roster_mess
 
 
 async def print_roster(message, roster_message=None):
-    roster = server_dict[message.channel.server]['raidchannel_dict'][message.channel]['roster']
+    roster = server_dict[message.channel.server.id]['raidchannel_dict'][message.channel.id]['roster']
 
     if len(roster) < 1:
         await Clembot.send_message(message.channel, content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
@@ -4065,6 +4190,7 @@ async def print_roster(message, roster_message=None):
         raid_party_image_url = ""
 
     raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title), url=raid_party_image_url, description=roster_msg)
+    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
     raid_embed.set_thumbnail(url=raid_img_url)
 
     if roster_message:
@@ -4132,10 +4258,10 @@ async def _invite(ctx):
                 exraidlist = ''
                 exraid_dict = {}
                 exraidcount = 0
-                for channel in server_dict[ctx.message.server]['raidchannel_dict']:
+                for channel in server_dict[ctx.message.server.id]['raidchannel_dict']:
                     if not discord.utils.get(ctx.message.server.channels, id=channel.id):
                         continue
-                    if server_dict[ctx.message.server]['raidchannel_dict'][channel]['egglevel'] == 'EX' or server_dict[ctx.message.server]['raidchannel_dict'][channel]['type'] == 'exraid':
+                    if server_dict[ctx.message.server.id]['raidchannel_dict'][channel.id]['egglevel'] == 'EX' or server_dict[ctx.message.server.id]['raidchannel_dict'][channel.id]['type'] == 'exraid':
                         if channel.mention != '#deleted-channel':
                             exraidcount += 1
                             exraidlist += '\n' + str(exraidcount) + '.   ' + channel.mention
@@ -4165,6 +4291,91 @@ async def _invite(ctx):
     else:
         await Clembot.send_message(ctx.message.channel, "Beep Beep! Please upload your screenshot directly to Discord!")
 
+@Clembot.command(pass_context=True)
+@commands.has_permissions(manage_server=True)
+async def recover(ctx):
+    if checks.check_wantchannel(ctx) or checks.check_citychannel(ctx) or checks.check_raidchannel(ctx) or checks.check_eggchannel(ctx) or checks.check_exraidchannel(ctx):
+        await Clembot.send_message(ctx.message.channel, "Beep Beep!I can't recover this channel because I know about it already!")
+    else:
+        channel = ctx.message.channel
+        server = channel.server
+        name = channel.name
+        topic = channel.topic
+        egg = re.match('level-[1-5]-egg', name)
+        if egg:
+            raidtype = 'egg'
+            chsplit = egg.string.split('-')
+            del chsplit[0]
+            egglevel = chsplit[0]
+            del chsplit[0]
+            del chsplit[0]
+            raid_details = " ".join(chsplit)
+            raid_details = raid_details.strip()
+            if not topic:
+                exp = time.time() + 60 * raid_info['raid_eggs'][egglevel]['hatchtime']
+                manual_timer = False
+            else:
+                topicsplit = topic.split('|')
+                localhatch = datetime.datetime.strptime(topicsplit[0][:-9], "Hatches on %B %d at %I:%M %p")
+                utchatch = localhatch - datetime.timedelta(hours=server_dict[server.id]['offset'])
+                exp = utchatch.replace(tzinfo=datetime.timezone.utc).timestamp()
+                manual_timer = True
+            pokemon = ''
+            if len(raid_info['raid_eggs'][egglevel]['pokemon']) == 1:
+                pokemon = raid_info['raid_eggs'][egglevel]['pokemon'][0]
+        elif name.split('-')[0] in get_raidlist():
+            raidtype = 'raid'
+            chsplit = name.split('-')
+            pokemon = chsplit[0]
+            del chsplit[0]
+            raid_details = " ".join(chsplit)
+            raid_details = raid_details.strip()
+            if not topic:
+                exp = time.time() + 60 * 45
+                manual_timer = False
+            else:
+                localend = datetime.datetime.strptime(topic[:-8], "Ends on %B %d at %I:%M %p")
+                utcend = localend - datetime.timedelta(hours=server_dict[server.id]['offset'])
+                exp = utcend.replace(tzinfo=datetime.timezone.utc).timestamp()
+                manual_timer = True
+        elif name.split('-')[0] == 'ex':
+            raidtype = 'egg'
+            egglevel = 'EX'
+            chsplit = name.split('-')
+            del chsplit[0]
+            del chsplit[0]
+            del chsplit[0]
+            raid_details = " ".join(chsplit)
+            raid_details = raid_details.strip()
+            if not topic:
+                exp = time.time() + 60*60*24*14
+                manual_timer = False
+            else:
+                topicsplit = topic.split('|')
+                localhatch = datetime.datetime.strptime(topicsplit[0][:-9], "Hatches on %B %d at %I:%M %p")
+                utchatch = localhatch - datetime.timedelta(hours=server_dict[server.id]['offset'])
+                exp = utchatch.replace(tzinfo=datetime.timezone.utc).timestamp()
+                manual_timer = True
+            pokemon = ''
+            if len(raid_info['raid_eggs']['EX']['pokemon']) == 1:
+                pokemon = raid_info['raid_eggs']['EX']['pokemon'][0]
+        else:
+            await Clembot.send_message(channel, "Beep Beep!I couldn't recognize this as a raid channel!")
+            return
+        server_dict[channel.server.id]['raidchannel_dict'][channel.id] = {
+            'reportcity' : None,
+            'trainer_dict' : {},
+            'exp': exp,
+            'manual_timer': manual_timer,
+            'active': True,
+            'raidmessage': None,
+            'raidreport': None,
+            'address': raid_details,
+            'type': raidtype,
+            'pokemon' : pokemon,
+            'egglevel': egglevel
+            }
+        await Clembot.send_message(channel, "Beep Beep!This channel has been recovered! However, I can't remember if anyone RSVPed to this raid.")
 
 try:
     event_loop.run_until_complete(Clembot.start(config['bot_token']))

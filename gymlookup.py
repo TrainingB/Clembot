@@ -225,30 +225,30 @@ print(get_matching_gyms_info("BU"))
 #
 # print(convert_into_time("21:43"))
 #
-# def convert_into_current_time(time_hour_and_min_only):
-#     offset = -8
-#     current_time = datetime.datetime.utcnow() + timedelta(hours=offset)
-#     current_time = cu
-#     start_time = current_time.replace(hour=time_hour_and_min_only.tm_hour, minute=time_hour_and_min_only.tm_min)
-#
-#     print("{a} - {b} >> {c}".format(a=current_time, b=start_time,c=start_time-current_time))
-#
-#     if current_time.hour > 11:
-#         start_time = start_time + timedelta(hours=12)
-#         print("{a} - {b} >> {c}".format(a=current_time, b=start_time, c=start_time-current_time))
-#
-#     return start_time
-#
-#
-# print(convert_into_current_time(convert_into_time("7:43")))
-#
-# print(convert_into_current_time(convert_into_time("11:43")))
-#
-# print(convert_into_current_time(convert_into_time("12:55")))
-#
-# print(convert_into_current_time(convert_into_time("1:10")))
-#
-# print(convert_into_current_time(convert_into_time("4:10")))
+def convert_into_current_time(time_hour_and_min_only):
+    offset = -8
+    current_time = datetime.datetime.utcnow() + timedelta(hours=offset)
+    current_time = cu
+    start_time = current_time.replace(hour=time_hour_and_min_only.tm_hour, minute=time_hour_and_min_only.tm_min)
+
+    print("{a} - {b} >> {c}".format(a=current_time, b=start_time,c=start_time-current_time))
+
+    if current_time.hour > 11:
+        start_time = start_time + timedelta(hours=12)
+        print("{a} - {b} >> {c}".format(a=current_time, b=start_time, c=start_time-current_time))
+
+    return start_time
+
+
+print(convert_into_current_time(convert_into_time("7:43")))
+
+print(convert_into_current_time(convert_into_time("11:43")))
+
+print(convert_into_current_time(convert_into_time("12:55")))
+
+print(convert_into_current_time(convert_into_time("1:10")))
+
+print(convert_into_current_time(convert_into_time("4:10")))
 #
 #
 #
