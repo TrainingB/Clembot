@@ -2443,6 +2443,7 @@ Message **!starting** when the raid is beginning to clear the raid's 'here' list
     event_loop.create_task(expiry_check(raid_channel))
 
 
+
 @Clembot.command(pass_context=True, hidden=True)
 @checks.citychannel()
 @checks.raidset()
@@ -3788,6 +3789,8 @@ async def add(ctx):
         args_split = args.split(" ")
         del args_split[0]
 
+
+
         roster_loc_mon = args_split[0].lower()
         if roster_loc_mon != "egg":
             if roster_loc_mon not in pkmn_info['pokemon_list']:
@@ -3796,10 +3799,26 @@ async def add(ctx):
             if roster_loc_mon not in pkmn_info['raid_list'] and roster_loc_mon in pkmn_info['pokemon_list']:
                 await Clembot.send_message(ctx.message.channel, _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=roster_loc_mon.capitalize()))
                 return
+            del args_split[0]
 
-        roster_loc_gym_code = args_split[1]
+        roster_loc_gym_code = args_split[0]
         gym_info = gymutil.get_gym_info(roster_loc_gym_code, city_state=get_city_list(ctx.message))
 
+        if gym_info:
+            del args_split[0]
+
+        if len(args_split) > 0 :
+            time_as_text = args_split[-1]
+            eta = convert_into_time(time_as_text, False)
+            if eta:
+                del args_split[-1]
+            else:
+                time_as_text = " ".join(args_split[-2:])
+                eta = convert_into_time(time_as_text, False)
+                if eta:
+                    del args_split[-2:]
+
+        roster_loc_label = " ".join(args_split)
         roster_loc = {}
 
         if len(roster) < 1:
@@ -3815,12 +3834,13 @@ async def add(ctx):
             roster_loc['gmap_link'] = gym_info['gmap_link']
             roster_loc['lat_long'] = gym_info['lat_long']
         else:
-            del args_split[0]
-            roster_loc_label = " ".join(args_split)
             roster_loc['gym_name'] = roster_loc_label
             roster_loc['gym_code'] = roster_loc_label
             roster_loc['gmap_link'] = fetch_gmap_link(roster_loc_label, ctx.message.channel)
             roster_loc['lat_long'] = None
+
+        if eta:
+            roster_loc['eta'] = time_as_text
 
         roster.append(roster_loc)
 
