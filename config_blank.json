@@ -25,7 +25,7 @@
 "master": "yourdiscordid",
 
 "//": "Limit egg assumed hatches to certain egg levels.",
-"allow_assume": {"5": "False", "4": "False", "3": "False", "2": "False", "1": "False"},
+"allow_assume": {"5": "True", "4": "False", "3": "False", "2": "False", "1": "False"},
 
 "//": "Define your server's emoji strings here.",
 
@@ -38,24 +38,24 @@
                       
 "//": "Emoji for Pokemon types.",
 "type_id_dict": {
-    "normal"   : ":normal:",
-    "fire"     : ":fire1:",
-    "water"    : ":water:",
-    "electric" : ":electric:",
-    "grass"    : ":grass:",
-    "ice"      : ":ice:",
-    "fighting" : ":fighting:",
-    "poison"   : ":poison:",
-    "ground"   : ":ground:",
-    "flying"   : ":flying:",
-    "psychic"  : ":psychic:",
-    "bug"      : ":bug1:",
-    "rock"     : ":rock:",
-    "ghost"    : ":ghost1:",
-    "dragon"   : ":dragon:",
-    "dark"     : ":dark:",
-    "steel"    : ":steel:",
-    "fairy"    : ":fairy:"
+	"normal"   : "<:type_normal:394992044784746507>",
+	"fire"     : "<:type_fire:394992044310921247>",
+	"water"    : "<:type_water:394992044562448394>",
+	"electric" : "<:type_electric:394992043669192716>",
+	"grass"    : "<:type_grass:394992044462047244>",
+	"ice"      : "<:type_ice:394992044554190868>",
+	"fighting" : "<:type_fighting:394992044562448385>",
+	"poison"   : "<:type_poison:394992044763906048>",
+	"ground"   : "<:type_ground:394992044126371841>",
+	"flying"   : "<:type_flying:394992043660804097>",
+	"psychic"  : "<:type_psychic:394992044478824458>",
+	"bug"      : "<:type_bug:394992043551752193>",
+	"rock"     : "<:type_rock:394992044478693386>",
+	"ghost"    : "<:type_ghost:394992044688539651>",
+	"dragon"   : "<:type_dragon:394992043807735808>",
+	"dark"     : "<:type_dark:394992043706810368>",
+	"steel"    : "<:type_steel:394992044604391434>",
+	"fairy"    : "<:type_fairy:394992043312807949>"
 }
 
 }
