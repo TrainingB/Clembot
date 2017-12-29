@@ -1424,7 +1424,7 @@ async def announce(ctx, *, announce=None):
             count = 0
             for server in Clembot.servers:
                 destination = server.owner
-                # -------------- embeddraft.set_footer(text="For support, contact us on our Discord server. Invite Code: hhVjAN8")
+                embeddraft.set_footer(text="For support, contact us on our Discord server. Invite Code: HzAdkNQ")
                 embeddraft.colour = discord.Colour.lighter_grey()
                 try:
                     await Clembot.send_message(destination, embed=embeddraft)
@@ -1520,7 +1520,7 @@ async def about(ctx):
     embed.add_field(name="Servers", value=server_count)
     embed.add_field(name="Members", value=member_count)
     embed.add_field(name="Uptime", value=uptime_str)
-    embed.set_footer(text="For support, contact us on our Discord server. Invite Code: hTfersw")
+    embed.set_footer(text="For support, contact us on our Discord server. Invite Code: HzAdkNQ")
 
     try:
         await Clembot.send_message(channel, embed=embed)
@@ -1891,6 +1891,7 @@ async def _contest(message):
         embed.add_field(name="**Server:**", value=_("{member}").format(member=message.server.name), inline=True)
         embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
         await Clembot.send_message(Clembot.owner, embed=embed)
+        await Clembot.send_message(message.author, embed=embed)
 
 
 
