@@ -595,7 +595,7 @@ async def channel_cleanup(loop=True):
                 channel = Clembot.get_channel(channelid)
                 if channel is None:
                     del server_dict[serverid]['raidchannel_dict'][channelid]
-                    logger.info( "Channel_Cleanup - Server: "+server.name + ": Channel:"+channel.name + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
+                    logger.info( "Channel_Cleanup - Server: " + server.name + ": Channel:" + channelid + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
                     continue
                 log_str = "Channel_Cleanup - Server: "+server.name
                 log_str = log_str+": Channel:"+channel.name
