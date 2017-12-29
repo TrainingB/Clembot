@@ -1838,6 +1838,8 @@ def generate_pokemon(option=None):
             pokedex = randint(152, 251)
         elif  option == 'GEN3':
             pokedex = randint(252, 383)
+        elif option == 'GEN12':
+            pokedex = randint(1, 251)
         else:
             pokedex = randint(1, 383)
 
@@ -1853,8 +1855,8 @@ async def _contest(message):
         option = "ALL"
         if len(raid_split) > 1:
             option = raid_split[1].upper()
-            if option not in ["ALL", "TEST", "GEN1", "GEN2", "GEN3"]:
-                await Clembot.send_message(message.channel, "Beep Beep! valid options are : ALL,TEST,GEN1,GEN2,GEN3")
+            if option not in ["ALL", "TEST", "GEN1", "GEN2", "GEN3", "GEN12"]:
+                await Clembot.send_message(message.channel, "Beep Beep! valid options are : ALL,TEST,GEN1,GEN2,GEN3,GEN12")
                 return
 
         everyone_perms = discord.PermissionOverwrite(read_messages=True,send_messages=False, add_reactions=True)
@@ -1906,19 +1908,18 @@ async def ready(ctx):
     message = ctx.message
     if 'contest_channel' in server_dict[message.server.id]:
         if server_dict[message.server.id]['contest_channel'][message.channel.id].get('started', True) == False:
+            if ctx.message.author.id == server_dict[message.server.id]['contest_channel'][message.channel.id].get('reported_by', 0):
+                everyone_perms = discord.PermissionOverwrite(read_messages=True, send_messages=True, add_reactions=True)
+                await Clembot.edit_channel_permissions(message.channel,target=message.server.default_role,overwrite=everyone_perms)
 
+                contest_channel_started_dict = {'started': True}
+                server_dict[message.server.id]['contest_channel'][message.channel.id].update(contest_channel_started_dict)
 
-            everyone_perms = discord.PermissionOverwrite(read_messages=True, send_messages=True, add_reactions=True)
-            await Clembot.edit_channel_permissions(message.channel,target=message.server.default_role,overwrite=everyone_perms)
-
-            contest_channel_started_dict = {'started': True}
-            server_dict[message.server.id]['contest_channel'][message.channel.id].update(contest_channel_started_dict)
-            print(server_dict[message.server.id]['contest_channel'])
-
-            raid_embed = discord.Embed(title=_("Beep Beep! The channel is open for submissions now!"), colour=discord.Colour.gold())
-            raid_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/396098777729204226/396101362460524545/imageedit_14_9502845615.png")
-            await Clembot.send_message(message.channel, embed=raid_embed)
-
+                raid_embed = discord.Embed(title=_("Beep Beep! The channel is open for submissions now!"), colour=discord.Colour.gold())
+                raid_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/396098777729204226/396101362460524545/imageedit_14_9502845615.png")
+                await Clembot.send_message(message.channel, embed=raid_embed)
+            else:
+                await Clembot.send_message(message.channel, content="Beep Beep! Only contest organizer can do this!")
             return
 
 
