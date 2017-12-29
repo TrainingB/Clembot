@@ -821,7 +821,11 @@ async def on_ready():
 
         owners.append(server.owner)
 
-    await _print(Clembot.owner, _("Beep Beep! That's right!\n\n{server_count} servers connected.\n{member_count} members found.").format(server_count=servers, member_count=users))
+    embed = discord.Embed(colour=discord.Colour.green(), description="Beep Beep! That's right!").set_author(name=_("Clembot Startup Notification"), icon_url=Clembot.user.avatar_url)
+    embed.add_field(name="**Servers Connected**", value=_(" {servers}").format(servers=servers), inline=True)
+    embed.add_field(name="**Members Found**", value=_(" {members}").format(members=users), inline=True)
+    await Clembot.send_message(Clembot.owner, embed=embed)
+
 
     await maint_start()
 
@@ -1420,7 +1424,7 @@ async def announce(ctx, *, announce=None):
             count = 0
             for server in Clembot.servers:
                 destination = server.owner
-                embeddraft.set_footer(text="For support, contact us on our Discord server. Invite Code: hhVjAN8")
+                # -------------- embeddraft.set_footer(text="For support, contact us on our Discord server. Invite Code: hhVjAN8")
                 embeddraft.colour = discord.Colour.lighter_grey()
                 try:
                     await Clembot.send_message(destination, embed=embeddraft)
