@@ -1247,13 +1247,13 @@ async def restart(ctx):
     Usage: !restart.
     Calls the save function and restarts Clembot."""
 
-    args = ctx.message.clean_content.split()
-    if len(args) > 1:
-        bot_name = args[1]
-        if bot_name.lower() != ctx.message.server.me.display_name.lower():
-            return
-    else:
-        return
+    # args = ctx.message.clean_content.split()
+    # if len(args) > 1:
+    #     bot_name = args[1]
+    #     if bot_name.lower() != ctx.message.server.me.display_name.lower():
+    #         return
+    # else:
+    #     return
     try:
         await _save()
     except Exception as err:
@@ -1863,10 +1863,8 @@ async def _contest(message):
         everyone_perms = discord.PermissionOverwrite(read_messages=True,send_messages=False, add_reactions=True)
         my_perms = discord.PermissionOverwrite(read_messages=True,send_messages=True, manage_channel=True, manage_permissions=True, manage_messages=True, embed_links=True, attach_files=True, add_reactions=True, mention_everyone=True)
 
-        Clembot_role = discord.utils.get(message.server.roles, name="Clembot")
-
         everyone = discord.ChannelPermissions(target=message.server.default_role, overwrite=everyone_perms)
-        mine = discord.ChannelPermissions(target=Clembot_role, overwrite=my_perms)
+        mine = discord.ChannelPermissions(target=message.server.me, overwrite=my_perms)
 
         contest_channel = await Clembot.create_channel(message.server, raid_split[0], everyone, mine)
 
@@ -1895,7 +1893,7 @@ async def _contest(message):
         await Clembot.send_message(contest_channel, "Beep Beep! {reporter} can start the contest anytime using `!ready` command".format(reporter=message.author.mention))
 
         add_contest_to_server_dict(message.server.id)
-        contest_channel_dict = {contest_channel.id : {'pokemon' : pokemon, 'started': False, 'reported_by' : message.author.id }}
+        contest_channel_dict = {contest_channel.id : {'pokemon' : pokemon, 'started': False, 'reported_by' : message.author.id , 'option' : option }}
 
         server_dict[message.server.id]['contest_channel'].update(contest_channel_dict)
 
@@ -1903,6 +1901,28 @@ async def _contest(message):
         print(error)
 
     return
+
+@Clembot.command(pass_context=True)
+async def renew(ctx):
+
+    message = ctx.message
+    if 'contest_channel' in server_dict[message.server.id]:
+        if server_dict[message.server.id]['contest_channel'][message.channel.id].get('started', True) == False:
+            if ctx.message.author.id == server_dict[message.server.id]['contest_channel'][message.channel.id].get('reported_by', 0):
+                option = server_dict[message.server.id]['contest_channel'][message.channel.id].get('option', "ALL")
+
+                pokemon = generate_pokemon(option)
+                contest_channel_dict = {message.channel.id : {'pokemon' : pokemon, 'started': False, 'reported_by' : message.author.id , 'option' : option }}
+                server_dict[message.server.id]['contest_channel'].update(contest_channel_dict)
+
+                embed = discord.Embed(colour=discord.Colour.gold(), description="Beep Beep! A contest channel has been created!").set_author(name=_("Clembot Contest Notification - {0}").format(message.server), icon_url=Clembot.user.avatar_url)
+                embed.add_field(name="**Channel:**", value=_(" {member}").format(member=message.channel.name), inline=True)
+                embed.add_field(name="**Option**", value=_(" {member}").format(member=option), inline=True)
+                embed.add_field(name="**Pokemon**", value=_(" {member}").format(member=pokemon), inline=True)
+                embed.add_field(name="**Server:**", value=_("{member}").format(member=message.server.name), inline=True)
+                embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
+                await Clembot.send_message(Clembot.owner, embed=embed)
+
 
 @Clembot.command(pass_context=True)
 async def ready(ctx):
@@ -3291,6 +3311,7 @@ Note : **gym-code** is **first two letters** of **first two words** of gym name 
 # ---------------------------------------------------------------------------------------
 
 @Clembot.command(pass_context=True, hidden=True)
+@checks.is_owner()
 async def dump(ctx):
 
     try:
