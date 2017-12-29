@@ -1863,7 +1863,7 @@ async def _contest(message):
         everyone_perms = discord.PermissionOverwrite(read_messages=True,send_messages=False, add_reactions=True)
         my_perms = discord.PermissionOverwrite(read_messages=True,send_messages=True, manage_channel=True, manage_permissions=True, manage_messages=True, embed_links=True, attach_files=True, add_reactions=True, mention_everyone=True)
 
-        Clembot_role = discord.utils.get(message.server.roles, name="Citroid")
+        Clembot_role = discord.utils.get(message.server.roles, name="Clembot")
 
         everyone = discord.ChannelPermissions(target=message.server.default_role, overwrite=everyone_perms)
         mine = discord.ChannelPermissions(target=Clembot_role, overwrite=my_perms)
