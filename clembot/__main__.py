@@ -581,6 +581,7 @@ async def channel_cleanup(loop=True):
             dict_channel_delete = []
             discord_channel_delete = []
 
+            add_contest_to_server_dict(serverid)
             for channelid in serverdict_chtemp[serverid]['contest_channel']:
                 try:
                     channel = Clembot.get_channel(channelid)
@@ -1816,12 +1817,12 @@ async def contest(ctx):
     return
 
 
-def add_contest_to_server_dict(message):
-    if 'contest_channel' in server_dict[message.server.id]:
+def add_contest_to_server_dict(serverid):
+    if 'contest_channel' in server_dict[serverid]:
         return
 
     server_contest = {'contest_channel': {}}
-    server_dict[message.server.id].update(server_contest)
+    server_dict[serverid].update(server_contest)
     return
 
 def generate_pokemon(option=None):
@@ -1893,7 +1894,7 @@ async def _contest(message):
 
         await Clembot.send_message(contest_channel, "Beep Beep! {reporter} can start the contest anytime using `!ready` command".format(reporter=message.author.mention))
 
-        add_contest_to_server_dict(message)
+        add_contest_to_server_dict(message.server.id)
         contest_channel_dict = {contest_channel.id : {'pokemon' : pokemon, 'started': False, 'reported_by' : message.author.id }}
 
         server_dict[message.server.id]['contest_channel'].update(contest_channel_dict)
