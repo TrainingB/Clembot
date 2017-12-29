@@ -12,6 +12,9 @@ from dateutil.relativedelta import relativedelta
 from dateutil import tz
 import copy
 from time import strftime
+
+from discord.colour import Colour
+
 from logs import init_loggers
 import discord
 from discord.ext import commands
@@ -34,8 +37,11 @@ import time
 from datetime import timedelta
 import calendar
 import copy
+from random import *
 import pytz
 from pytz import timezone
+import jsonpickle
+
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = "-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6"
@@ -59,6 +65,7 @@ def _get_prefix(bot, message):
 
 
 Clembot = commands.Bot(command_prefix=_get_prefix)
+Clembot.remove_command("help")
 custom_error_handling(Clembot, logger)
 
 try:
@@ -574,10 +581,20 @@ async def channel_cleanup(loop=True):
             dict_channel_delete = []
             discord_channel_delete = []
 
+            for channelid in serverdict_chtemp[serverid]['contest_channel']:
+                try:
+                    channel = Clembot.get_channel(channelid)
+                    if channel is None:
+                        del server_dict[serverid]['contest_channel'][channelid]
+                        # logger.info("Channel_Cleanup - Server: " + server.name + ": Channel:" + channel.name + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
+                except Exception as error:
+                    continue
             #check every raid channel data for each server
             for channelid in serverdict_chtemp[serverid]['raidchannel_dict']:
                 channel = Clembot.get_channel(channelid)
                 if channel is None:
+                    del server_dict[serverid]['raidchannel_dict'][channelid]
+                    logger.info( "Channel_Cleanup - Server: "+server.name + ": Channel:"+channel.name + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
                     continue
                 log_str = "Channel_Cleanup - Server: "+server.name
                 log_str = log_str+": Channel:"+channel.name
@@ -1228,6 +1245,14 @@ async def restart(ctx):
 
     Usage: !restart.
     Calls the save function and restarts Clembot."""
+
+    args = ctx.message.clean_content.split()
+    if len(args) > 1:
+        bot_name = args[1]
+        if bot_name.lower() != ctx.message.server.me.display_name.lower():
+            return
+    else:
+        return
     try:
         await _save()
     except Exception as err:
@@ -1724,6 +1749,204 @@ async def _wild(message):
         wild_embed.set_thumbnail(url=wild_img_url)
         await Clembot.send_message(message.channel, content=_("Beep Beep! Wild {pokemon} reported by {member}! Details: {location_details}").format(pokemon=wild.mention, member=message.author.mention, location_details=wild_details), embed=wild_embed)
 
+
+@Clembot.command(pass_context=True)
+async def hide(ctx):
+    await _hideChannel(ctx.message.channel)
+
+
+async def _hideChannel(channel):
+    try:
+        print("hide: {channel}".format(channel=channel.name))
+
+        readable = discord.PermissionOverwrite()
+        readable.read_messages=False
+
+        await Clembot.edit_channel_permissions(channel, channel.server.default_role, readable)
+    except Exception as error:
+        print(error)
+
+
+
+@Clembot.command(pass_context=True)
+async def lock(ctx):
+    await _lockChannel(ctx.message.channel)
+
+
+
+def _readOnly():
+    readable = discord.PermissionOverwrite()
+    readable.read_messages = True
+
+    return readable
+
+async def _lockChannel(channel):
+    try:
+        writeable = discord.PermissionOverwrite()
+        writeable.send_messages = True
+
+        readable = discord.PermissionOverwrite()
+        readable.read_messages=True
+        readable.send_messages=False
+
+        await Clembot.edit_channel_permissions(channel, channel.server.me, writeable)
+        await Clembot.edit_channel_permissions(channel, channel.server.default_role, readable)
+    except Exception as error:
+        print(error)
+
+
+@Clembot.command(pass_context=True)
+async def unlock(ctx):
+    await _unlockChannel(ctx.message.channel)
+
+
+async def _unlockChannel(channel):
+    try:
+        writeable = discord.PermissionOverwrite()
+        writeable.send_messages = True
+        writeable.read_messages = True
+        await Clembot.edit_channel_permissions(channel, channel.server.default_role, writeable)
+    except Exception as error:
+        print(error)
+
+
+@Clembot.command(pass_context=True)
+async def contest(ctx):
+    await _contest(ctx.message)
+    return
+
+
+def add_contest_to_server_dict(message):
+    if 'contest_channel' in server_dict[message.server.id]:
+        return
+
+    server_contest = {'contest_channel': {}}
+    server_dict[message.server.id].update(server_contest)
+    return
+
+def generate_pokemon(option=None):
+
+    if option is None:
+        pokedex = randint(1, 383)
+    else:
+        option = option.upper()
+        if option == 'TEST':
+            pokedex = randint(1, 100)
+        elif  option == 'GEN1':
+            pokedex = randint(1, 151)
+        elif  option == 'GEN2':
+            pokedex = randint(152, 251)
+        elif  option == 'GEN3':
+            pokedex = randint(252, 383)
+        else:
+            pokedex = randint(1, 383)
+
+    pokemon = get_name(pokedex)
+    return pokemon
+
+
+async def _contest(message):
+    try:
+        raid_split = message.clean_content.lower().split()
+        del raid_split[0]
+
+        option = "ALL"
+        if len(raid_split) > 1:
+            option = raid_split[1].upper()
+            if option not in ["ALL", "TEST", "GEN1", "GEN2", "GEN3"]:
+                await Clembot.send_message(message.channel, "Beep Beep! valid options are : ALL,TEST,GEN1,GEN2,GEN3")
+                return
+
+        everyone_perms = discord.PermissionOverwrite(read_messages=True,send_messages=False, add_reactions=True)
+        my_perms = discord.PermissionOverwrite(read_messages=True,send_messages=True, manage_channel=True, manage_permissions=True, manage_messages=True, embed_links=True, attach_files=True, add_reactions=True, mention_everyone=True)
+
+        Clembot_role = discord.utils.get(message.server.roles, name="Citroid")
+
+        everyone = discord.ChannelPermissions(target=message.server.default_role, overwrite=everyone_perms)
+        mine = discord.ChannelPermissions(target=Clembot_role, overwrite=my_perms)
+
+        contest_channel = await Clembot.create_channel(message.server, raid_split[0], everyone, mine)
+
+        pokemon = generate_pokemon(option)
+
+        await Clembot.send_message(message.channel, content=_("Beep Beep! The contest channel has been created, please coordinate in {channel}!".format(channel=contest_channel.mention)))
+
+        raid_embed = discord.Embed(title=_("Beep Beep! A contest is about to take place in this channel!"), colour=discord.Colour.gold() , description="The first member to correctly guess (and spell) the randomly selected pokemon name will win!")
+        raid_embed.add_field(name="**Option:**", value=_("{option}").format(option=option))
+        raid_embed.add_field(name="**Rules:**", value=_("{rules}").format(rules="One pokemon per attempt per line!"))
+        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+        raid_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/396098777729204226/396103528554168320/imageedit_15_4199265561.png")
+        await Clembot.send_message(contest_channel, embed=raid_embed)
+
+
+        embed = discord.Embed(colour=discord.Colour.gold(), description="Beep Beep! A contest channel has been created!").set_author(name=_("Clembot Contest Notification - {0}").format(message.server), icon_url=Clembot.user.avatar_url)
+        embed.add_field(name="**Channel:**", value=_(" {member}").format(member=contest_channel.name), inline=True)
+        embed.add_field(name="**Option**", value=_(" {member}").format(member=option), inline=True)
+        embed.add_field(name="**Pokemon**", value=_(" {member}").format(member=pokemon), inline=True)
+        embed.add_field(name="**Server:**", value=_("{member}").format(member=message.server.name), inline=True)
+        embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
+        await Clembot.send_message(Clembot.owner, embed=embed)
+
+
+
+        await Clembot.send_message(contest_channel, "Beep Beep! {reporter} can start the contest anytime using `!ready` command".format(reporter=message.author.mention))
+
+        add_contest_to_server_dict(message)
+        contest_channel_dict = {contest_channel.id : {'pokemon' : pokemon, 'started': False, 'reported_by' : message.author.id }}
+
+        server_dict[message.server.id]['contest_channel'].update(contest_channel_dict)
+
+    except Exception as error:
+        print(error)
+
+    return
+
+@Clembot.command(pass_context=True)
+async def ready(ctx):
+    message = ctx.message
+    if 'contest_channel' in server_dict[message.server.id]:
+        if server_dict[message.server.id]['contest_channel'][message.channel.id].get('started', True) == False:
+
+
+            everyone_perms = discord.PermissionOverwrite(read_messages=True, send_messages=True, add_reactions=True)
+            await Clembot.edit_channel_permissions(message.channel,target=message.server.default_role,overwrite=everyone_perms)
+
+            contest_channel_started_dict = {'started': True}
+            server_dict[message.server.id]['contest_channel'][message.channel.id].update(contest_channel_started_dict)
+            print(server_dict[message.server.id]['contest_channel'])
+
+            raid_embed = discord.Embed(title=_("Beep Beep! The channel is open for submissions now!"), colour=discord.Colour.gold())
+            raid_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/396098777729204226/396101362460524545/imageedit_14_9502845615.png")
+            await Clembot.send_message(message.channel, embed=raid_embed)
+
+            return
+
+
+async def contestEntry(message, pokemon=None):
+
+    if pokemon == None:
+        pokemon = server_dict[message.server.id]['contest_channel'][message.channel.id]['pokemon']
+
+    if pokemon.lower() == message.content.lower():
+        await Clembot.add_reaction(message, '✅')
+        await Clembot.add_reaction(message, '🎉')
+
+        raid_embed = discord.Embed(title=_("**We have a winner!🎉🎉🎉**"),description="", colour=discord.Colour.dark_gold())
+
+        raid_embed.add_field(name="**Winner:**", value=_("{member}").format(member=message.author.mention), inline=True)
+        raid_embed.add_field(name="**Winning Entry:**", value=_("{pokemon}").format(pokemon=pokemon), inline=True)
+        raid_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/396098777729204226/396106669622296597/imageedit_17_5142594467.png")
+
+        await Clembot.send_message(message.channel, embed=raid_embed)
+
+        await Clembot.send_message(message.channel, content=_("Beep Beep! Congratulations {winner}!").format(winner=message.author.mention))
+
+        del server_dict[message.server.id]['contest_channel'][message.channel.id]
+
+    elif message.content.lower() in pkmn_info['pokemon_list']:
+        await Clembot.add_reaction(message, '🔴')
+
+    return
 
 @checks.cityeggchannel()
 @Clembot.command(pass_context=True)
@@ -2257,6 +2480,11 @@ async def _cancel(message):
 async def on_message(message):
     #print(server_dict)
     if message.server is not None:
+        if 'contest_channel' in server_dict[message.server.id]:
+            if message.channel.id in server_dict[message.server.id]['contest_channel'] and server_dict[message.server.id]['contest_channel'][message.channel.id].get('started',False) == True:
+                await contestEntry(message)
+                return
+
         raid_status = server_dict[message.server.id]['raidchannel_dict'].get(message.channel.id, None)
         if raid_status is not None:
             if server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['active']:
@@ -2713,7 +2941,7 @@ async def _eggassume(args, raid_channel):
         raidrole = await Clembot.create_role(server=raid_channel.server, name=entered_raid, hoist=False, mentionable=True)
         await asyncio.sleep(0.5)
     await Clembot.send_message(raid_channel, _("Beep Beep! This egg will be assumed to be {pokemon} when it hatches!").format(pokemon=raidrole.mention))
-    server_dict[raid_channel.server.id]['raidchannel_dict'][raid_channel] = eggdetails
+    server_dict[raid_channel.server.id]['raidchannel_dict'][raid_channel.id] = eggdetails
     return
 
 
@@ -2956,7 +3184,20 @@ def check_raidparty_channel(channel_id):
 
 # ---------------------------------------------------------------------------------------
 
-beepbeep = _("""
+beep = _("""
+{member} here are some Clembot commands:
+** **
+`!beep gym` to report a raid channel.
+** **
+`!raidegg <level> <loc or gym-code>` to report an egg.
+** **
+`!gym <gym-code>` to see gym location 
+** **
+`!gymlookup <prefix>` allows you to lookup all gyms starting with provided prefix. See `!beep gym` for more details!
+** **
+""")
+
+beep_beepmsg = _("""
 {member} here are some Clembot commands:
 ** **
 `!raid <pokemon> <loc or gym-code>` to report a raid channel.
@@ -2969,7 +3210,7 @@ beepbeep = _("""
 ** **
 """)
 
-beepraid = _("""
+beep_raid = _("""
 {member} to update your status, choose from the following commands:
 ** **
 `!interested`, `!coming`, `!here` or `!cancel`
@@ -2994,7 +3235,7 @@ Example: `!coming 5` or `!c 5`
 `!start HH:MM AM/PM` to suggest a start time.
 `!starting` when the raid is beginning to clear the raid's 'here' list.""")
 
-beepraidparty = ("""
+beep_raidparty = ("""
 {member} here are the commands to work with raid party. 
 
 `!roster` prints the current roster
@@ -3012,7 +3253,7 @@ or alternatively use the shortcuts
 Also, see `!beep raidowner` for Raid Party management commands!
 """)
 
-beepraidowner = ("""
+beep_raidowner = ("""
 {member} here are the commands to organize raid party:
 
 `!raidparty <channel name>` creates a raid party channel
@@ -3030,7 +3271,7 @@ beepraidowner = ("""
 Also, see `!beep raidparty` for commands which raid party participants can use!
 """)
 
-beepgym = ("""
+beep_gym = ("""
 {member} you can use following commands for gym lookup. 
 
 `!gym <gym-code>` brings up the google maps location of the gym.
@@ -3047,22 +3288,40 @@ Note : **gym-code** is **first two letters** of **first two words** of gym name 
 
 # ---------------------------------------------------------------------------------------
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["b"])
+@Clembot.command(pass_context=True, hidden=True)
+async def dump(ctx):
+
+    try:
+
+        raid_channel_dict = copy.deepcopy(server_dict[ctx.message.server.id])
+
+        output = jsonpickle.encode(raid_channel_dict)
+        parsed = json.loads(output)
+
+        await Clembot.send_message(ctx.message.channel, content=json.dumps(parsed, indent=4, sort_keys=True))
+
+    except Exception as error:
+        await Clembot.send_message(ctx.message.channel, content=error)
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["b","help"])
 async def beep(ctx):
     args = ctx.message.clean_content[len("!beep"):]
     args_split = args.split()
 
     if len(args_split) == 0:
-        await Clembot.send_message(ctx.message.channel, content=beepbeep.format(member=ctx.message.author.mention))
+        await Clembot.send_message(ctx.message.channel, content=beep_beepmsg.format(member=ctx.message.author.mention))
     else:
-        if args_split[0] == 'raid':
-            await Clembot.send_message(ctx.message.channel, content=beepraid.format(member=ctx.message.author.mention))
+        if args_split[0] == 'beep':
+            await Clembot.send_message(ctx.message.channel, content=beep_beepmsg.format(member=ctx.message.author.mention))
+        elif args_split[0] == 'raid':
+            await Clembot.send_message(ctx.message.channel, content=beep_raid.format(member=ctx.message.author.mention))
         elif args_split[0] == 'raidparty':
-            await Clembot.send_message(ctx.message.channel, content=beepraidparty.format(member=ctx.message.author.mention))
+            await Clembot.send_message(ctx.message.channel, content=beep_raidparty.format(member=ctx.message.author.mention))
         elif args_split[0] == 'raidowner':
-            await Clembot.send_message(ctx.message.channel, content=beepraidowner.format(member=ctx.message.author.mention))
+            await Clembot.send_message(ctx.message.channel, content=beep_raidowner.format(member=ctx.message.author.mention))
         elif args_split[0] == 'gym':
-            await Clembot.send_message(ctx.message.channel, content=beepgym.format(member=ctx.message.author.mention))
+            await Clembot.send_message(ctx.message.channel, content=beep_gym.format(member=ctx.message.author.mention))
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["i", "maybe"])
@@ -3775,6 +4034,14 @@ async def update(ctx):
     except Exception as error:
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! Error : {error} {error_details}").format(error=error, error_details=str(error)))
 
+
+@Clembot.command(pass_context=True, hidden=True)
+async def check(ctx):
+    try :
+        message = ctx.message
+        await Clembot.send_message(message.channel,"<:water:394992044562448394>")
+    except Exception as error:
+        print(error)
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidpartychannel()
