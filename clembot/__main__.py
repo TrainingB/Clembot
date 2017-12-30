@@ -4103,6 +4103,7 @@ async def add(ctx):
         if gym_info:
             del args_split[0]
 
+        eta = None
         if len(args_split) > 0 :
             time_as_text = args_split[-1]
             eta = convert_into_time(time_as_text, False)
@@ -4277,7 +4278,12 @@ def get_roster_with_highlight(roster, highlight_roster_loc):
                 marker = "**"
             else:
                 marker = ""
-            roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon} - {eta}{marker2}").format(number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], eta=roster_loc.get('eta',None), marker1=marker, marker2=marker)
+            eta = roster_loc.get('eta',"")
+            if eta:
+                eta = " [{eta}]".format(eta=eta)
+            else:
+                eta = ""
+            roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon}{eta}{marker2}").format(number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], eta=eta, marker1=marker, marker2=marker)
     except Exception as error:
         print(error)
 
@@ -4467,7 +4473,8 @@ async def print_roster_with_highlight(message, highlight_roster_loc, roster_mess
         raid_embed.add_field(name="**Raid Boss:**", value=_("{raidboss}").format(raidboss=roster_loc['pokemon'].capitalize()), inline=True)
         raid_embed.add_field(name="**Location Details:**", value=_("{location}").format(location=roster_loc['gym_name']), inline=True)
         if 'eta' in roster_loc:
-            raid_embed.add_field(name="**ETA:**", value=_("{eta}").format(eta=roster_loc['eta']), inline=True)
+            if roster_loc['eta']:
+                raid_embed.add_field(name="**ETA:**", value=_("{eta}").format(eta=roster_loc['eta']), inline=True)
         raid_embed.set_thumbnail(url=raid_img_url)
         raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
         if lat_long:
