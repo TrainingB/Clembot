@@ -1751,7 +1751,7 @@ async def _wild(message):
         wild_img_url = get_icon_url(wild_number)  # This part embeds the sprite
         wild_embed = discord.Embed(title=_("Beep Beep! Click here for my directions to the wild {pokemon}!").format(pokemon=entered_wild.capitalize()), description=_("Ask {author} if my directions aren't perfect!").format(author=message.author.name), url=wild_gmaps_link, colour=message.server.me.colour)
         wild_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_wild.capitalize(), pokemonnumber=str(wild_number), type="".join(get_type(message.server, wild_number)), inline=True))
-        wild_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+        wild_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
         wild_embed.set_thumbnail(url=wild_img_url)
         await Clembot.send_message(message.channel, content=_("Beep Beep! Wild {pokemon} reported by {member}! Details: {location_details}").format(pokemon=wild.mention, member=message.author.mention, location_details=wild_details), embed=wild_embed)
 
@@ -1892,8 +1892,8 @@ async def _contest(message):
         embed.add_field(name="**Server:**", value=_("{member}").format(member=message.server.name), inline=True)
         embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
         await Clembot.send_message(Clembot.owner, embed=embed)
-        await Clembot.send_message(message.author, embed=embed)
-
+        if message.author.id != Clembot.owner.id :
+            await Clembot.send_message(message.author, embed=embed)
 
 
         await Clembot.send_message(contest_channel, "Beep Beep! {reporter} can start the contest anytime using `!ready` command".format(reporter=message.author.mention))
@@ -1927,7 +1927,9 @@ async def renew(ctx):
                 embed.add_field(name="**Pokemon**", value=_(" {member}").format(member=pokemon), inline=True)
                 embed.add_field(name="**Server:**", value=_("{member}").format(member=message.server.name), inline=True)
                 embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
+
                 await Clembot.send_message(Clembot.owner, embed=embed)
+                await Clembot.delete_message(ctx.message)
 
 
 @Clembot.command(pass_context=True)
@@ -1956,6 +1958,7 @@ async def contestEntry(message, pokemon=None):
         pokemon = server_dict[message.server.id]['contest_channel'][message.channel.id]['pokemon']
 
     if pokemon.lower() == message.content.lower():
+        del server_dict[message.server.id]['contest_channel'][message.channel.id]
         await Clembot.add_reaction(message, '✅')
         await Clembot.add_reaction(message, '🎉')
 
@@ -1963,17 +1966,15 @@ async def contestEntry(message, pokemon=None):
 
         raid_embed.add_field(name="**Winner:**", value=_("{member}").format(member=message.author.mention), inline=True)
         raid_embed.add_field(name="**Winning Entry:**", value=_("{pokemon}").format(pokemon=pokemon), inline=True)
-        raid_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/396098777729204226/396106669622296597/imageedit_17_5142594467.png")
+        raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=message.author, format="jpg")))
+        # raid_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/396098777729204226/396106669622296597/imageedit_17_5142594467.png")
 
         await Clembot.send_message(message.channel, embed=raid_embed)
 
         await Clembot.send_message(message.channel, content=_("Beep Beep! Congratulations {winner}!").format(winner=message.author.mention))
 
-        del server_dict[message.server.id]['contest_channel'][message.channel.id]
-
     elif message.content.lower() in pkmn_info['pokemon_list']:
         await Clembot.add_reaction(message, '🔴')
-
     return
 
 @checks.cityeggchannel()
@@ -2099,7 +2100,7 @@ async def _raid(message):
     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=message.server.me.colour)
     raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(message.server, raid_number)), inline=True))
     raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(message.server, get_weaknesses(entered_raid))), inline=True)
-    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
     raid_embed.set_thumbnail(url=raid_img_url)
     raidreport = await Clembot.send_message(message.channel, content=_("Beep Beep! {pokemon} raid reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
     await asyncio.sleep(1)  # Wait for the channel to be created.
@@ -2656,7 +2657,8 @@ async def _exraid(ctx):
         raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
     else:
         raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist}").format(bosslist="".join(boss_list)), inline=True)
-    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+        raid_embed.add_field(name="\u200b", value="\u200b", inline=True)
+    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
     raid_embed.set_thumbnail(url=raid_img_url)
     raidreport = await Clembot.send_message(channel, content=_("Beep Beep! EX raid egg reported by {member}! Details: {location_details}. Use the **!invite** command to gain access and coordinate in {raid_channel}").format(member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
     await asyncio.sleep(1)  # Wait for the channel to be created.
@@ -2889,7 +2891,8 @@ async def _raidegg(message):
         raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.server.me.colour)
         raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
         raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
-        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+        raid_embed.add_field(name="\u200b", value="\u200b", inline=True)
+        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
         raid_embed.set_thumbnail(url=raid_img_url)
         raidreport = await Clembot.send_message(message.channel, content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
         await asyncio.sleep(1)  # Wait for the channel to be created.
@@ -3019,7 +3022,7 @@ async def _eggtoraid(entered_raid, channel):
     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=channel.server.me.colour)
     raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(channel.server, raid_number)), inline=True))
     raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(channel.server, get_weaknesses(entered_raid))), inline=True)
-    raid_embed.set_footer(text=_("Reported by @{author}").format(author=raid_messageauthor.name), icon_url=raid_messageauthor.avatar_url)
+    raid_embed.set_footer(text=_("Reported by @{author}").format(author=raid_messageauthor.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=raid_messageauthor, format="jpg", size=32)))
     raid_embed.set_thumbnail(url=raid_img_url)
     await Clembot.edit_channel(channel, name=raid_channel_name)
     raidmsg = _("""
