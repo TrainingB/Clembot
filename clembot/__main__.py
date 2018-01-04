@@ -3440,8 +3440,8 @@ async def interested(ctx, *, count: str = None):
     if count:
         if count.isdigit():
             count = int(count)
-            if count > 20 :
-                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited to 20."))
+            if count > 20 or count < 1:
+                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited between 1 to 20."))
                 return
         else:
             await Clembot.send_message(ctx.message.channel, _("Beep Beep! I can't understand how many are in your group. Just say **!interested** if you're by yourself, or **!interested 5** for example if there are 5 in your group."))
@@ -3479,8 +3479,8 @@ async def coming(ctx, *, count: str = None):
     if count:
         if count.isdigit():
             count = int(count)
-            if count > 20 :
-                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited to 20."))
+            if count > 20 or count < 1:
+                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited between 1 to 20."))
                 return
         else:
             await Clembot.send_message(ctx.message.channel, _("Beep Beep! I can't understand how many are in your group. Just say **!coming** if you're by yourself, or **!coming 5** for example if there are 5 in your group."))
@@ -3518,8 +3518,8 @@ async def here(ctx, *, count: str = None):
     if count:
         if count.isdigit():
             count = int(count)
-            if count > 20 :
-                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited to 20."))
+            if count > 20 or count < 1:
+                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited between 1 to 20."))
                 return
         else:
             await Clembot.send_message(ctx.message.channel, _("Beep Beep! I can't understand how many are in your group. Just say **!here** if you're by yourself, or **!coming 5** for example if there are 5 in your group."))
