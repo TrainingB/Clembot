@@ -3440,6 +3440,9 @@ async def interested(ctx, *, count: str = None):
     if count:
         if count.isdigit():
             count = int(count)
+            if count > 20 :
+                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited to 20."))
+                return
         else:
             await Clembot.send_message(ctx.message.channel, _("Beep Beep! I can't understand how many are in your group. Just say **!interested** if you're by yourself, or **!interested 5** for example if there are 5 in your group."))
             return
@@ -3476,6 +3479,9 @@ async def coming(ctx, *, count: str = None):
     if count:
         if count.isdigit():
             count = int(count)
+            if count > 20 :
+                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited to 20."))
+                return
         else:
             await Clembot.send_message(ctx.message.channel, _("Beep Beep! I can't understand how many are in your group. Just say **!coming** if you're by yourself, or **!coming 5** for example if there are 5 in your group."))
             return
@@ -3512,6 +3518,9 @@ async def here(ctx, *, count: str = None):
     if count:
         if count.isdigit():
             count = int(count)
+            if count > 20 :
+                await Clembot.send_message(ctx.message.channel, _("Beep Beep! Currently the group size is limited to 20."))
+                return
         else:
             await Clembot.send_message(ctx.message.channel, _("Beep Beep! I can't understand how many are in your group. Just say **!here** if you're by yourself, or **!coming 5** for example if there are 5 in your group."))
             return
@@ -4043,7 +4052,6 @@ async def _otw(ctx):
             name_list.append("**" + user.name + "**")
             otw_list.append(user.mention)
     if ctx_omwcount > 0:
-
         otw_exstr = _(" including {trainer_list} and the people with them! Be considerate and wait for them if possible").format(trainer_list=", ".join(otw_list))
 
     listmsg = (_("Beep Beep! {trainer_count} on the way{including_string}!").format(trainer_count=str(ctx_omwcount), including_string=otw_exstr))
