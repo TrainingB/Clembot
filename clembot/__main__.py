@@ -8,6 +8,8 @@ import pickle
 import json
 import time
 import datetime
+from os import name
+
 from dateutil.relativedelta import relativedelta
 from dateutil import tz
 import copy
@@ -2305,6 +2307,13 @@ def fetch_channel_expire_time(channel_id) -> datetime:
         return expire_at
     return None
 
+def fetch_channel_start_time(channel_id) -> datetime:
+    channel = Clembot.get_channel(channel_id)
+    if channel:
+        start_at = server_dict[channel.server.id]['raidchannel_dict'][channel.id]['suggested_start']
+        return start_at
+    return None
+
 
 def fetch_current_time(server_id):
 
@@ -2436,25 +2445,26 @@ Triggerable through commands or through emoji
 
 async def _maybe(message, count):
     trainer_dict = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
-    if count == 1:
-        await Clembot.send_message(message.channel, _("Beep Beep! {member} is interested!").format(member=message.author.mention))
-    else:
-        await Clembot.send_message(message.channel, _("Beep Beep! {member} is interested with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count))
+
     # Add trainer name to trainer list
-    if message.author.id not in server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']:
+    if message.author.id not in trainer_dict:
         trainer_dict[message.author.id] = {}
     trainer_dict[message.author.id]['status'] = "maybe"
     trainer_dict[message.author.id]['count'] = count
     server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'] = trainer_dict
 
+    if count == 1:
+        # await Clembot.send_message(message.channel, _("Beep Beep! {member} is interested!").format(member=message.author.mention))
+        embed_msg = _("Beep Beep! {member} is interested!").format(member=message.author.mention)
+    else:
+        # await Clembot.send_message(message.channel, _("Beep Beep! {member} is interested with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count))
+        embed_msg = _("Beep Beep! {member} is interested with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count)
+
+    await Clembot.send_message(message.channel, embed=channel_status_embed(message=message, embed_msg_desc=embed_msg, colour=discord.Colour.gold()))
 
 async def _coming(message, count):
     trainer_dict = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
 
-    if count == 1:
-        await Clembot.send_message(message.channel, _("Beep Beep! {member} is on the way!").format(member=message.author.mention))
-    else:
-        await Clembot.send_message(message.channel, _("Beep Beep! {member} is on the way with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count))
     # Add trainer name to trainer list
     if message.author.id not in trainer_dict:
         trainer_dict[message.author.id] = {}
@@ -2462,19 +2472,69 @@ async def _coming(message, count):
     trainer_dict[message.author.id]['count'] = count
     server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'] = trainer_dict
 
+    if count == 1:
+        # await Clembot.send_message(message.channel, _("Beep Beep! {member} is on the way!").format(member=message.author.mention))
+        embed_msg = _("{member} is on the way!").format(member=message.author.mention)
+    else:
+        # await Clembot.send_message(message.channel, _("Beep Beep! {member} is on the way with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count))
+        embed_msg = _("{member} is on the way with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count)
+
+    await Clembot.send_message(message.channel, embed=channel_status_embed(message=message, embed_msg_desc=embed_msg, colour=discord.Colour.gold()))
+
 
 async def _here(message, count):
     trainer_dict = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
-    if count == 1:
-        await Clembot.send_message(message.channel, _("Beep Beep! {member} is at the raid!").format(member=message.author.mention))
-    else:
-        await Clembot.send_message(message.channel, _("Beep Beep! {member} is at the raid with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count))
     # Add trainer name to trainer list
     if message.author.id not in trainer_dict:
         trainer_dict[message.author.id] = {}
     trainer_dict[message.author.id]['status'] = "waiting"
     trainer_dict[message.author.id]['count'] = count
     server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'] = trainer_dict
+
+    if count == 1:
+        # await Clembot.send_message(message.channel, _("Beep Beep! {member} is at the raid!").format(member=message.author.mention))
+        embed_msg = _("Beep Beep! {member} is at the raid!").format(member=message.author.mention)
+    else:
+        # await Clembot.send_message(message.channel, _("Beep Beep! {member} is at the raid with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count))
+        embed_msg = _("Beep Beep! {member} is at the raid with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count)
+
+    await Clembot.send_message(message.channel, embed=channel_status_embed(message=message, embed_msg_desc=embed_msg, colour=discord.Colour.green()))
+
+
+def get_names_from_channel(message, status):
+    trainer_dict = copy.deepcopy(server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
+    name_list = []
+    for trainer in trainer_dict.keys():
+        if trainer_dict[trainer]['status'] == status:
+            # user = Clembot.get_user_info(trainer)
+            name_list.append("**<@!" + trainer + ">**")
+            # name_list.append(user.mention)
+        # name_list.append("**<@!" + message.author.id + ">**")
+    if len(name_list) > 0:
+        return ','.join(name_list)
+    return None
+
+
+def get_count_from_channel(message, status):
+    rc_d = server_dict[message.server.id]['raidchannel_dict']
+    r = message.channel.id
+    count = 0
+    for trainer in rc_d[r]['trainer_dict'].values():
+        if trainer['status'] == status:
+            count += trainer['count']
+
+    return count
+
+
+def channel_status_embed(message, embed_msg_desc, colour = None):
+
+    if colour is None:
+        colour = discord.Colour.green()
+
+    raid_embed = discord.Embed(description=embed_msg_desc, colour=colour)
+    raid_embed.add_field(name="Interested / On the way / At the raid", value="{interested} / {coming} / {here}".format(here=get_count_from_channel(message, "waiting"), coming=get_count_from_channel(message, "omw"), interested=get_count_from_channel(message, "maybe")), inline=True)
+
+    return raid_embed
 
 
 async def _cancel(message):
@@ -2484,26 +2544,37 @@ async def _cancel(message):
     try:
         t_dict = server_dict[server.id]['raidchannel_dict'][channel.id]['trainer_dict'][author.id]
     except KeyError:
-        await Clembot.send_message(channel, _("Beep Beep! {member} has no status to cancel!").format(member=author.mention))
+        # await Clembot.send_message(channel, _("Beep Beep! {member} has no status to cancel!").format(member=author.mention))
+        embed_msg = _("Beep Beep! {member} has no status to cancel!").format(member=author.mention)
+
+        await Clembot.send_message(message.channel, embed=channel_status_embed(message=message, embed_msg_desc=embed_msg, colour=discord.Colour.red()))
+
         return
 
     if t_dict['status'] == "maybe":
         if t_dict['count'] == 1:
-            await Clembot.send_message(channel, _("Beep Beep! {member} is no longer interested!").format(member=author.mention))
+            # await Clembot.send_message(channel, _("Beep Beep! {member} is no longer interested!").format(member=author.mention))
+            embed_msg = _("Beep Beep! {member} is no longer interested!").format(member=author.mention)
         else:
-            await Clembot.send_message(channel, _("Beep Beep! {member} and their total of {trainer_count} trainers are no longer interested!").format(member=author.mention, trainer_count=t_dict['count']))
+            # await Clembot.send_message(channel, _("Beep Beep! {member} and their total of {trainer_count} trainers are no longer interested!").format(member=author.mention, trainer_count=t_dict['count']))
+            embed_msg = _("Beep Beep! {member} and their total of {trainer_count} trainers are no longer interested!").format(member=author.mention, trainer_count=t_dict['count'])
     if t_dict['status'] == "waiting":
         if t_dict['count'] == 1:
-            await Clembot.send_message(channel, _("Beep Beep! {member} has left the raid!").format(member=author.mention))
+            # await Clembot.send_message(channel, _("Beep Beep! {member} has left the raid!").format(member=author.mention))
+            embed_msg = _("Beep Beep! {member} has left the raid!").format(member=author.mention)
         else:
-            await Clembot.send_message(channel, _("Beep Beep! {member} and their total of {trainer_count} trainers have left the raid!").format(member=author.mention, trainer_count=t_dict['count']))
+            # await Clembot.send_message(channel, _("Beep Beep! {member} and their total of {trainer_count} trainers have left the raid!").format(member=author.mention, trainer_count=t_dict['count']))
+            embed_msg = _("Beep Beep! {member} and their total of {trainer_count} trainers have left the raid!").format(member=author.mention, trainer_count=t_dict['count'])
     if t_dict['status'] == "omw":
         if t_dict['count'] == 1:
-            await Clembot.send_message(channel, _("Beep Beep! {member} is no longer on their way!").format(member=author.mention))
+            # await Clembot.send_message(channel, _("Beep Beep! {member} is no longer on their way!").format(member=author.mention))
+            embed_msg = _("Beep Beep! {member} is no longer on their way!").format(member=author.mention)
         else:
-            await Clembot.send_message(channel, _("Beep Beep! {member} and their total of {trainer_count} trainers are no longer on their way!").format(member=author.mention, trainer_count=t_dict['count']))
+            # await Clembot.send_message(channel, _("Beep Beep! {member} and their total of {trainer_count} trainers are no longer on their way!").format(member=author.mention, trainer_count=t_dict['count']))
+            embed_msg = _("Beep Beep! {member} and their total of {trainer_count} trainers are no longer on their way!").format(member=author.mention, trainer_count=t_dict['count'])
     t_dict['status'] = None
 
+    await Clembot.send_message(message.channel,embed=channel_status_embed(message=message, embed_msg_desc=embed_msg, colour=discord.Colour.dark_red()))
 
 @Clembot.event
 async def on_message(message):
@@ -3505,122 +3576,158 @@ async def list(ctx):
     Usage: !list
     Works only in raid or city channels. Calls the interested, waiting, and here lists. Also prints
     the raid timer. In city channels, lists all active raids."""
+    try:
+        if ctx.invoked_subcommand is None:
+            listmsg = ""
+            server = ctx.message.server
+            channel = ctx.message.channel
+            exp = None
+            if checks.check_citychannel(ctx):
+                activeraidnum = 0
+                cty = channel.name
+                rc_d = server_dict[server.id]['raidchannel_dict']
 
-    if ctx.invoked_subcommand is None:
-        listmsg = ""
-        server = ctx.message.server
-        channel = ctx.message.channel
-        if checks.check_citychannel(ctx):
-            activeraidnum = 0
-            cty = channel.name
-            rc_d = server_dict[server.id]['raidchannel_dict']
+                raid_dict = {}
+                egg_dict = {}
+                exraid_list = []
+                for r in rc_d:
+                    if rc_d[r]['reportcity'] == cty and rc_d[r]['active'] and discord.utils.get(server.channels, id=r):
+                        exp = rc_d[r]['exp']
+                        type = rc_d[r]['type']
+                        level = rc_d[r]['egglevel']
+                        if type == 'egg' and level.isdigit():
+                            egg_dict[r] = exp
+                        elif type == 'exraid' or level == "EX":
+                            exraid_list.append(r)
+                        elif type == 'raidparty':
+                            activeraidnum -= 1
+                            #ignore raid party
+                        else:
+                            raid_dict[r] = exp
 
-            raid_dict = {}
-            egg_dict = {}
-            exraid_list = []
-            for r in rc_d:
-                if rc_d[r]['reportcity'] == cty and rc_d[r]['active'] and discord.utils.get(server.channels, id=r):
-                    exp = rc_d[r]['exp']
-                    type = rc_d[r]['type']
-                    level = rc_d[r]['egglevel']
-                    if type == 'egg' and level.isdigit():
-                        egg_dict[r] = exp
-                    elif type == 'exraid' or level == "EX":
-                        exraid_list.append(r)
-                    elif type == 'raidparty':
-                        activeraidnum -= 1
-                        #ignore raid party
+                        activeraidnum += 1
+
+                def list_output(r):
+                    rchan = Clembot.get_channel(r)
+                    # now = datetime.datetime.utcnow() + datetime.timedelta(hours=server_dict[server.id]['offset'])
+                    # end = now + datetime.timedelta(seconds=rc_d[r]['exp']-time.time())
+                    # now = fetch_current_time(rchan.server.id)
+                    end = fetch_channel_expire_time(rchan.id)
+                    output = ""
+                    ctx_waitingcount = 0
+                    ctx_omwcount = 0
+                    ctx_maybecount = 0
+                    for trainer in rc_d[r]['trainer_dict'].values():
+                        if trainer['status'] == "waiting":
+                            ctx_waitingcount += trainer['count']
+                        elif trainer['status'] == "omw":
+                            ctx_omwcount += trainer['count']
+                        elif trainer['status'] == "maybe":
+                            ctx_maybecount += trainer['count']
+                    if rc_d[r]['manual_timer'] == False:
+                        assumed_str = " (assumed)"
                     else:
-                        raid_dict[r] = exp
+                        assumed_str = ""
+                    if rc_d[r]['egglevel'].isdigit() and int(rc_d[r]['egglevel']) > 0:
+                        expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
+                    elif rc_d[r]['egglevel'] == "EX" or rc_d[r]['type'] == "exraid":
+                        expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%B %d at %I:%M %p (%H:%M)"),is_assumed=assumed_str)
+                    else:
+                        expirytext = " - Expiry: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
+                    output += (_("    {raidchannel}{expiry_text}\n").format(raidchannel=rchan.mention, expiry_text=expirytext))
+                    output += (_("    {interestcount} interested, {comingcount} coming, {herecount} here.\n").format(raidchannel=rchan.mention, interestcount=ctx_maybecount, comingcount=ctx_omwcount, herecount=ctx_waitingcount))
+                    return output
 
-                    activeraidnum += 1
+                if activeraidnum:
+                    listmsg += (_("Beep Beep! Here's the current raids for {0}\n\n").format(cty.capitalize()))
+                try:
+                    if raid_dict:
+                        listmsg += (_("**Active Raids:**\n").format(cty.capitalize()))
+                        for rr, e in sorted(raid_dict.items(), key=itemgetter(1)):
+                            listmsg += list_output(rr)
+                        listmsg += "\n"
 
-            def list_output(r):
-                rchan = Clembot.get_channel(r)
-                # now = datetime.datetime.utcnow() + datetime.timedelta(hours=server_dict[server.id]['offset'])
-                # end = now + datetime.timedelta(seconds=rc_d[r]['exp']-time.time())
-                # now = fetch_current_time(rchan.server.id)
-                end = fetch_channel_expire_time(rchan.id)
-                output = ""
-                ctx_waitingcount = 0
-                ctx_omwcount = 0
-                ctx_maybecount = 0
-                for trainer in rc_d[r]['trainer_dict'].values():
-                    if trainer['status'] == "waiting":
-                        ctx_waitingcount += trainer['count']
-                    elif trainer['status'] == "omw":
-                        ctx_omwcount += trainer['count']
-                    elif trainer['status'] == "maybe":
-                        ctx_maybecount += trainer['count']
-                if rc_d[r]['manual_timer'] == False:
-                    assumed_str = " (assumed)"
-                else:
-                    assumed_str = ""
-                if rc_d[r]['egglevel'].isdigit() and int(rc_d[r]['egglevel']) > 0:
-                    expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
-                elif rc_d[r]['egglevel'] == "EX" or rc_d[r]['type'] == "exraid":
-                    expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%B %d at %I:%M %p (%H:%M)"),is_assumed=assumed_str)
-                else:
-                    expirytext = " - Expiry: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
-                output += (_("    {raidchannel}{expiry_text}\n").format(raidchannel=rchan.mention, expiry_text=expirytext))
-                output += (_("    {interestcount} interested, {comingcount} coming, {herecount} here.\n").format(raidchannel=rchan.mention, interestcount=ctx_maybecount, comingcount=ctx_omwcount, herecount=ctx_waitingcount))
-                return output
+                    if egg_dict:
+                        listmsg += (_("**Raid Eggs:**\n").format(cty.capitalize()))
+                        for rr, e in sorted(egg_dict.items(), key=itemgetter(1)):
+                            listmsg += list_output(rr)
+                        listmsg += "\n"
 
-            if activeraidnum:
-                listmsg += (_("Beep Beep! Here's the current raids for {0}\n\n").format(cty.capitalize()))
-            try:
-                if raid_dict:
-                    listmsg += (_("**Active Raids:**\n").format(cty.capitalize()))
-                    for rr, e in sorted(raid_dict.items(), key=itemgetter(1)):
-                        listmsg += list_output(rr)
-                    listmsg += "\n"
+                    if exraid_list:
+                        listmsg += (_("**EXRaids:**\n").format(cty.capitalize()))
+                        for rr in exraid_list:
+                            listmsg += list_output(rr)
 
-                if egg_dict:
-                    listmsg += (_("**Raid Eggs:**\n").format(cty.capitalize()))
-                    for rr, e in sorted(egg_dict.items(), key=itemgetter(1)):
-                        listmsg += list_output(rr)
-                    listmsg += "\n"
-
-                if exraid_list:
-                    listmsg += (_("**EXRaids:**\n").format(cty.capitalize()))
-                    for rr in exraid_list:
-                        listmsg += list_output(rr)
-
-                if activeraidnum == 0:
-                    await Clembot.send_message(channel, _("Beep Beep! No active raids! Report one with **!raid <name> <location>**."))
+                    if activeraidnum == 0:
+                        await Clembot.send_message(channel, _("Beep Beep! No active raids! Report one with **!raid <name> <location>**."))
+                        return
+                    else:
+                        await Clembot.send_message(channel, listmsg)
                     return
-                else:
-                    await Clembot.send_message(channel, listmsg)
-                return
-            except Exception as error:
-                print(error)
+                except Exception as error:
+                    print(error)
 
-        if checks.check_raidpartychannel(ctx):
-            if checks.check_raidactive(ctx):
-                rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
-                listmsg += await _interest(ctx)
-                listmsg += "\n" + await _otw(ctx)
-                listmsg += "\n" + await _waiting(ctx)
-                await Clembot.send_message(channel, listmsg)
-                return
-
-        if checks.check_raidchannel(ctx):
-            if checks.check_raidactive(ctx):
-                rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
-                if rc_d['type'] == 'egg' and rc_d['pokemon'] == '':
-                    listmsg += await _interest(ctx)
-                    listmsg += "\n"
-                    listmsg += await print_raid_timer(channel.id)
-                    listmsg += "\n" + await print_start_time(channel.id)
-                else:
+            if checks.check_raidpartychannel(ctx):
+                if checks.check_raidactive(ctx):
+                    rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
                     listmsg += await _interest(ctx)
                     listmsg += "\n" + await _otw(ctx)
                     listmsg += "\n" + await _waiting(ctx)
-                    if rc_d['type'] != 'exraid':
-                        listmsg += "\n" + await print_raid_timer(channel.id)
-                    listmsg += "\n" + await print_start_time(channel.id)
-                await Clembot.send_message(channel, listmsg)
-                return
+                    await Clembot.send_message(channel, listmsg)
+                    return
+
+            if checks.check_raidchannel(ctx):
+                if checks.check_raidactive(ctx):
+                    rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
+                    if rc_d['type'] == 'egg' and rc_d['pokemon'] == '':
+                        listmsg += await _interest(ctx)
+                        listmsg += "\n"
+                        listmsg += await print_raid_timer(channel.id)
+                        listmsg += "\n" + await print_start_time(channel.id)
+                        await Clembot.send_message(channel, listmsg)
+                    else:
+                        embed_msg = ""
+
+                        embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
+
+                        raid_time_label = "**Raid Expires At**"
+                        raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%I:%M %p (%H:%M)")
+
+                        start_time = fetch_channel_start_time(ctx.message.channel.id)
+                        start_time_label = "None"
+                        if start_time:
+                            raid_time_label = "**Raid Expires At / Suggested Start Time**"
+                            raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
+
+                        embed.add_field(name=raid_time_label, value=raid_time_value)
+
+                        embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(ctx.message, "waiting"), omw=get_count_from_channel(ctx.message, "omw"), maybe=get_count_from_channel(ctx.message, "maybe")), inline=True)
+
+                        maybe = get_names_from_channel(ctx.message, "maybe")
+                        if maybe:
+                            embed.add_field(name="**Interested**", value=maybe)
+
+                        omw = get_names_from_channel(ctx.message, "omw")
+                        if omw:
+                            embed.add_field(name="**On the way**", value=omw)
+
+                        waiting = get_names_from_channel(ctx.message, "waiting")
+                        if waiting:
+                            embed.add_field(name="**At the raid**",value=waiting)
+
+                        await Clembot.send_message(channel, embed=embed)
+
+                        listmsg += await _interest(ctx)
+                        listmsg += "\n" + await _otw(ctx)
+                        listmsg += "\n" + await _waiting(ctx)
+                        if rc_d['type'] != 'exraid':
+                            listmsg += "\n" + await print_raid_timer(channel.id)
+                        listmsg += "\n" + await print_start_time(channel.id)
+
+
+    except Exception as error:
+        print(error)
+    return
 
 
 @Clembot.command(pass_context=True, hidden=True)
