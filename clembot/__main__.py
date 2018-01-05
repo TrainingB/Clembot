@@ -192,13 +192,22 @@ def clembot_time_in_server_timezone(message):
     return time.time() + 3600 * (server_offset - clembot_offset)
 
 
-def get_icon_url(pokedex_number):
-    url = icon_list.get(str(pokedex_number))
-    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{0}_.png?cache=nono".format(str(pokedex_number).zfill(3))
+def get_pokemon_image_url(pokedex_number):
+    # url = icon_list.get(str(pokedex_number))
+    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{0}_.png?cache=0".format(str(pokedex_number).zfill(3))
     if url:
         return url
     else:
         return "http://floatzel.net/pokemon/black-white/sprites/images/{pokedex}.png".format(pokedex=pokedex_number)
+
+def get_egg_image_url(egg_level):
+    # url = icon_list.get(str(pokedex_number))
+    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/eggs/{0}.png?cache=0".format(str(egg_level))
+    if url:
+        return url
+    else:
+        return "http://floatzel.net/pokemon/black-white/sprites/images/{pokedex}.png".format(pokedex=egg_level)
+
 
 
 def _set_prefix(bot, server, prefix):
@@ -1631,7 +1640,7 @@ async def want(ctx):
         await Clembot.add_roles(ctx.message.author, role)
         want_number = pkmn_info['pokemon_list'].index(entered_want) + 1
         want_img_url = "https://raw.githubusercontent.com/TrainingB/Clembot/master/images/pkmn/{0}_.png".format(str(want_number).zfill(3))  # This part embeds the sprite
-        want_img_url = get_icon_url(want_number)  # This part embeds the sprite
+        want_img_url = get_pokemon_image_url(want_number)  # This part embeds the sprite
         want_embed = discord.Embed(colour=server.me.colour)
         want_embed.set_thumbnail(url=want_img_url)
         await Clembot.send_message(channel, content=_("Beep Beep! Got it! {member} wants {pokemon}").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()), embed=want_embed)
@@ -1750,7 +1759,7 @@ async def _wild(message):
             await asyncio.sleep(0.5)
         wild_number = pkmn_info['pokemon_list'].index(entered_wild) + 1
         wild_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(wild_number).zfill(3))
-        wild_img_url = get_icon_url(wild_number)  # This part embeds the sprite
+        wild_img_url = get_pokemon_image_url(wild_number)  # This part embeds the sprite
         wild_embed = discord.Embed(title=_("Beep Beep! Click here for my directions to the wild {pokemon}!").format(pokemon=entered_wild.capitalize()), description=_("Ask {author} if my directions aren't perfect!").format(author=message.author.name), url=wild_gmaps_link, colour=message.server.me.colour)
         wild_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_wild.capitalize(), pokemonnumber=str(wild_number), type="".join(get_type(message.server, wild_number)), inline=True))
         wild_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
@@ -1819,6 +1828,7 @@ async def _unlockChannel(channel):
 
 
 @Clembot.command(pass_context=True)
+@commands.has_permissions(manage_server=True)
 async def contest(ctx):
     await _contest(ctx.message)
     return
@@ -1870,14 +1880,19 @@ async def _contest(message):
         everyone_perms = discord.PermissionOverwrite(read_messages=True,send_messages=False, add_reactions=True)
         my_perms = discord.PermissionOverwrite(read_messages=True,send_messages=True, manage_channel=True, manage_permissions=True, manage_messages=True, embed_links=True, attach_files=True, add_reactions=True, mention_everyone=True)
 
-        everyone = discord.ChannelPermissions(target=message.server.default_role, overwrite=everyone_perms)
-        mine = discord.ChannelPermissions(target=message.server.me, overwrite=my_perms)
+        channel_name = sanitize_channel_name(raid_split[0])
 
-        contest_channel = await Clembot.create_channel(message.server, raid_split[0], everyone, mine)
+        if channel_name == "here":
+            contest_channel = message.channel
+        else:
+            contest_channel = await Clembot.create_channel(message.server, channel_name)
+
+        await Clembot.edit_channel_permissions(contest_channel, target=message.server.default_role, overwrite=everyone_perms)
+        await Clembot.edit_channel_permissions(contest_channel, target=message.server.me, overwrite=my_perms)
 
         pokemon = generate_pokemon(option)
 
-        await Clembot.send_message(message.channel, content=_("Beep Beep! The contest channel has been created, please coordinate in {channel}!".format(channel=contest_channel.mention)))
+        await Clembot.send_message(message.channel, content=_("Beep Beep! A contest is about to take place in {channel}!".format(channel=contest_channel.mention)))
 
         raid_embed = discord.Embed(title=_("Beep Beep! A contest is about to take place in this channel!"), colour=discord.Colour.gold() , description="The first member to correctly guess (and spell) the randomly selected pokemon name will win!")
         raid_embed.add_field(name="**Option:**", value=_("{option}").format(option=option))
@@ -1917,6 +1932,7 @@ async def renew(ctx):
     if 'contest_channel' in server_dict[message.server.id]:
         if server_dict[message.server.id]['contest_channel'][message.channel.id].get('started', True) == False:
             if ctx.message.author.id == server_dict[message.server.id]['contest_channel'][message.channel.id].get('reported_by', 0):
+
                 option = server_dict[message.server.id]['contest_channel'][message.channel.id].get('option', "ALL")
 
                 pokemon = generate_pokemon(option)
@@ -1930,8 +1946,10 @@ async def renew(ctx):
                 embed.add_field(name="**Server:**", value=_("{member}").format(member=message.server.name), inline=True)
                 embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
 
-                await Clembot.send_message(Clembot.owner, embed=embed)
                 await Clembot.delete_message(ctx.message)
+                await Clembot.send_message(Clembot.owner, embed=embed)
+                if message.author.id != Clembot.owner.id :
+                    await Clembot.send_message(message.author, embed=embed)
 
 
 @Clembot.command(pass_context=True)
@@ -2098,7 +2116,7 @@ async def _raid(message):
         await asyncio.sleep(0.5)
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
-    raid_img_url = get_icon_url(raid_number)  # This part embeds the sprite
+    raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=message.server.me.colour)
     raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(message.server, raid_number)), inline=True))
     raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(message.server, get_weaknesses(entered_raid))), inline=True)
@@ -2721,7 +2739,7 @@ async def _exraid(ctx):
         overwrite[1].send_messages = False
     raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *raid_channel_overwrites, clembot_overwrite)
     raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/eggs/{}".format(str(egg_img))
-    raid_img_url = get_icon_url(raid_number)  # This part embeds the sprite
+    raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.server.me.colour)
     if len(egg_info['pokemon']) > 1:
         raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
@@ -2957,15 +2975,23 @@ async def _raidegg(message):
             raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
         except Exception as error:
             print(error)
+            await Clembot.send_message(message.channel, content=_("Beep Beep! An error occurred while creating the channel. {error}").format(error=error))
+            return
 
-        raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{}".format(str(egg_img))
+        raid_img_url = get_egg_image_url(egg_level)
         raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.server.me.colour)
-        raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
-        raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
-        raid_embed.add_field(name="\u200b", value="\u200b", inline=True)
+        if len(egg_info['pokemon']) > 1:
+            raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
+            raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
+        else:
+            raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
+
         raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
         raid_embed.set_thumbnail(url=raid_img_url)
-        raidreport = await Clembot.send_message(message.channel, content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
+        try :
+            raidreport = await Clembot.send_message(message.channel, content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
+        except Exception as error:
+            print(error)
         await asyncio.sleep(1)  # Wait for the channel to be created.
 
         raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
@@ -3014,6 +3040,9 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
             await _timerset(raid_channel, raidexp)
         else:
             await Clembot.send_message(raid_channel, content=_("Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
+
+        if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
+            await _eggassume("assume "+ get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
 
         event_loop.create_task(expiry_check(raid_channel))
 
@@ -3089,7 +3118,7 @@ async def _eggtoraid(entered_raid, channel):
         await asyncio.sleep(0.5)
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
-    raid_img_url = get_icon_url(raid_number)  # This part embeds the sprite
+    raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
     raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=channel.server.me.colour)
     raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(channel.server, raid_number)), inline=True))
     raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(channel.server, get_weaknesses(entered_raid))), inline=True)
