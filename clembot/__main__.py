@@ -104,10 +104,8 @@ raid_timer = 0
 icon_list = {}
 GOOGLE_API_KEY = ""
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
+INVITE_CODE = "AUzEXRU"
 
-
-# GOOGLE_API_KEY = "AIzaSyCoS20_EWol8TgnAiTk1417ybvUIRoEIQw"
-# GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -1436,7 +1434,7 @@ async def announce(ctx, *, announce=None):
             count = 0
             for server in Clembot.servers:
                 destination = server.owner
-                embeddraft.set_footer(text="For support, contact us on our Discord server. Invite Code: HzAdkNQ")
+                embeddraft.set_footer(text="For support, contact us on our Discord server. Invite Code: AUzEXRU")
                 embeddraft.colour = discord.Colour.lighter_grey()
                 try:
                     await Clembot.send_message(destination, embed=embeddraft)
@@ -1532,7 +1530,7 @@ async def about(ctx):
     embed.add_field(name="Servers", value=server_count)
     embed.add_field(name="Members", value=member_count)
     embed.add_field(name="Uptime", value=uptime_str)
-    embed.set_footer(text="For support, contact us on our Discord server. Invite Code: HzAdkNQ")
+    embed.set_footer(text="For support, contact us on our Discord server. Invite Code: AUzEXRU")
 
     try:
         await Clembot.send_message(channel, embed=embed)
@@ -3129,7 +3127,7 @@ async def _eggtoraid(entered_raid, channel):
 Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
 This channel will be deleted five minutes after the timer expires.
 ** **
-Please type `!beep` if you need a refresher of Clembot commands! 
+Please type `!beep raid` if you need a refresher of Clembot commands! 
 """).format(member=raid_messageauthor.mention, citychannel=reportcitychannel.mention, pokemon=entered_raid.capitalize(), location_details=egg_address)
 
     #     raidmsg = _("""Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
@@ -3315,17 +3313,10 @@ def check_raidparty_channel(channel_id):
 
 # ---------------------------------------------------------------------------------------
 
-beep = _("""
-{member} here are some Clembot commands:
-** **
-`!beep gym` to report a raid channel.
-** **
-`!raidegg <level> <loc or gym-code>` to report an egg.
-** **
-`!gym <gym-code>` to see gym location 
-** **
-`!gymlookup <prefix>` allows you to lookup all gyms starting with provided prefix. See `!beep gym` for more details!
-** **
+beepmsg = _("""
+{member} **!beep** can be used with following options:
+`!beep raid` - for raid specific commands.
+`!beep gym` - for gym code related commands.
 """)
 
 beep_beepmsg = _("""
@@ -3442,7 +3433,7 @@ async def beep(ctx):
     args_split = args.split()
 
     if len(args_split) == 0:
-        await Clembot.send_message(ctx.message.channel, content=beep_beepmsg.format(member=ctx.message.author.mention))
+        await Clembot.send_message(ctx.message.channel, content=beepmsg.format(member=ctx.message.author.mention))
     else:
         if args_split[0] == 'beep':
             await Clembot.send_message(ctx.message.channel, content=beep_beepmsg.format(member=ctx.message.author.mention))
