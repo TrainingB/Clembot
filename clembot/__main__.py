@@ -1956,8 +1956,18 @@ async def ready(ctx):
     if 'contest_channel' in server_dict[message.server.id]:
         if server_dict[message.server.id]['contest_channel'][message.channel.id].get('started', True) == False:
             if ctx.message.author.id == server_dict[message.server.id]['contest_channel'][message.channel.id].get('reported_by', 0):
+
+                role = message.server.default_role
+                args = ctx.message.clean_content.lower().split()
+                del args[0]
+                if len(args) > 0:
+                    role_name = args[0]
+                    role = discord.utils.get(ctx.message.server.roles, name=role_name)
+                    if role is None:
+                        role = message.server.default_role
+
                 everyone_perms = discord.PermissionOverwrite(read_messages=True, send_messages=True, add_reactions=True)
-                await Clembot.edit_channel_permissions(message.channel,target=message.server.default_role,overwrite=everyone_perms)
+                await Clembot.edit_channel_permissions(message.channel,target=role,overwrite=everyone_perms)
 
                 contest_channel_started_dict = {'started': True}
                 server_dict[message.server.id]['contest_channel'][message.channel.id].update(contest_channel_started_dict)
