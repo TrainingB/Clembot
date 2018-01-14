@@ -4635,8 +4635,14 @@ async def print_roster_with_highlight(message, highlight_roster_loc, roster_mess
                 lat_long = roster_loc['lat_long']
                 break
 
-        raid_party_image_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
-        raid_img_url = raid_party_image_url
+        if highlighted_loc['pokemon'] == 'egg':
+            raid_img_url = get_egg_image_url(5)
+        else:
+            raid_number = pkmn_info['pokemon_list'].index(highlighted_loc['pokemon']) + 1
+            raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
+
+        # raid_party_image_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
+        # raid_img_url = raid_party_image_url
 
         # "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
 
