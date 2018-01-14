@@ -2666,8 +2666,15 @@ async def process_map_link(message, newloc=None):
     if server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['type'] == 'raidparty':
         await _add(message, newloc)
         return
-    oldraidmsg = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidmessage']
-    oldreportmsg = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidreport']
+
+    reportcityid = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['reportcity']
+    oldraidmsgid = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidmessage']
+    oldreportmsgid = server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidreport']
+
+    reportcitychannel = discord.utils.get(message.channel.server.channels, name=reportcityid)
+
+    oldraidmsg = await Clembot.get_message(message.channel, oldraidmsgid)
+
     oldembed = oldraidmsg.embeds[0]
     newembed = discord.Embed(title=oldembed['title'], url=newloc, colour=message.server.me.colour)
     newembed.add_field(name=oldembed['fields'][0]['name'], value=oldembed['fields'][0]['value'], inline=True)
@@ -2679,13 +2686,14 @@ async def process_map_link(message, newloc=None):
     except:
         pass
     try:
+        oldreportmsg = await Clembot.get_message(reportcitychannel, oldreportmsgid)
         newreportmsg = await Clembot.edit_message(oldreportmsg, new_content=oldreportmsg.content, embed=newembed)
     except:
         pass
 
 
-    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidmessage'] = newraidmsg
-    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidreport'] = newreportmsg
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidmessage'] = newraidmsg.id
+    server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['raidreport'] = newreportmsg.id
     otw_list = []
     trainer_dict = copy.deepcopy(server_dict[message.server.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
     for trainer in trainer_dict.keys():
@@ -3709,10 +3717,9 @@ async def list(ctx):
             if checks.check_raidpartychannel(ctx):
                 if checks.check_raidactive(ctx):
                     rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
-                    listmsg += await _interest(ctx)
-                    listmsg += "\n" + await _otw(ctx)
-                    listmsg += "\n" + await _waiting(ctx)
-                    await Clembot.send_message(channel, listmsg)
+
+                    await _generate_list_embed(ctx.message)
+
                     return
 
             if checks.check_raidchannel(ctx):
@@ -3767,6 +3774,29 @@ async def list(ctx):
     except Exception as error:
         print(error)
     return
+
+
+
+async def _generate_list_embed(message):
+    embed_msg = ""
+
+    embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
+
+    embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(message, "waiting"), omw=get_count_from_channel(message, "omw"), maybe=get_count_from_channel(message, "maybe")), inline=True)
+
+    maybe = get_names_from_channel(message, "maybe")
+    if maybe:
+        embed.add_field(name="**Interested**", value=maybe)
+
+    omw = get_names_from_channel(message, "omw")
+    if omw:
+        embed.add_field(name="**On the way**", value=omw)
+
+    waiting = get_names_from_channel(message, "waiting")
+    if waiting:
+        embed.add_field(name="**At the raid**", value=waiting)
+
+    await Clembot.send_message(message.channel, embed=embed)
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -4183,6 +4213,7 @@ async def update(ctx):
             roster_loc['gym_name'] = gym_info['gym_name']
             roster_loc['gym_code'] = gym_info['gym_code']
             roster_loc['lat_long'] = gym_info['lat_long']
+            roster_loc['gmap_link'] = gym_info['gmap_link']
             roster_loc['eta'] = None
             args_split.remove(arg)
 
@@ -4243,7 +4274,7 @@ async def add(ctx):
             if roster_loc_mon not in pkmn_info['raid_list'] and roster_loc_mon in pkmn_info['pokemon_list']:
                 await Clembot.send_message(ctx.message.channel, _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=roster_loc_mon.capitalize()))
                 return
-            del args_split[0]
+        del args_split[0]
 
         roster_loc_gym_code = args_split[0]
         gym_info = gymutil.get_gym_info(roster_loc_gym_code, city_state=get_city_list(ctx.message))
