@@ -6,11 +6,20 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 
 def load_gyms():
     global city_wide_gym_list
-    with open(os.path.join(script_path,"..","data","gyminfo", "burbankca.json"), "r") as fd:
-        city_wide_gym_list['BURBANKCA'] = json.load(fd)
 
-    with open(os.path.join(script_path,"..","data","gyminfo", "quincyil.json"), "r") as fd:
-        city_wide_gym_list['QUINCYIL'] = json.load(fd)
+    directory = os.path.join(script_path,"..","data","gyminfo")
+    for filename in os.listdir(directory):
+        if filename.endswith(".json"):
+            print("Loading..." + os.path.join(directory, filename))
+
+            city_state = filename.split(".")[0].upper()
+            with open(os.path.join(directory, filename), "r") as fd:
+                city_wide_gym_list[city_state] = json.load(fd)
+
+            continue
+        else:
+            continue
+
 
 # --B--
 def get_gym_info(gym_code, attribute=None, city_state=None):
@@ -63,23 +72,25 @@ def get_matching_gym_info(gym_code_prefix, city_state=None):
 
 
 
-
+#
 # load_gyms()
-#
+# #
 # print(get_gym_info("CLCO", city_state=["BURBANKCA"]))
+# #
+# #
+# # print(get_matching_gym_info("SUPA", city_state=["QUINCYIL"]))
+# #
+# # print(get_matching_gym_info("VI", city_state=["BURBANKCA"]))
 #
 #
-# print(get_matching_gym_info("SUPA", city_state=["QUINCYIL"]))
-#
-# print(get_matching_gym_info("VI", city_state=["BURBANKCA"]))
-
-
-
-#
+# print(get_gym_info("ILSTEP", city_state=["SPRINGFIELDIL"]))
+# print(get_gym_info("ILSTEP", city_state=["SPRINGFIELDIL"]))
+# print(get_gym_info("SHNAPA", city_state=["FRONTROYALVA"]))
+# #
 # print(city_wide_gym_list['BURBANKCA'])
-#
-# print(city_wide_gym_list['QUINCYIL'])
-#
-#
-# for city_state in city_wide_gym_list.keys():
-#     print(city_wide_gym_list.get(city_state))
+# #
+# print(city_wide_gym_list['SPRINGFIELDIL'])
+# #
+# #
+# # for city_state in city_wide_gym_list.keys():
+# #     print(city_wide_gym_list.get(city_state))
