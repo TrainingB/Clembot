@@ -2104,7 +2104,7 @@ async def _raid(message):
             await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
             return
 
-    if gym_info is None and 4 <= raid_details.__len__() <= 5:
+    if gym_info is None and 2 <= raid_details.__len__() <= 6:
         raid_details_gym_code = raid_details.upper()
         raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state=get_city_list(message))
         if raid_details_gym_info:
@@ -2379,7 +2379,7 @@ async def validate_start_time(channel, start_time):
     # modified time for raidegg
     if is_raid_egg:
         current_datetime = raid_expires_at
-        raid_expires_at = raid_expires_at + timedelta(hours=1)
+        raid_expires_at = raid_expires_at + timedelta(minutes=egg_timer)
 
     if suggested_start_time:
         if suggested_start_time > raid_expires_at:
@@ -2961,7 +2961,7 @@ async def _raidegg(message):
             await Clembot.send_message(message.channel, _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
             return
 
-    if gym_info is None and 2 <= raid_details.__len__() <= 5:
+    if gym_info is None and 2 <= raid_details.__len__() <= 6:
         raid_details_gym_code = raid_details.upper()
         raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state=get_city_list(message))
         if raid_details_gym_info:
@@ -3333,21 +3333,25 @@ def check_raidparty_channel(channel_id):
 
 beepmsg = _("""
 {member} **!beep** can be used with following options:
+`!beep report` - to see commands to report raid or raidegg.
 `!beep raid` - for raid specific commands.
 `!beep gym` - for gym code related commands.
 """)
 
-beep_beepmsg = _("""
-{member} here are some Clembot commands:
+beep_report = _("""
+{member} here is how you can report a raid/raidegg ( the <> will be replaced with actual value):
 ** **
-`!raid <pokemon> <loc or gym-code>` to report a raid channel.
+`!raid <pokemon> <location or gym-code>` to report a raid channel.
+Example:
+`!raid kyogre somewhere-in-my-city` or 
+`!raid magikarp ABCD` - where ABCD is the gym code.
 ** **
 `!raidegg <level> <loc or gym-code>` to report an egg.
+Example:
+`!raidegg 3 right-here`
+`!raidegg 2 ABCD` - where ABCD is the gym code.
 ** **
-`!gym <gym-code>` to see gym location 
-** **
-`!gymlookup <prefix>` allows you to lookup all gyms starting with provided prefix. See `!beep gym` for more details!
-** **
+Also, see `!beep gym` for gym-code commands!
 """)
 
 beep_raid = _("""
@@ -3453,8 +3457,8 @@ async def beep(ctx):
     if len(args_split) == 0:
         await Clembot.send_message(ctx.message.channel, content=beepmsg.format(member=ctx.message.author.mention))
     else:
-        if args_split[0] == 'beep':
-            await Clembot.send_message(ctx.message.channel, content=beep_beepmsg.format(member=ctx.message.author.mention))
+        if args_split[0] == 'report':
+            await Clembot.send_message(ctx.message.channel, content=beep_report.format(member=ctx.message.author.mention))
         elif args_split[0] == 'raid':
             await Clembot.send_message(ctx.message.channel, content=beep_raid.format(member=ctx.message.author.mention))
         elif args_split[0] == 'raidparty':
@@ -3725,50 +3729,45 @@ async def list(ctx):
             if checks.check_raidchannel(ctx):
                 if checks.check_raidactive(ctx):
                     rc_d = server_dict[server.id]['raidchannel_dict'][channel.id]
-                    if rc_d['type'] == 'egg' and rc_d['pokemon'] == '':
-                        listmsg += await _interest(ctx)
-                        listmsg += "\n"
-                        listmsg += await print_raid_timer(channel.id)
-                        listmsg += "\n" + await print_start_time(channel.id)
-                        await Clembot.send_message(channel, listmsg)
-                    else:
-                        embed_msg = ""
+                    embed_msg = ""
 
-                        embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
+                    embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
 
-                        raid_time_label = "**Raid Expires At**"
-                        raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%I:%M %p (%H:%M)")
+                    raid_time_label = "**Raid Expires At**"
+                    if rc_d['type'] == 'egg' and rc_d['egglevel'].isdigit():
+                        raid_time_label = "**Egg Hatches At**"
+                    raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%I:%M %p (%H:%M)")
 
-                        start_time = fetch_channel_start_time(ctx.message.channel.id)
-                        start_time_label = "None"
-                        if start_time:
-                            raid_time_label = "**Raid Expires At / Suggested Start Time**"
-                            raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
+                    start_time = fetch_channel_start_time(ctx.message.channel.id)
+                    start_time_label = "None"
+                    if start_time:
+                        raid_time_label = raid_time_label + " **/ Suggested Start Time**"
+                        raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
 
-                        embed.add_field(name=raid_time_label, value=raid_time_value)
+                    embed.add_field(name=raid_time_label, value=raid_time_value)
 
-                        embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(ctx.message, "waiting"), omw=get_count_from_channel(ctx.message, "omw"), maybe=get_count_from_channel(ctx.message, "maybe")), inline=True)
+                    embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(ctx.message, "waiting"), omw=get_count_from_channel(ctx.message, "omw"), maybe=get_count_from_channel(ctx.message, "maybe")), inline=True)
 
-                        maybe = get_names_from_channel(ctx.message, "maybe")
-                        if maybe:
-                            embed.add_field(name="**Interested**", value=maybe)
+                    maybe = get_names_from_channel(ctx.message, "maybe")
+                    if maybe:
+                        embed.add_field(name="**Interested**", value=maybe)
 
-                        omw = get_names_from_channel(ctx.message, "omw")
-                        if omw:
-                            embed.add_field(name="**On the way**", value=omw)
+                    omw = get_names_from_channel(ctx.message, "omw")
+                    if omw:
+                        embed.add_field(name="**On the way**", value=omw)
 
-                        waiting = get_names_from_channel(ctx.message, "waiting")
-                        if waiting:
-                            embed.add_field(name="**At the raid**",value=waiting)
+                    waiting = get_names_from_channel(ctx.message, "waiting")
+                    if waiting:
+                        embed.add_field(name="**At the raid**",value=waiting)
 
-                        await Clembot.send_message(channel, embed=embed)
+                    await Clembot.send_message(channel, embed=embed)
 
-                        listmsg += await _interest(ctx)
-                        listmsg += "\n" + await _otw(ctx)
-                        listmsg += "\n" + await _waiting(ctx)
-                        if rc_d['type'] != 'exraid':
-                            listmsg += "\n" + await print_raid_timer(channel.id)
-                        listmsg += "\n" + await print_start_time(channel.id)
+                    listmsg += await _interest(ctx)
+                    listmsg += "\n" + await _otw(ctx)
+                    listmsg += "\n" + await _waiting(ctx)
+                    if rc_d['type'] != 'exraid':
+                        listmsg += "\n" + await print_raid_timer(channel.id)
+                    listmsg += "\n" + await print_start_time(channel.id)
 
 
     except Exception as error:
