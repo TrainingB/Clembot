@@ -195,6 +195,12 @@
     "lat_long": "34.182311,-118.304407",
     "gmap_link": "https://www.google.com/maps/place/34.182311,-118.304407"
   },
+  "CHBI": {
+    "gym_code": "CHBI",
+    "gym_name": "Chandler Bikeway - Phil's Diner Mural",
+    "lat_long": "34.168477,-118.367840",
+    "gmap_link": "https://www.google.com/maps?q=34.168477,-118.367840"
+  },
   "CHLU": {
     "city_state": "BURBANKCA",
     "gym_code": "CHLU",
@@ -438,19 +444,18 @@
     "lat_long": "34.190145,-118.361185",
     "gmap_link": "https://www.google.com/maps/place/34.190145,-118.361185"
   },
-  "SPST": {
-    "city_state": "BURBANKCA",
-    "gym_code": "SPST",
-    "gym_name": "Sprint Store Downtown Burbank",
-    "lat_long": "34.182433,-118.311266",
-    "gmap_link": "https://www.google.com/maps/place/34.182433,-118.311266"
-  },
   "GIUN": {
     "city_state": "BURBANKCA",
     "gym_code": "GIUN",
     "gym_name": "Girl Under Shadow Hand Tree Mural",
     "lat_long": "34.189785,-118.306458",
     "gmap_link": "https://www.google.com/maps/place/34.189785,-118.306458"
+  },
+  "GNZO": {
+    "gym_code": "GNZO",
+    "gym_name": "GN Zoetrope",
+    "lat_long": "34.156472,-118.292841",
+    "gmap_link": "https://www.google.com/maps?q=34.156472,-118.292841"
   },
   "GOR": {
     "city_state": "BURBANKCA",
@@ -780,6 +785,13 @@
     "lat_long": "34.171549,-118.315329",
     "gmap_link": "https://www.google.com/maps/place/34.171549,-118.315329"
   },
+  "SPST": {
+    "city_state": "BURBANKCA",
+    "gym_code": "SPST",
+    "gym_name": "Sprint Store Downtown Burbank",
+    "lat_long": "34.182433,-118.311266",
+    "gmap_link": "https://www.google.com/maps/place/34.182433,-118.311266"
+  },
   "STJU": {
     "city_state": "BURBANKCA",
     "gym_code": "STJU",
@@ -899,6 +911,12 @@
     "lat_long": "34.174583,-118.326302",
     "gmap_link": "https://www.google.com/maps/place/34.174583,-118.326302"
   },
+  "TOTO": {
+    "gym_code": "TOTO",
+    "gym_name": "Toluca Towers Fountain",
+    "lat_long": "34.155752,-118.361376",
+    "gmap_link": "http://maps.google.com/maps?q=34.155752,-118.361376"
+  },
   "TRSP": {
     "city_state": "BURBANKCA",
     "gym_code": "TRSP",
@@ -983,6 +1001,13 @@
     "lat_long": "34.19033,-118.321191",
     "gmap_link": "https://www.google.com/maps/place/34.19033,-118.321191"
   },
+  "WABR": {
+    "city_state": "BURBANKCA",
+    "gym_code": "WABR",
+    "gym_name": "Warner Bros Studio, Burbank, C",
+    "lat_long": "34.148971,-118.342420",
+    "gmap_link": "https://www.google.com/maps?q=34.148971,-118.342420"
+  },
   "WBRA": {
     "city_state": "BURBANKCA",
     "gym_code": "WBRA",
@@ -1017,11 +1042,5 @@
     "gym_name": "Yoga Lotus",
     "lat_long": "34.164806,-118.359614",
     "gmap_link": "https://www.google.com/maps/place/34.164806,-118.359614"
-  },
-  "TOTO": {
-    "gym_code": "TOTO",
-    "gym_name": "Toluca Towers Fountain",
-    "lat_long": "34.155752,-118.361376",
-    "gmap_link": "http://maps.google.com/maps?q=34.155752,-118.361376"
   }
 }
