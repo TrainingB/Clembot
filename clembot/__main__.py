@@ -1507,7 +1507,7 @@ async def about(ctx):
     author_repo = "https://github.com/TrainingB"
     author_name = "TrainingB"
     bot_repo = author_repo + "/Clembot"
-    server_url = "https://discord.gg/hTfersw"
+    server_url = "https://discord.gg/{invite}".format(invite=INVITE_CODE)
     owner = Clembot.owner
     channel = ctx.message.channel
     uptime_str = await _uptime(Clembot)
