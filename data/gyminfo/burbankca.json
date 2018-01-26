@@ -631,6 +631,13 @@
     "lat_long": "34.19868,-118.326935",
     "gmap_link": "https://www.google.com/maps/place/34.19868,-118.326935"
   },
+    "METR": {
+    "city_state": "BURBANKCA",
+    "gym_code": "METR",
+    "gym_name": "Metal Trees",
+    "lat_long": "34.153893,-118.336183",
+    "gmap_link": "http://maps.google.com/maps/place/34.153893,-118.336183"
+  },
   "MOMU": {
     "city_state": "BURBANKCA",
     "gym_code": "MOMU",
