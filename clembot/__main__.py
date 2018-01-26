@@ -3235,10 +3235,18 @@ async def gymlookup(ctx):
         city_state_list = get_city_list(ctx.message)
 
         for gym_info in gymutil.get_matching_gym_info(gym_code, city_state=city_state_list):
+
+            new_gym_info = ""
             if len(city_state_list) == 1:
-                gym_message_output += ("{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
+                new_gym_info = ("{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
             else:
-                gym_message_output += ("{gym_code} \t- {gym_name} ({city_state})\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name'), city_state=gym_info.get('city_state')))
+                new_gym_info = ("{gym_code} \t- {gym_name} ({city_state})\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name'), city_state=gym_info.get('city_state')))
+
+            if len(gym_message_output) + len(new_gym_info) > 1990:
+                await Clembot.send_message(ctx.message.channel, content=gym_message_output)
+                gym_message_output = ""
+
+            gym_message_output += new_gym_info
 
         if gym_message_output:
             await Clembot.send_message(ctx.message.channel, content=gym_message_output)
@@ -4708,7 +4716,7 @@ async def print_roster(message, roster_message=None):
     return
 
 
-@Clembot.command(pass_context=True, hidden=True)
+
 async def reloadconfig(ctx):
     try:
         load_config()
