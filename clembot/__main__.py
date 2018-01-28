@@ -1958,7 +1958,7 @@ registers a role and a gym
     role = discord.utils.get(server.roles, name=role_name)
     # Create role if it doesn't exist yet
     if role is None:
-        await Clembot.send_message(channel, content=_("Beep Beep! I couldn't find the role {role_name}. Please use `!register-role role-name` to create/register the role!"))
+        await Clembot.send_message(channel, content=_("Beep Beep! I couldn't find the role **{role_name}**. Please use `!register-role role-name` to create/register the role!".format(role_name = role_name)))
         return
 
     if role.id not in server_dict[server.id]['notifications']['roles']:
