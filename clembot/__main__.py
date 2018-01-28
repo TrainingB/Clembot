@@ -1832,6 +1832,240 @@ async def contest(ctx):
     return
 
 
+# ---------------------------- Raid Notification Module --------------------------------------
+
+def _reset_role_notification_map(server_id):
+
+    notifications_map = {'notifications': {'roles': [], 'gym_role_map': {}}}
+    server_dict[server_id].update(notifications_map)
+
+def _get_role_for_notification(server_id, gym_code):
+
+    role_id = None
+    if 'notifications' in server_dict[server_id]:
+        role_id = server_dict[server_id]['notifications']['gym_role_map'].get(gym_code, None)
+
+        if role_id in server_dict[server_id]['notifications']['roles']:
+            return role_id
+
+    return None
+
+def _is_role_registered(server_id, role_id):
+
+    if role_id in server_dict[server_id]['notifications']['roles']:
+        return True
+
+    return False
+
+def add_notifications_server_dict(server_id):
+
+    if 'notifications' not in server_dict[server_id]:
+        _reset_role_notification_map(server_id)
+
+        return
+    return
+
+
+@Clembot.command(pass_context=True, aliases = ["reset-register"])
+@commands.has_permissions(manage_server=True)
+async def _reset_register(ctx):
+
+    _reset_role_notification_map(ctx.message.server.id)
+    await Clembot.send_message(ctx.message.channel, "Beep Beep! The notifications register has been reset!")
+
+@Clembot.command(pass_context=True, aliases = ["show-register"])
+@commands.has_permissions(manage_server=True)
+async def _show_register(ctx):
+
+    notifications = copy.deepcopy(server_dict[ctx.message.server.id]['notifications'])
+    new_notifications_map = {'notifications': {'roles': [], 'gym_role_map': {}}}
+
+    role_map = {}
+
+    role = discord.utils.get(ctx.message.server.roles, id = '407068156247408650')
+    await Clembot.send_message(ctx.message.channel, content=role.name)
+
+    for role_id in notifications['roles']:
+        role = discord.utils.get(ctx.message.server.roles, id=role_id)
+        new_notifications_map['notifications']['roles'].append(role.name)
+        role_map[role_id] = role.name
+
+    for gym_code in notifications['gym_role_map'].keys():
+        role_name = role_map[notifications['gym_role_map'][gym_code]]
+        new_notifications_map['notifications']['gym_role_map'][gym_code] = role_name
+
+
+    await Clembot.send_message(ctx.message.channel, content=json.dumps(new_notifications_map, indent=4, sort_keys=True))
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases = ["register-role"])
+@commands.has_permissions(manage_server=True)
+async def _register_role(ctx):
+    """
+registers a role and a gym
+    """
+    message = ctx.message
+    server = message.server
+    channel = message.channel
+    args = message.clean_content.lower().split()
+    del args[0]
+
+    if len(args) == 0:
+        await Clembot.send_message(channel, content=_("Beep Beep! No role-name provided. Please use `!register-role role-name` to create/register the role!"))
+
+    role_name = args[0]
+
+    role = discord.utils.get(server.roles, name=role_name)
+    # Create role if it doesn't exist yet
+    if role is None:
+
+        create_role = await ask_confirmation(message, "{role_name} doesn't exist! Do you want me to create a new role?".format(role_name=role_name),
+                               "Creating a new role {role_name}...".format(role_name=role_name),
+                               "No changes made!",
+                               "Request timed out!")
+
+        if create_role == False:
+            return
+
+        role = await Clembot.create_role(server=server, name=role_name, hoist=False, mentionable=True)
+        await asyncio.sleep(0.5)
+
+    add_notifications_server_dict(message.server.id)
+    server_dict[server.id]['notifications']['roles'].append(role.id)
+    await Clembot.send_message(channel, content=_("Beep Beep! {role_name} has been registered for notifications. Please use `!register-gym role-name gym-code` to register the gym under a role!").format(role_name=role.mention))
+
+    return
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases = ["register-gym"])
+@commands.has_permissions(manage_server=True)
+async def _register_gym(ctx):
+    """
+registers a role and a gym
+    """
+    message = ctx.message
+    server = message.server
+    channel = message.channel
+    args = message.clean_content.lower().split()
+    del args[0]
+
+    add_notifications_server_dict(message.server.id)
+
+
+    role_name = args[0]
+    del args[0]
+
+    role = discord.utils.get(server.roles, name=role_name)
+    # Create role if it doesn't exist yet
+    if role is None:
+        await Clembot.send_message(channel, content=_("Beep Beep! I couldn't find the role {role_name}. Please use `!register-role role-name` to create/register the role!"))
+        return
+
+    if role.id not in server_dict[server.id]['notifications']['roles']:
+        await Clembot.send_message(channel, content=_("Beep Beep! The role {role_name} is not registered for notifications. Please use `!register-role role-name` to create/register the role!"))
+        return
+
+
+    if len(args) == 0 or len(args) > 1:
+        await Clembot.send_message(channel, content=_("Beep Beep! Please provide a gym-code to register. `!register role-name gym-code`"))
+        return
+
+    gym_code = args[0].upper()
+    gym_info = gymutil.get_gym_info(gym_code, city_state=get_city_list(message))
+
+    if gym_info == None:
+        await Clembot.send_message(channel, content=_("Beep Beep! Hmmm... I could not find this gym code!"))
+        return
+
+    # {'notifications': {'roles': [], 'gym_role_map': {}}}
+    gym_role_map = {gym_code: role.id}
+    server_dict[message.server.id]['notifications']['gym_role_map'].update(gym_role_map)
+
+    await Clembot.send_message(channel, content=_("Beep Beep! Any raid at {gym_code} will send out a notification for {role}!").format(gym_code=gym_code.upper(), role=role.mention))
+
+    return
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases = ["subscribed"])
+async def _subscribed(ctx):
+    Clembot.send_message(ctx.channel, contest="we finished!")
+
+@Clembot.command(pass_context=True, hidden=True, aliases = ["subscribe"])
+async def _subscribe(ctx):
+
+    """Behind the scenes, Clembot tracks user !wants by
+    creating a server role for the Pokemon species, and
+    assigning it to the user."""
+    message = ctx.message
+    server = message.server
+    channel = message.channel
+    args = message.clean_content.lower().split()
+    del args[0]
+
+    if len(args) > 1:
+        await Clembot.send_message(channel, _("Beep Beep! {member} Please provide the role-name. Usage '!subscribe role-name`").format(member=ctx.message.author.mention))
+        return
+    role_name = args[0]
+
+    role = discord.utils.get(server.roles, name=role_name)
+
+    if role is None:
+        await Clembot.send_message(channel, content=_("Beep Beep! {member}, Hmmm... I can not find the {role}!").format(role=role_name))
+        return
+
+
+    if _is_role_registered(server.id, role.id) == False:
+        await Clembot.send_message(channel, content=_("Beep Beep! {member}, {role} has not been registered for notifications. Please ask an admin to use `!register-role`!").format(member=ctx.message.author.mention, role=role_name))
+        return
+
+    await Clembot.add_roles(ctx.message.author, role)
+    await Clembot.send_message(channel, content=_("Beep Beep! {member}, You have successfully subscribed for {role}!".format(role=role_name, member=ctx.message.author.mention)))
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["unsubscribe"])
+async def _unsubscribe(ctx):
+
+        """Remove a Pokemon from your wanted list.
+
+        Usage: !unwant <species>
+        You will no longer be notified of reports about this Pokemon."""
+
+        """Behind the scenes, Clembot removes the user from
+        the server role for the Pokemon species."""
+        message = ctx.message
+        server = message.server
+        channel = message.channel
+
+        args = message.clean_content.lower().split()
+        del args[0]
+
+        if len(args) > 1:
+            await Clembot.send_message(channel, _("Beep Beep! {member} Please provide the role-name. Usage '!unsubscribe role-name`").format(member=ctx.message.author.mention))
+            return
+        role_name = args[0]
+
+        role = discord.utils.get(server.roles, name=role_name)
+
+        if role is None:
+            await Clembot.send_message(channel, content=_("Beep Beep! {member}, Hmmm... I can not find the {role}!").format(role=role_name))
+            return
+
+        if _is_role_registered(server.id, role.id) == False:
+            await Clembot.send_message(channel, content=_("Beep Beep! {member}, {role} has not been registered for notifications. Only registered roles can be subscribed/unsubscribed!").format(member=ctx.message.author.mention, role=role_name))
+            return
+
+
+        if role not in ctx.message.author.roles:
+            await Clembot.add_reaction(ctx.message, '✅')
+        else:
+            await Clembot.remove_roles(message.author, role)
+            await Clembot.add_reaction(message, '✅')
+
+
+# ---------------------------- Raid Notification Module --------------------------------------
+
+
+
 def add_contest_to_server_dict(serverid):
     if 'contest_channel' in server_dict[serverid]:
         return
@@ -2110,9 +2344,13 @@ async def _raid(message):
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
 
+    channel_role = None
+
     if gym_info:
         raid_gmaps_link = gym_info['gmap_link']
         raid_channel_name = entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
+        channel_role_id = _get_role_for_notification(message.channel.server.id, gym_info['gym_code'])
+        channel_role = discord.utils.get(message.channel.server.roles, id=channel_role_id)
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
         raid_channel_name = entered_raid + "-" + sanitize_channel_name(raid_details)
@@ -2156,6 +2394,11 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 		'suggested_start': False
 		}
     print(server_dict[message.server.id]['raidchannel_dict'])
+
+
+    if channel_role:
+        await Clembot.send_message(raid_channel, content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+
     if raidexp is not False:
         await _timerset(raid_channel, raidexp)
     else:
@@ -2921,6 +3164,8 @@ async def _raidegg(message):
         gym_code = raidegg_split[-1].upper()
         gym_info = gymutil.get_gym_info(gym_code, city_state=get_city_list(message))
         if gym_info:
+            channel_role_id = _get_role_for_notification(message.channel.server.id, gym_info['gym_code'])
+            channel_role = discord.utils.get(message.channel.server.roles, id=channel_role_id)
             del raidegg_split[-1]
     if raidegg_split[0].isdigit():
         egg_level = int(raidegg_split[0])
@@ -2967,6 +3212,9 @@ async def _raidegg(message):
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
             raid_details = gym_info['gym_name']
+            channel_role_id = _get_role_for_notification(message.channel.server.id, gym_info['gym_code'])
+            channel_role = discord.utils.get(message.channel.server.roles, id=channel_role_id)
+
 
     if egg_level > 5 or egg_level == 0:
         await Clembot.send_message(message.channel, _("Beep Beep! Raid egg levels are only from 1-5!"))
@@ -3038,17 +3286,17 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         raidmessage = await Clembot.send_message(raid_channel, content=raidmsg, embed=raid_embed)
 
         server_dict[message.server.id]['raidchannel_dict'][raid_channel.id] = {
-		'reportcity': message.channel.name, 
-		'trainer_dict': {}, 
+		'reportcity': message.channel.name,
+		'trainer_dict': {},
 		'exp': fetch_current_time(message.channel.server.id) + timedelta(minutes=egg_timer),  # One hour from now
 		'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
-		'active': True, 
-		'raidmessage': raidmessage.id, 
-		'raidreport': raidreport.id, 
-		'address': raid_details, 
-		'type': 'egg', 
-		'pokemon': '', 
-		'egglevel': egg_level, 
+		'active': True,
+		'raidmessage': raidmessage.id,
+		'raidreport': raidreport.id,
+		'address': raid_details,
+		'type': 'egg',
+		'pokemon': '',
+		'egglevel': egg_level,
 		'suggested_start': False
 		}
 
@@ -3056,6 +3304,9 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
             await _timerset(raid_channel, raidexp)
         else:
             await Clembot.send_message(raid_channel, content=_("Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
+
+        if channel_role:
+            await Clembot.send_message(raid_channel, content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
 
         if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
             await _eggassume("assume "+ get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
@@ -3132,6 +3383,8 @@ async def _eggtoraid(entered_raid, channel):
     if raid is None:
         raid = await Clembot.create_role(server=channel.server, name=entered_raid, hoist=False, mentionable=True)
         await asyncio.sleep(0.5)
+
+
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
     raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
@@ -3256,7 +3509,7 @@ async def gymlookup(ctx):
         await Clembot.send_message(ctx.message.channel, content=error)
 
 
-@Clembot.command(pass_context=True, hidden=True)
+@Clembot.command(pass_context=True, hidden=False)
 async def status(ctx):
 
     try:
@@ -3344,6 +3597,7 @@ beepmsg = _("""
 `!beep report` - to see commands to report raid or raidegg.
 `!beep raid` - for raid specific commands.
 `!beep gym` - for gym code related commands.
+`!beep notification` - for notification related commands.
 """)
 
 beep_report = _("""
@@ -3437,6 +3691,20 @@ Note : **gym-code** is **first two letters** of **first two words** of gym name 
 `!gymlookup BU` will bring up all gym code and gym names starting with BU
 """)
 
+beep_notifications = ("""
+{member} here are the commands for notifications. 
+
+**Admin Only**
+`!register-role role-name` registers a role for raid-notifications
+`!register-gym role-name gym-code` associates a gym-code with raid-notifications role
+`!reset-register` removes all raid-notifications roles
+
+**Subscription**
+`!subscribe role-name` assigns you the role for raid-notifications
+`!unsubscribe role-name` removes the role for raid-notifications
+
+""")
+
 
 # ---------------------------------------------------------------------------------------
 
@@ -3475,6 +3743,8 @@ async def beep(ctx):
             await Clembot.send_message(ctx.message.channel, content=beep_raidowner.format(member=ctx.message.author.mention))
         elif args_split[0] == 'gym':
             await Clembot.send_message(ctx.message.channel, content=beep_gym.format(member=ctx.message.author.mention))
+        elif args_split[0] == 'notification':
+            await Clembot.send_message(ctx.message.channel, content=beep_notifications.format(member=ctx.message.author.mention))
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["i", "maybe"])
@@ -4250,13 +4520,11 @@ async def update(ctx):
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! Error : {error} {error_details}").format(error=error, error_details=str(error)))
 
 
-@Clembot.command(pass_context=True, hidden=True)
-async def check(ctx):
-    try :
-        message = ctx.message
-        await Clembot.send_message(message.channel,"<:water:394992044562448394>")
-    except Exception as error:
-        print(error)
+
+
+
+
+
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidpartychannel()
@@ -4714,6 +4982,10 @@ async def print_roster(message, roster_message=None):
         await Clembot.send_message(message.channel, content=_("Beep Beep! {member} here is the raid party roster: ").format(member=message.author.mention), embed=raid_embed)
 
     return
+
+
+
+
 
 
 
