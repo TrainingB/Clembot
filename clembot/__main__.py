@@ -60,7 +60,7 @@ def _get_prefix(bot, message):
     server = message.server
     try:
         set_prefix = bot.server_dict[server.id]["prefix"]
-    except KeyError:
+    except (KeyError, AttributeError):
         set_prefix = None
     default_prefix = bot.config["default_prefix"]
     return set_prefix or default_prefix
@@ -192,7 +192,7 @@ def clembot_time_in_server_timezone(message):
 
 def get_pokemon_image_url(pokedex_number):
     # url = icon_list.get(str(pokedex_number))
-    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{0}_.png?cache=0".format(str(pokedex_number).zfill(3))
+    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{0}_.png?cache=2".format(str(pokedex_number).zfill(3))
     if url:
         return url
     else:
@@ -200,7 +200,7 @@ def get_pokemon_image_url(pokedex_number):
 
 def get_egg_image_url(egg_level):
     # url = icon_list.get(str(pokedex_number))
-    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/eggs/{0}.png?cache=0".format(str(egg_level))
+    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/eggs/{0}.png?cache=2".format(str(egg_level))
     if url:
         return url
     else:
@@ -1596,6 +1596,26 @@ async def team(ctx):
             await Clembot.send_message(ctx.message.channel, _("Beep Beep! Added {member} to Team {team_name}! {team_emoji}").format(member=ctx.message.author.mention, team_name=role.name.capitalize(), team_emoji=config['team_dict'][entered_team]))
         except discord.Forbidden:
             await Clembot.send_message(ctx.message.channel, _("Beep Beep! I can't add roles!"))
+
+
+@Clembot.command(pass_context=True, hidden=True)
+async def sprite(ctx):
+
+    message = ctx.message
+    server = message.server
+    channel = message.channel
+    want_split = message.clean_content.lower().split()
+    del want_split[0]
+    entered_want = " ".join(want_split)
+    if entered_want not in pkmn_info['pokemon_list']:
+        await Clembot.send_message(channel, _("Beep Beep! {member} only raid bosses are allowed to be notified!").format(member=ctx.message.author.mention))
+        return
+
+    want_number = pkmn_info['pokemon_list'].index(entered_want) + 1
+    want_img_url = get_pokemon_image_url(want_number)  # This part embeds the sprite
+    want_embed = discord.Embed(colour=server.me.colour)
+    want_embed.set_thumbnail(url=want_img_url)
+    await Clembot.send_message(channel, embed=want_embed)
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -4538,8 +4558,6 @@ async def add(ctx):
         args = ctx.message.clean_content[4:]
         args_split = args.split(" ")
         del args_split[0]
-
-
 
         roster_loc_mon = args_split[0].lower()
         if roster_loc_mon != "egg":
