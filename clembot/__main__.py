@@ -1556,7 +1556,12 @@ async def analyze(ctx, *, count: str = None):
     except Exception as error:
         print(error)
 
-    await Clembot.send_message(Clembot.owner, content = map_users)
+    text = json.dumps(map_users, indent=4, sort_keys=True)
+
+    parts = [text[i:i + 1800] for i in range(0, len(text), 1800)]
+
+    for message_text in parts:
+        await Clembot.send_message(Clembot.owner, content = message_text)
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.teamset()
@@ -3547,6 +3552,9 @@ async def gymlookup(ctx):
             await Clembot.send_message(ctx.message.channel, content="Beep Beep...Hmmm, no matches found for {gym_code}".format(gym_code=gym_code))
     except Exception as error:
         await Clembot.send_message(ctx.message.channel, content=error)
+
+
+
 
 
 @Clembot.command(pass_context=True, hidden=False)
