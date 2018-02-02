@@ -1539,6 +1539,26 @@ async def about(ctx):
 
 
 @Clembot.command(pass_context=True, hidden=True)
+async def analyze(ctx, *, count: str = None):
+    limit = 200
+    if count:
+        if count.isdigit():
+            count = int(count)
+            limit = count
+    channel = ctx.message.channel
+    await Clembot.delete_message(ctx.message)
+
+    map_users = {}
+    try:
+       async for message in Clembot.logs_from(channel, limit=limit):
+            if len(message.attachments) > 0:
+                map_users.update({message.author.mention : map_users.get(message.author.mention, 0) + 1})
+    except Exception as error:
+        print(error)
+
+    await Clembot.send_message(Clembot.owner, content = map_users)
+
+@Clembot.command(pass_context=True, hidden=True)
 @checks.teamset()
 @checks.nonraidchannel()
 async def team(ctx):
