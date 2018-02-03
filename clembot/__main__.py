@@ -1633,7 +1633,7 @@ async def sprite(ctx):
     del want_split[0]
     entered_want = " ".join(want_split)
     if entered_want not in pkmn_info['pokemon_list']:
-        await Clembot.send_message(channel, _("Beep Beep! {member} only raid bosses are allowed to be notified!").format(member=ctx.message.author.mention))
+        await Clembot.send_message(channel, _("Beep Beep! {member} No sprite found!").format(member=ctx.message.author.mention))
         return
 
     want_number = pkmn_info['pokemon_list'].index(entered_want) + 1
