@@ -34,13 +34,6 @@
     "lat_long": "39.755165,-89.741492",
     "gmap_link": "https://www.google.com/maps/place/39.755165,-89.741492"
   },
-  "ABFACH": {
-    "city_state": "SPRINGFIELDIL",
-    "gym_code": "ABFACH",
-    "gym_name": "Abundant Faith Christian Centre",
-    "lat_long": "39.770394,-89.619127",
-    "gmap_link": "https://www.google.com/maps/place/39.770394,-89.619127"
-  },
   "ACOFIN": {
     "city_state": "SPRINGFIELDIL",
     "gym_code": "ACOFIN",
@@ -1657,5 +1650,26 @@
     "gym_name": "Zion Baptist Church",
     "lat_long": "39.78327,-89.633293",
     "gmap_link": "https://www.google.com/maps/place/39.78327,-89.633293"
+  },
+  "STFAGR": {
+    "city_state": "SPRINGFIELDIL",
+    "gym_code": "STFAGR",
+    "gym_name": "State Fair Grandstand and Racetrack",
+    "lat_long": "39.837244,-89.641914",
+    "gmap_link": "https://www.google.com/maps/place/39.837244,-89.641914"
+  },
+  "ABFATA": {
+    "city_state": "SPRINGFIELDIL",
+    "gym_code": "ABFATA",
+    "gym_name": "Abundant Faith-Christian-Centre Taylor Ave",
+    "lat_long": "39.770394,-89.619127",
+    "gmap_link": "https://www.google.com/maps/place/39.770394,-89.619127"
+  },
+  "ABFARE": {
+    "city_state": "SPRINGFIELDIL",
+    "gym_code": "ABFARE",
+    "gym_name": "Abundant Faith-Christian-Center Reynolds St",
+    "lat_long": "39.806546,-89.657721",
+    "gmap_link": "https://www.google.com/maps/place/39.806546,-89.657721"
   }
 }
