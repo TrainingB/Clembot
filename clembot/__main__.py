@@ -1514,7 +1514,7 @@ async def about(ctx):
     embed_colour = ctx.message.server.me.colour or discord.Colour.lighter_grey()
 
     about = ("I'm Clembot! A Pokemon Go helper bot for Discord!\n\n"
-             "I was made by [{original_author_name}]({original_author_repo}) and then [{author_name}]({author_repo}) evolved me further.\n\n"
+             "[{author_name}]({author_repo}) has been working on me and I am evovled from [{original_author_name}]({original_author_repo})'s famous bot Meowth!\n\n"
              "[Join our server]({server_invite}) if you have any questions or feedback.\n\n"
              "".format(original_author_name=original_author_name, original_author_repo=original_author_repo, author_name=author_name, author_repo=author_repo, server_invite=server_url))
 
@@ -2031,9 +2031,26 @@ registers a role and a gym
     return
 
 
-@Clembot.command(pass_context=True, hidden=True, aliases = ["subscribed"])
-async def _subscribed(ctx):
-    Clembot.send_message(ctx.channel, contest="we finished!")
+
+
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases = ["about-me"])
+async def _myroles(ctx):
+
+    text = []
+    author = ctx.message.author
+
+    for role in author.roles:
+        text.append(role.name)
+
+    raid_embed = discord.Embed(colour=discord.Colour.gold())
+    raid_embed.add_field(name="**Username:**", value=_("{option}").format(option=author.name))
+    raid_embed.add_field(name="**Roles:**", value=_("{roles}").format(roles=" \ ".join(text)))
+    raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=author, format="jpg")))
+    await Clembot.send_message(ctx.message.channel, embed=raid_embed)
+
+
 
 @Clembot.command(pass_context=True, hidden=True, aliases = ["subscribe"])
 async def _subscribe(ctx):
