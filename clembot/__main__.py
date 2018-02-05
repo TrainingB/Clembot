@@ -1927,7 +1927,6 @@ async def _show_register(ctx):
 
     role_map = {}
 
-    role = discord.utils.get(ctx.message.server.roles, id = '407068156247408650')
     await Clembot.send_message(ctx.message.channel, content=role.name)
 
     for role_id in notifications['roles']:
