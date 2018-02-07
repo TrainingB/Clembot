@@ -1498,8 +1498,26 @@ async def cmd_uptime(ctx):
         await Clembot.send_message(channel, "I need the `Embed links` permission to send this")
 
 
-@Clembot.command(pass_context=True, hidden=True)
+
+
+
+
+
+@Clembot.group(pass_context=True, hidden=True)
 async def about(ctx):
+
+    if ctx.invoked_subcommand is not None:
+        return
+
+    if len(ctx.message.mentions) > 0:
+        author = ctx.message.mentions[0]
+        if author:
+            await _about_user(author, ctx.message.channel)
+            return
+
+
+
+
     """Shows info about Clembot"""
     original_author_repo = "https://github.com/FoglyOgly"
     original_author_name = "FoglyOgly"
@@ -1511,6 +1529,8 @@ async def about(ctx):
     owner = Clembot.owner
     channel = ctx.message.channel
     uptime_str = await _uptime(Clembot)
+    yourserver = ctx.message.server.name
+    yourmembers = len(ctx.message.server.members)
     embed_colour = ctx.message.server.me.colour or discord.Colour.lighter_grey()
 
     about = ("I'm Clembot! A Pokemon Go helper bot for Discord!\n\n"
@@ -1524,18 +1544,53 @@ async def about(ctx):
         server_count += 1
         member_count += len(server.members)
 
-    embed = discord.Embed(colour=embed_colour, icon_url=Clembot.user.avatar_url)
+    embed = discord.Embed(title="For support, Click here to contact Clembot's discord server.", url="https://discord.gg/"+INVITE_CODE , colour=embed_colour, icon_url=Clembot.user.avatar_url)
     embed.add_field(name="About Clembot", value=about, inline=False)
     embed.add_field(name="Owner", value=owner)
-    embed.add_field(name="Servers", value=server_count)
-    embed.add_field(name="Members", value=member_count)
+    if server_count > 1:
+        embed.add_field(name="Servers", value=server_count)
+        embed.add_field(name="Members", value=member_count)
+    embed.add_field(name="Your Server", value=yourserver)
+    embed.add_field(name="Your Members", value=yourmembers)
     embed.add_field(name="Uptime", value=uptime_str)
-    embed.set_footer(text="For support, contact us on our Discord server. Invite Code: AUzEXRU")
+    embed.set_footer(text="This message will be auto-deleted after 40 seconds".format(invite=INVITE_CODE))
 
     try:
-        await Clembot.send_message(channel, embed=embed)
+        about_msg = await Clembot.send_message(channel, embed=embed)
     except discord.HTTPException:
-        await Clembot.send_message(channel, "I need the `Embed links` permission to send this")
+        about_msg =await Clembot.send_message(channel, "I need the `Embed links` permission to send this")
+
+    await asyncio.sleep(40)
+    await Clembot.delete_message(about_msg)
+    await Clembot.delete_message(ctx.message)
+
+
+
+@about.command(pass_context=True)
+async def me(ctx):
+    author = ctx.message.author
+
+    await _about_user(author, ctx.message.channel)
+
+
+async def _about_user(user, target_channel):
+    text = []
+    for role in user.roles:
+        text.append(role.name)
+
+    raid_embed = discord.Embed(colour=discord.Colour.gold())
+    raid_embed.add_field(name="**Username:**", value=_("{option}").format(option=user.name))
+    raid_embed.add_field(name="**Roles:**", value=_("{roles}").format(roles=" \ ".join(text)))
+    raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=user, format="jpg")))
+    await Clembot.send_message(target_channel, embed=raid_embed)
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["about-me"])
+async def _about_me(ctx):
+
+    author = ctx.message.author
+
+    await _about_user(author, ctx.message.channel)
+
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -2034,21 +2089,6 @@ registers a role and a gym
 
 
 
-@Clembot.command(pass_context=True, hidden=True, aliases = ["about-me"])
-async def _myroles(ctx):
-
-    text = []
-    author = ctx.message.author
-
-    for role in author.roles:
-        text.append(role.name)
-
-    raid_embed = discord.Embed(colour=discord.Colour.gold())
-    raid_embed.add_field(name="**Username:**", value=_("{option}").format(option=author.name))
-    raid_embed.add_field(name="**Roles:**", value=_("{roles}").format(roles=" \ ".join(text)))
-    raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=author, format="jpg")))
-    await Clembot.send_message(ctx.message.channel, embed=raid_embed)
-
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases = ["subscribe"])
@@ -2419,8 +2459,11 @@ async def _raid(message):
     raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
     raid = discord.utils.get(message.server.roles, name=entered_raid)
     if raid is None:
-        raid = await Clembot.create_role(server=message.server, name=entered_raid, hoist=False, mentionable=True)
-        await asyncio.sleep(0.5)
+        # raid = await Clembot.create_role(server=message.server, name=entered_raid, hoist=False, mentionable=True)
+        # await asyncio.sleep(0.5)
+        raid_role = "**" + entered_raid.capitalize() + "**"
+    else:
+        raid_role = raid.mention
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
     raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
@@ -2436,7 +2479,7 @@ async def _raid(message):
 This channel will be deleted five minutes after the timer expires.
 ** **
 Please type `!beep raid` if you need a refresher of Clembot commands! 
-""").format(pokemon=raid.mention, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+""").format(pokemon=raid_role, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await Clembot.send_message(raid_channel, content=raidmsg, embed=raid_embed)
     print(server_dict[message.server.id]['raidchannel_dict'])
@@ -3397,9 +3440,12 @@ async def _eggassume(args, raid_channel):
     eggdetails['pokemon'] = entered_raid
     raidrole = discord.utils.get(raid_channel.server.roles, name=entered_raid)
     if raidrole is None:
-        raidrole = await Clembot.create_role(server=raid_channel.server, name=entered_raid, hoist=False, mentionable=True)
-        await asyncio.sleep(0.5)
-    await Clembot.send_message(raid_channel, _("Beep Beep! This egg will be assumed to be {pokemon} when it hatches!").format(pokemon=raidrole.mention))
+        # raidrole = await Clembot.create_role(server=raid_channel.server, name=entered_raid, hoist=False, mentionable=True)
+        # await asyncio.sleep(0.5)
+        raid_role = "**{pokemon}**".format(pokemon=entered_raid.capitalize())
+    else:
+        raid_role = raidrole.mention
+        await Clembot.send_message(raid_channel, _("Beep Beep! This egg will be assumed to be {pokemon} when it hatches!").format(pokemon=raid_role))
     server_dict[raid_channel.server.id]['raidchannel_dict'][raid_channel.id] = eggdetails
     return
 
@@ -3442,9 +3488,11 @@ async def _eggtoraid(entered_raid, channel):
     raid_gmaps_link = oldembed['url']
     raid = discord.utils.get(channel.server.roles, name=entered_raid)
     if raid is None:
-        raid = await Clembot.create_role(server=channel.server, name=entered_raid, hoist=False, mentionable=True)
-        await asyncio.sleep(0.5)
-
+        # raid = await Clembot.create_role(server=channel.server, name=entered_raid, hoist=False, mentionable=True)
+        # await asyncio.sleep(0.5)
+        raid_role = "**" + entered_raid.capitalize() + "**"
+    else:
+        raid_role = raid.mention
 
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
@@ -3460,7 +3508,7 @@ Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon
 This channel will be deleted five minutes after the timer expires.
 ** **
 Please type `!beep raid` if you need a refresher of Clembot commands! 
-""").format(member=raid_messageauthor.mention, citychannel=reportcitychannel.mention, pokemon=entered_raid.capitalize(), location_details=egg_address)
+""").format(member=raid_messageauthor.mention, citychannel=reportcitychannel.mention, pokemon=raid_role, location_details=egg_address)
 
     #     raidmsg = _("""Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
     #
@@ -3521,7 +3569,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
             # or len(raid_info['raid_eggs']['EX']['pokemon']) > 1
     try:
         if eggdetails['egglevel'].isdigit():
-            await Clembot.send_message(channel, content=_("Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nIf you couldn't before, you're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(trainer_list=", ".join(trainer_list), pokemon=raid.mention), embed=raid_embed)
+            await Clembot.send_message(channel, content=_("Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nIf you couldn't before, you're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(trainer_list=", ".join(trainer_list), pokemon=raid_role ), embed=raid_embed)
     except Exception as error:
         print(error)
     event_loop.create_task(expiry_check(channel))
