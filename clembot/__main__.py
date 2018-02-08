@@ -1982,8 +1982,6 @@ async def _show_register(ctx):
 
     role_map = {}
 
-    await Clembot.send_message(ctx.message.channel, content=role.name)
-
     for role_id in notifications['roles']:
         role = discord.utils.get(ctx.message.server.roles, id=role_id)
         new_notifications_map['notifications']['roles'].append(role.name)
@@ -3673,9 +3671,9 @@ async def gym(ctx):
 
         await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! {member} {roster_message}").format(member=ctx.message.author.mention, roster_message=roster_message), embed=raid_embed)
 
-        if check_raid_channel(ctx.message.channel):
+        if check_raid_channel(ctx.message.channel.id):
             gym_location_update = await ask_confirmation(ctx.message, "Do you want to update this raid's location?", "Updating raid's location...", "Thank you", "Too late! try again!")
-        elif check_raidparty_channel(ctx.message.channel):
+        elif check_raidparty_channel(ctx.message.channel.id):
             gym_location_update = True
 
         if gym_location_update:
