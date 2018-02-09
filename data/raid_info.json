@@ -28,7 +28,7 @@
 		"5": {
 			"egg": "legendary",
 			"egg_img": "ic_raid_egg_legendary.png",
-			"pokemon": [382],
+			"pokemon": [382,384],
 			"oldpokemon": [150,249,243,244,245,144,145,146]
 
 		}
