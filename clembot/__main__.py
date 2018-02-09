@@ -1984,8 +1984,9 @@ async def _show_register(ctx):
 
     for role_id in notifications['roles']:
         role = discord.utils.get(ctx.message.server.roles, id=role_id)
-        new_notifications_map['notifications']['roles'].append(role.name)
-        role_map[role_id] = role.name
+        if role:
+            new_notifications_map['notifications']['roles'].append(role.name)
+            role_map[role_id] = role.name
 
     for gym_code in notifications['gym_role_map'].keys():
         role_name = role_map[notifications['gym_role_map'][gym_code]]
