@@ -216,7 +216,6 @@ def get_city_list(message):
     city_list = []
     try:
         city_channel = server_dict[message.server.id]['city_channels'].get(message.channel.name)
-
         if city_channel:
             city_list.append(city_channel.replace(" ", "").upper())
             return city_list
@@ -1288,7 +1287,7 @@ async def save(ctx):
     File path is relative to current directory."""
     try:
         await _save()
-        logger.info("CONFIG SAVED")
+        print("CONFIG SAVED")
     except Exception as err:
         await _print(Clembot.owner, _("Error occured while trying to save!"))
         await _print(Clembot.owner, err)
@@ -3595,6 +3594,16 @@ async def gymlookup(ctx):
 
         city_state_list = get_city_list(ctx.message)
 
+        if len(city_state_list) < 1:
+            await Clembot.send_message(ctx.message.channel, content="Beep Beep... Reporting City has not been defined for this channel, please contact admin!")
+            return
+
+        list_of_gyms = gymutil.get_matching_gym_info(gym_code, city_state=city_state_list)
+
+        if len(list_of_gyms) < 1 :
+            await Clembot.send_message(ctx.message.channel, content="Beep Beep... No matches found for {city}!".format(city=" ".join(city_state_list)))
+            return
+
         for gym_info in gymutil.get_matching_gym_info(gym_code, city_state=city_state_list):
 
             new_gym_info = ""
@@ -3614,7 +3623,7 @@ async def gymlookup(ctx):
         else:
             await Clembot.send_message(ctx.message.channel, content="Beep Beep...Hmmm, no matches found for {gym_code}".format(gym_code=gym_code))
     except Exception as error:
-        await Clembot.send_message(ctx.message.channel, content=error)
+        await Clembot.send_message(ctx.message.channel, content="Beep Beep... No matches found!")
 
 
 
