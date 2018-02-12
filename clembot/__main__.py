@@ -198,7 +198,7 @@ def clembot_time_in_server_timezone(message):
 
 def get_pokemon_image_url(pokedex_number):
     # url = icon_list.get(str(pokedex_number))
-    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{0}_.png?cache=2".format(str(pokedex_number).zfill(3))
+    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{0}_.png?cache=3".format(str(pokedex_number).zfill(3))
     if url:
         return url
     else:
