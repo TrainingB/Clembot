@@ -25,10 +25,11 @@ def load_gyms():
 def get_gym_info(gym_code, attribute=None, city_state=None):
     city_state_list = []
 
-    if city_state is None:
-        city_state_list = list(city_wide_gym_list.keys())
-    else:
-        city_state_list.extend(city_state)
+    # if city_state is None:
+    #     city_state_list = list(city_wide_gym_list.keys())
+    # else:
+
+    city_state_list.extend(city_state)
 
     for city_state_element in city_state_list:
         gym_info = _get_gym_info(gym_code, attribute, city_state_element)
@@ -64,9 +65,11 @@ def get_matching_gym_info(gym_code_prefix, city_state=None):
     matching_gyms = []
 
     for city_state_element in city_state_list:
-        for gym_code in city_wide_gym_list.get(city_state_element).keys():
-            if gym_code.startswith(gym_code_prefix):
-                matching_gyms.append(city_wide_gym_list.get(city_state_element).get(gym_code))
+        city_gym_list = city_wide_gym_list.get(city_state_element)
+        if city_gym_list:
+            for gym_code in city_wide_gym_list.get(city_state_element).keys():
+                if gym_code.startswith(gym_code_prefix):
+                    matching_gyms.append(city_wide_gym_list.get(city_state_element).get(gym_code))
 
     return matching_gyms
 

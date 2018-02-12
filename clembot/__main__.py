@@ -35,6 +35,7 @@ from errors import custom_error_handling
 # --B--
 # ---- dependencies
 import gymutil
+import gymsql
 import time
 from datetime import timedelta
 import calendar
@@ -105,6 +106,8 @@ icon_list = {}
 GOOGLE_API_KEY = ""
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
 INVITE_CODE = "AUzEXRU"
+SQLITE_DB=""
+
 
 
 # Append path of this script to the path of
@@ -124,7 +127,7 @@ def load_config():
     global icon_list
     global GOOGLE_API_KEY
     global GOOGLE_MAPS_URL
-
+    global SQLITE_DB
     # Load configuration
     with open("config.json", "r") as fd:
         config = json.load(fd)
@@ -158,6 +161,9 @@ def load_config():
     raid_timer = config['raid-timer']
     GOOGLE_API_KEY = config['google-api-key']
     GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
+    SQLITE_DB=config['sqlite_db']
+
+    gymsql.set_db_name(SQLITE_DB)
     gymutil.load_gyms()
 
 
@@ -220,13 +226,18 @@ def get_city_list(message):
             city_list.append(city_channel.replace(" ", "").upper())
             return city_list
 
-        for key in server_dict[message.server.id]['city_channels'].keys():
-            city_name = server_dict[message.server.id]['city_channels'].get(key)
-            city_key = city_name.replace(" ", "").upper()
-            if city_list.__contains__(city_key):
-                pass
-            else:
-                city_list.append(city_key)
+        city_channel = gymsql.read_channel_city(message.server.id, message.channel.id)
+        if city_channel:
+            city_list.append(city_channel)
+            return city_list
+
+        # for key in server_dict[message.server.id]['city_channels'].keys():
+        #     city_name = server_dict[message.server.id]['city_channels'].get(key)
+        #     city_key = city_name.replace(" ", "").upper()
+        #     if city_list.__contains__(city_key):
+        #         pass
+        #     else:
+        #         city_list.append(city_key)
 
     except Exception as error:
         print(error)
@@ -3577,6 +3588,36 @@ async def gymhelp(ctx):
     await Clembot.send_message(ctx.message.channel, _("Beep Beep! We've moved this command to `!beep gym`."))
 
 
+@Clembot.command(pass_context=True, hidden=True, aliases=["set-city"])
+@commands.has_permissions(manage_server=True)
+async def _set_city(ctx):
+
+    args = ctx.message.content
+    args_split = args.split(" ")
+    del args_split[0]
+
+    city_state = "".join(args_split).upper()
+
+    new_city_state = gymsql.save_channel_city(ctx.message.server.id, ctx.message.channel.id, city_state)
+
+    if new_city_state:
+        await _get_city(ctx.message)
+    else:
+        await Clembot.send_message(ctx.message.channel, content="Beep Beep! I couldn't set the Reporting City successfully.")
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["get-city"])
+@commands.has_permissions(manage_server=True)
+async def get_city(ctx):
+    await _get_city(ctx.message)
+
+
+async def _get_city(message):
+
+    result = gymsql.read_channel_city(message.server.id, message.channel.id)
+
+    await Clembot.send_message(message.channel, content="Beep Beep! Reporting City for this channel is {content}".format(content=result))
+
+
 @Clembot.command(pass_context=True, hidden=True)
 async def gymlookup(ctx):
     """looks up gym information based on gym code.
@@ -3595,18 +3636,17 @@ async def gymlookup(ctx):
         city_state_list = get_city_list(ctx.message)
 
         if len(city_state_list) < 1:
-            await Clembot.send_message(ctx.message.channel, content="Beep Beep... Reporting City has not been defined for this channel, please contact admin!")
+            await Clembot.send_message(ctx.message.channel, content="Beep Beep... Reporting City has not been defined for this channel, please contact {admin} to set it up!".format(admin=ctx.message.server.owner.mention))
             return
 
         list_of_gyms = gymutil.get_matching_gym_info(gym_code, city_state=city_state_list)
 
         if len(list_of_gyms) < 1 :
-            await Clembot.send_message(ctx.message.channel, content="Beep Beep... No matches found for {city}!".format(city=" ".join(city_state_list)))
+            await Clembot.send_message(ctx.message.channel, content="Beep Beep... I could not find any gym starting with {gym_code} for {city}!".format(city=" ".join(city_state_list), gym_code=gym_code))
             return
 
         for gym_info in gymutil.get_matching_gym_info(gym_code, city_state=city_state_list):
 
-            new_gym_info = ""
             if len(city_state_list) == 1:
                 new_gym_info = ("{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
             else:
@@ -3623,6 +3663,7 @@ async def gymlookup(ctx):
         else:
             await Clembot.send_message(ctx.message.channel, content="Beep Beep...Hmmm, no matches found for {gym_code}".format(gym_code=gym_code))
     except Exception as error:
+        print(error)
         await Clembot.send_message(ctx.message.channel, content="Beep Beep... No matches found!")
 
 
@@ -4603,7 +4644,7 @@ async def update(ctx):
         #     await Clembot.send_message(ctx.message.channel, content=_("Beep Beep! That's too much to update... use `!update <location#> <pokemon-name or gym-code or google map link>`"))
         #     return
 
-        arg = args_split[0]
+        arg = args_split[0].lower()
         gym_info = gymutil.get_gym_info(arg, city_state=get_city_list(ctx.message))
 
         if gym_info:

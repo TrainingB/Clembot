@@ -13,7 +13,7 @@
 "egg-timer": 60,
 "raid-timer" : 45,
 "google-api-key" : "yourkey",
-
+"sqlite_db":"pathofsqlitedb",
 "//": "Bot token ID, needed for authentication.",
 "//": "This is found on the app page when you click to reveal the bot user's token",
 "bot_token": "yourtoken",
