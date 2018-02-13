@@ -33,15 +33,15 @@ def disconnect():
     print("disconnect() called")
     connection.close()
 
-def read_channel_city(server_id, channel_id):
+def read_server_city(server_id):
     try:
-        print("read_channel_city({server_id}, {channel_id})".format(server_id=server_id, channel_id=channel_id))
+        print("read_server_city({server_id})".format(server_id=server_id))
 
         global cursor
         if cursor == None:
             connect()
 
-        cursor.execute("select city_state from channel_city where server_id = {server_id} and channel_id = {channel_id}".format(server_id=server_id, channel_id=channel_id))
+        cursor.execute("select city_state from server_channel_city where server_id = {server_id} and channel_id is null".format(server_id=server_id))
 
         all_rows = cursor.fetchall()
 
@@ -54,6 +54,30 @@ def read_channel_city(server_id, channel_id):
 
     return None
 
+def read_channel_city(server_id, channel_id):
+    try:
+        print("read_channel_city({server_id}, {channel_id})".format(server_id=server_id, channel_id=channel_id))
+
+        global cursor
+        if cursor == None:
+            connect()
+
+        cursor.execute("select city_state from server_channel_city where server_id = {server_id} and channel_id = {channel_id}".format(server_id=server_id, channel_id=channel_id))
+
+        all_rows = cursor.fetchall()
+
+        if len(all_rows) < 1:
+            return None
+
+        return all_rows[0][0]
+    except Exception as error:
+        print(error)
+
+    return None
+
+
+
+
 # connect()
 #
 # test()
@@ -65,8 +89,36 @@ def read_channel_city(server_id, channel_id):
 
 
 
+#--SQL-- insert into server_channel_city (server_id, channel_id, city_state) select server_id, channel_id, city_state from channel_city;
+
+
+def save_server_city(server_id, city_state):
+
+    try:
+        print("save_server_city({server_id}, {city_state})".format(server_id=server_id,city_state=city_state))
+
+        global cursor, connection
+        if cursor == None:
+            connect()
+
+        # try updating first
+        cursor.execute("update server_channel_city set city_state = '{city_state}' where server_id = {server_id} and channel_id is null"
+                     .format(server_id=server_id,city_state=city_state))
+        # otherwise insert the new row
+        cursor.execute("insert into server_channel_city (server_id, city_state ) "
+                     "SELECT {server_id}, '{city_state}'  where (select Changes() = 0)"
+                     .format(server_id=server_id,city_state=city_state))
+
+        connection.commit()
+        return city_state
+    except Exception as error:
+        print(error)
+
+    return None
+
+
 def save_channel_city(server_id, channel_id, city_state):
-    #--SQL-- create table channel_city ( id integer primary key, server_id integer, channel_id integer, city_state text);
+
     try:
         print("save_channel_city({server_id}, {channel_id}, {city_state})".format(server_id=server_id,channel_id=channel_id,city_state=city_state))
 
@@ -75,10 +127,10 @@ def save_channel_city(server_id, channel_id, city_state):
             connect()
 
         # try updating first
-        cursor.execute("update channel_city set city_state = '{city_state}' where server_id = {server_id} and channel_id = {channel_id}"
+        cursor.execute("update server_channel_city set city_state = '{city_state}' where server_id = {server_id} and channel_id = {channel_id}"
                      .format(server_id=server_id,channel_id=channel_id,city_state=city_state))
         # otherwise insert the new row
-        cursor.execute("insert into channel_city (server_id, channel_id , city_state ) "
+        cursor.execute("insert into server_channel_city (server_id, channel_id , city_state ) "
                      "SELECT {server_id}, {channel_id}, '{city_state}'  where (select Changes() = 0)"
                      .format(server_id=server_id,channel_id=channel_id,city_state=city_state))
 
@@ -87,8 +139,12 @@ def save_channel_city(server_id, channel_id, city_state):
     except Exception as error:
         print(error)
 
-
     return None
+
+
+
+
+
 
 #
 # save_channel_city(1, 1, "BURBANKCA")

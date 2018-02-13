@@ -229,7 +229,11 @@ def get_city_list(message):
         city_channel = gymsql.read_channel_city(message.server.id, message.channel.id)
         if city_channel:
             city_list.append(city_channel)
-            return city_list
+        else:
+            server_channel = gymsql.read_server_city(message.server.id)
+            if server_channel:
+                city_list.append(server_channel)
+        return city_list
 
         # for key in server_dict[message.server.id]['city_channels'].keys():
         #     city_name = server_dict[message.server.id]['city_channels'].get(key)
@@ -3588,8 +3592,25 @@ async def gymhelp(ctx):
     await Clembot.send_message(ctx.message.channel, _("Beep Beep! We've moved this command to `!beep gym`."))
 
 
+@Clembot.command(pass_context=True, hidden=True, aliases=["set-server-city"])
+@checks.serverowner_or_permissions(manage_server=True)
+async def _set_server_city(ctx):
+
+    args = ctx.message.content
+    args_split = args.split(" ")
+    del args_split[0]
+
+    city_state = "".join(args_split).upper()
+
+    new_city_state = gymsql.save_server_city(ctx.message.server.id, city_state)
+
+    if new_city_state:
+        await _get_server_city(ctx.message)
+    else:
+        await Clembot.send_message(ctx.message.channel, content="Beep Beep! I couldn't set the Reporting City successfully.")
+
 @Clembot.command(pass_context=True, hidden=True, aliases=["set-city"])
-@commands.has_permissions(manage_server=True)
+@checks.serverowner_or_permissions(manage_server=True)
 async def _set_city(ctx):
 
     args = ctx.message.content
@@ -3606,16 +3627,34 @@ async def _set_city(ctx):
         await Clembot.send_message(ctx.message.channel, content="Beep Beep! I couldn't set the Reporting City successfully.")
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["get-city"])
-@commands.has_permissions(manage_server=True)
+@checks.serverowner_or_permissions(manage_server=True)
 async def get_city(ctx):
     await _get_city(ctx.message)
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["get-server-city"])
+@checks.serverowner_or_permissions(manage_server=True)
+async def get_server_city(ctx):
+    await _get_server_city(ctx.message)
 
 
 async def _get_city(message):
 
-    result = gymsql.read_channel_city(message.server.id, message.channel.id)
+    channel_city = gymsql.read_channel_city(message.server.id, message.channel.id)
+    if channel_city:
+        content = "Beep Beep! Reporting City for this channel is {channel_city}.".format(channel_city=channel_city)
+    else:
+        server_city = gymsql.read_server_city(message.server.id)
+        if server_city:
+            content = "Beep Beep! Reporting City for this server is {server_city}.".format(server_city=server_city)
 
-    await Clembot.send_message(message.channel, content="Beep Beep! Reporting City for this channel is {content}".format(content=result))
+    await Clembot.send_message(message.channel, content=content)
+
+
+async def _get_server_city(message):
+
+    server_city = gymsql.read_server_city(message.server.id)
+    content = "Beep Beep! Reporting City for this server is {server_city}.".format(server_city=server_city)
+    await Clembot.send_message(message.channel, content=content)
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -3630,6 +3669,11 @@ async def gymlookup(ctx):
     del args_split[0]
 
     gym_code = args_split[0].upper()
+
+    if len(gym_code) < 1:
+        await Clembot.send_message(ctx.message.channel, content="Beep Beep... I need at-least one character for lookup!")
+        return
+
     gym_message_output = ""
     try:
 
