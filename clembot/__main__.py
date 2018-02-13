@@ -3639,6 +3639,8 @@ async def get_server_city(ctx):
 
 async def _get_city(message):
 
+    content="Beep Beep! Reporting City for this channel / server has not been set."
+
     channel_city = gymsql.read_channel_city(message.server.id, message.channel.id)
     if channel_city:
         content = "Beep Beep! Reporting City for this channel is {channel_city}.".format(channel_city=channel_city)
