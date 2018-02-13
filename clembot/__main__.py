@@ -4474,13 +4474,19 @@ async def location(ctx):
         server = message.server
         channel = message.channel
         rc_d = server_dict[server.id]['raidchannel_dict']
-        raidmsg = rc_d[channel.id]['raidmessage']
+        raidmsgid = rc_d[channel.id]['raidmessage']
         location = rc_d[channel.id]['address']
         report_city = rc_d[channel.id]['reportcity']
-        report_channel = discord.utils.get(server.channels, name=report_city)
+
+        # report_channel = discord.utils.get(server.channels, name=report_city)
+        #
+        # reportcitychannel = discord.utils.get(message.channel.server.channels, name=reportcityid)
+
+        raidmsg = await Clembot.get_message(message.channel, raidmsgid)
+
         oldembed = raidmsg.embeds[0]
         locurl = oldembed['url']
-        newembed = discord.Embed(title=oldembed['title'], url=locurl, description=oldembed['description'], colour=server.me.colour)
+        newembed = discord.Embed(title=oldembed['title'], url=locurl, colour=server.me.colour)
         newembed.set_thumbnail(url=oldembed['thumbnail']['url'])
         locationmsg = await Clembot.send_message(channel, content=_("Beep Beep! Here's the current location for the raid!\nDetails:{location}").format(location=location), embed=newembed)
         await asyncio.sleep(60)
