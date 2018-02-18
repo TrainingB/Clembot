@@ -2442,22 +2442,28 @@ async def _raid(message):
     if gym_info is None and 2 <= raid_details.__len__() <= 6:
         raid_details_gym_code = raid_details.upper()
         # raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state=get_city_list(message))
-        raid_details_gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
+        raid_details_gym_info = get_gym_info_wrapper(message, gym_code=raid_details_gym_code)
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
 
     channel_role = None
-
+    region_prefix = get_region_prefix(message)
+    if region_prefix:
+        prefix =  region_prefix + "-"
+    else:
+        prefix = ""
     if gym_info:
         raid_gmaps_link = gym_info['gmap_link']
-        raid_channel_name = entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
+        raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
         channel_role_id = _get_role_for_notification(message.channel.server.id, gym_info['gym_code'])
         channel_role = discord.utils.get(message.channel.server.roles, id=channel_role_id)
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
-        raid_channel_name = entered_raid + "-" + sanitize_channel_name(raid_details)
-
-    raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
+        raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(raid_details)
+    try :
+        raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
+    except Exception as error:
+        print(error)
     raid = discord.utils.get(message.server.roles, name=entered_raid)
     if raid is None:
         # raid = await Clembot.create_role(server=message.server, name=entered_raid, hoist=False, mentionable=True)
@@ -2764,6 +2770,27 @@ async def embed(ctx):
     raidreport = await Clembot.send_message(message.channel, content=_("Beep Beep! {member} here you go!").format(member=message.author.mention), embed=raid_embed)
 
     return
+
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["reset-start"])
+@checks.raidchannel()
+async def _reset_start(ctx):
+
+    if ctx.message.channel.id in server_dict[ctx.message.server.id]['raidchannel_dict']:
+        try:
+            if server_dict[ctx.message.channel.server.id]['raidchannel_dict'][ctx.message.channel.id]['type'] == 'exraid':
+                await Clembot.send_message(ctx.message.channel, _("start isn't supported for exraids."))
+                return
+        except KeyError:
+            pass
+
+        try:
+            server_dict[ctx.message.channel.server.id]['raidchannel_dict'][ctx.message.channel.id]['suggested_start'] = False
+            confirmation_message = await Clembot.send_message(ctx.message.channel, _("Beep Beep! {member} start time has been cleared!").format(member=ctx.message.author.mention))
+        except Exception as error:
+            print(error)
+        return
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -3093,7 +3120,14 @@ async def _exraid(ctx):
         p_name = get_name(p)
         p_type = get_type(message.server, p)
         boss_list.append(p_name + " (" + str(p) + ") " + ''.join(p_type))
-    raid_channel_name = "ex-raid-egg-" + sanitize_channel_name(raid_details)
+
+    region_prefix = get_region_prefix(message)
+    if region_prefix:
+        prefix = region_prefix + "-"
+    else:
+        prefix = ""
+
+    raid_channel_name = prefix + "ex-raid-egg-" + sanitize_channel_name(raid_details)
     raid_channel_overwrites = channel.overwrites
     clembot_overwrite = (Clembot.user, discord.PermissionOverwrite(send_messages=True))
     for overwrite in raid_channel_overwrites:
@@ -3173,7 +3207,12 @@ async def _raidparty(message):
     raid_details = " ".join(args_split)
     raid_details = raid_details.strip()
 
-    raid_channel_name = "raid-party-" + sanitize_channel_name(raid_details)
+    region_prefix = get_region_prefix(message)
+    if region_prefix:
+        prefix = region_prefix + "-"
+    else:
+        prefix = ""
+    raid_channel_name = prefix + "raid-party-" + sanitize_channel_name(raid_details)
     raid_channel_overwrites = message.channel.overwrites
     meowth_overwrite = (Clembot.user, discord.PermissionOverwrite(send_messages=True))
 
@@ -3312,7 +3351,7 @@ async def _raidegg(message):
     if gym_info is None and 2 <= raid_details.__len__() <= 6:
         raid_details_gym_code = raid_details.upper()
         # raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state=get_city_list(message))
-        raid_details_gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
+        raid_details_gym_info = get_gym_info_wrapper(message, gym_code=raid_details_gym_code)
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
             raid_details = gym_info['gym_name']
@@ -3332,12 +3371,19 @@ async def _raidegg(message):
             p_name = get_name(p)
             p_type = get_type(message.server, p)
             boss_list.append(p_name + " (" + str(p) + ") " + ''.join(p_type))
+
+        region_prefix = get_region_prefix(message)
+        if region_prefix:
+            prefix = region_prefix + "-"
+        else:
+            prefix = ""
+
         if gym_info:
             raid_gmaps_link = gym_info['gmap_link']
-            raid_channel_name = "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
+            raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
         else:
             raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
-            raid_channel_name = "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+            raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
         try:
             raid_channel = await Clembot.create_channel(message.server, raid_channel_name, *message.channel.overwrites)
         except Exception as error:
@@ -3482,7 +3528,14 @@ async def _eggtoraid(entered_raid, channel):
             if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
                 await Clembot.send_message(channel, _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
                 return
-    raid_channel_name = entered_raid + "-" + sanitize_channel_name(egg_address)
+
+    region_prefix = get_region_prefix(message)
+    if region_prefix:
+        prefix = region_prefix + "-"
+    else:
+        prefix = ""
+
+    raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(egg_address)
     oldembed = raid_message.embeds[0]
     raid_gmaps_link = oldembed['url']
     raid = discord.utils.get(channel.server.roles, name=entered_raid)
@@ -3574,9 +3627,123 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
     event_loop.create_task(expiry_check(channel))
 
 
+
+
+
+
 @Clembot.command(pass_context=True, hidden=True)
 async def gymhelp(ctx):
     await Clembot.send_message(ctx.message.channel, _("Beep Beep! We've moved this command to `!beep gym`."))
+
+
+def get_region_prefix(message):
+    configuration = gymsql.read_guild_configuration(guild_id=message.server.id)
+
+    if configuration:
+        if configuration.get('add_region_prefix',None):
+            channel_configuration = gymsql.read_guild_configuration(guild_id=message.server.id, channel_id=message.channel.id)
+            if channel_configuration:
+                return channel_configuration.get('region_prefix',"")
+
+    return ""
+
+async def _get_channel_config(message):
+    content = "Beep Beep! No server configuration found!"
+
+    configuration = gymsql.read_guild_configuration(message.server.id, message.channel.id)
+    if configuration:
+        content = "Beep Beep! Server Configuration : \n{configuration}".format(configuration=configuration)
+
+    await Clembot.send_message(message.channel, content=content)
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["get-channel-config"])
+@checks.serverowner_or_permissions(manage_server=True)
+async def get_channel_config(ctx):
+    await _get_channel_config(ctx.message)
+
+
+# !set-server-config add_region_prefix SO
+@Clembot.command(pass_context=True, hidden=True, aliases=["set-channel-config"])
+@checks.serverowner_or_permissions(manage_server=True)
+async def set_channel_config(ctx):
+    args = ctx.message.content
+    args_split = args.split(" ")
+    del args_split[0]
+
+    new_configuration={}
+
+    if len(args_split) == 2:
+        key = args_split[0]
+        value = args_split[1]
+        new_configuration[key] = value
+
+    configuration = gymsql.read_guild_configuration(ctx.message.server.id, ctx.message.channel.id)
+
+
+    if configuration:
+        configuration.update(new_configuration)
+    else:
+        configuration = new_configuration
+
+
+    configuration = gymsql.save_guild_configuration(guild_id=ctx.message.server.id, channel_id=ctx.message.channel.id, configuration=configuration)
+
+    if configuration:
+        await _get_channel_config(ctx.message)
+    else:
+        await Clembot.send_message(ctx.message.channel, content="Beep Beep! I couldn't set the configuration successfully.")
+
+
+
+
+async def _get_server_config(message):
+    content = "Beep Beep! No server configuration found!"
+
+    configuration = gymsql.read_guild_configuration(message.server.id)
+    if configuration:
+        content = "Beep Beep! Server Configuration : \n{configuration}".format(configuration=configuration)
+
+    await Clembot.send_message(message.channel, content=content)
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["get-server-config"])
+@checks.serverowner_or_permissions(manage_server=True)
+async def get_server_config(ctx):
+    await _get_server_config(ctx.message)
+
+
+# !set-server-config add_region_prefix SO
+@Clembot.command(pass_context=True, hidden=True, aliases=["set-server-config"])
+@checks.serverowner_or_permissions(manage_server=True)
+async def set_server_config(ctx):
+    args = ctx.message.content
+    args_split = args.split(" ")
+    del args_split[0]
+
+    new_configuration={}
+
+    if len(args_split) == 2:
+        key = args_split[0]
+        value = args_split[1]
+        new_configuration[key]=value
+
+
+    configuration = gymsql.read_guild_configuration(ctx.message.server.id)
+
+    if configuration:
+        configuration.update(new_configuration)
+    else:
+        configuration = new_configuration
+
+    configuration = gymsql.save_guild_configuration(guild_id=ctx.message.server.id, configuration=configuration)
+
+    if configuration:
+        await _get_server_config(ctx.message)
+    else:
+        await Clembot.send_message(ctx.message.channel, content="Beep Beep! I couldn't set the configuration successfully.")
+
+
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["set-server-city"])
@@ -4053,7 +4220,7 @@ async def interested(ctx, *, count: str = None):
     await _maybe(ctx.message, count)
 
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["c"])
+@Clembot.command(pass_context=True, hidden=True, aliases=["c","o"])
 @checks.activeraidchannel()
 async def coming(ctx, *, count: str = None):
     """Indicate you are on the way to a raid.
@@ -4167,6 +4334,7 @@ async def starting(ctx):
     for trainer in id_startinglist:
         del trainer_dict[trainer]
     server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict'] = trainer_dict
+    server_dict[ctx.message.server.id]['raidchannel_dict'][ctx.message.channel.id]['suggested_start'] = False
 
     starting_str = _("Beep Beep! The group that was waiting is starting the raid! Trainers {trainer_list}, please respond with {here_emoji} or **!here** if you are waiting for another group!").format(trainer_list=", ".join(ctx_startinglist), here_emoji=parse_emoji(ctx.message.server, config['here_id']))
     if len(ctx_startinglist) == 0:

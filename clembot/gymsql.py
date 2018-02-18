@@ -11,6 +11,7 @@ SQLITE_DB = "C:\\_MyDrive\\Codebase\\Discord\\Clembot\\database\\clembot_db"
 
 connection = None
 cursor = None
+sqlite3.register_converter("json", json.loads)
 
 def set_db_name(db_name:DB_NAME):
     global DB_NAME
@@ -27,6 +28,7 @@ def connect(db_name=DB_NAME):
         global cursor
 
         connection = sqlite3.connect(DB_NAME)
+
         cursor = connection.cursor()
     except Exception as error:
         print(error)
@@ -290,10 +292,95 @@ def convert_into_gym_info(gym_info):
 
     return None
 
+
+
+def read_guild_configuration(guild_id, channel_id=None) -> {}:
+
+    try:
+        print("read_guild_configuration({guild_id}, {channel_id})".format(guild_id=guild_id, channel_id=channel_id))
+
+        global cursor
+        if cursor == None:
+            connect()
+
+        statement = "select configuration from guild_channel_configuration where guild_id = '{guild_id}' and channel_id ".format(guild_id=guild_id)
+
+        if channel_id:
+            statement = statement + "= {channel_id}".format(channel_id=channel_id)
+        else:
+            statement = statement + " is null "
+
+        statement = statement + " ORDER BY ROWID ASC LIMIT 1 "
+
+        result_row = cursor.execute(statement).fetchone()
+
+        if result_row:
+            configuration = json.loads(result_row[0])
+            return configuration
+
+        return None
+
+    except Exception as error:
+        print(error)
+
+    return None
+
+def save_guild_configuration(guild_id, configuration, channel_id=None ) -> {}:
+
+    try:
+        print("save_guild_configuration({guild_id}, {channel_id}, {configuration})".format(guild_id=guild_id, channel_id=channel_id, configuration=configuration))
+
+        global cursor, connection
+        if cursor == None:
+            connect()
+
+        statement = "update guild_channel_configuration set configuration = ? where guild_id = '{guild_id}' and channel_id ".format(guild_id=guild_id, channel_id=channel_id)
+        if channel_id:
+            statement = statement + "= '{channel_id}'".format(channel_id=channel_id)
+        else:
+            statement = statement + " is null "
+        print(statement)
+        # try updating first
+        json_string = json.dumps(configuration)
+        cursor.execute(statement, (json_string,))
+        # otherwise insert the new row
+
+        if channel_id:
+            cursor.execute("insert into guild_channel_configuration (guild_id, channel_id , configuration ) "
+                       "SELECT '{guild_id}', '{channel_id}', ?  where (select Changes() = 0)".format(guild_id=guild_id, channel_id=channel_id) , (json_string,))
+        else:
+            cursor.execute("insert into guild_channel_configuration (guild_id, configuration ) "
+                           "SELECT '{guild_id}', ?  where (select Changes() = 0)".format(guild_id=guild_id), (json_string,))
+
+
+        connection.commit()
+        return configuration
+    except Exception as error:
+        print(error)
+
+    return None
+
 def main():
     set_db_name(SQLITE_DB)
-    print(get_gym_list_by_code('NORTHHILLSCA','BIJI'))
-    print(convert_into_gym_info(get_gym_list_by_code('NORTHHILLSCA','BIJI')[0]))
+    print(get_gym_list_by_code('NORTHHILLSCA', 'BIJI'))
+    print(convert_into_gym_info(get_gym_list_by_code('NORTHHILLSCA', 'BIJI')[0]))
+
+    configuration = {}
+    configuration['region_prefix'] = "SO"
+
+    save_guild_configuration(guild_id=1, channel_id=1, configuration=configuration)
+
+    print(read_guild_configuration(guild_id=1,channel_id=1))
+
+    channel_configuration={}
+    channel_configuration['add_region_prefix'] = "true"
+
+    save_guild_configuration(guild_id=1, configuration=channel_configuration)
+
+    print(read_guild_configuration(guild_id=1))
+
+    print(read_guild_configuration(guild_id=2))
+
 
 # main()
 

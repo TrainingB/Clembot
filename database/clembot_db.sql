@@ -6,10 +6,19 @@ create table server_channel_city (
 	city_state text 
 );
 
+create table guild_channel_configuration ( 
+	id integer primary key, 
+	guild_id integer, 
+	channel_id integer, 
+	configuration text 
+);
+
+
+
+
+
 .mode csv
 .separator "|"
-.import NEW_GYM_DATA.csv
-.import FILE TABLE
 .import NEW_GYM_DATA.csv gym_master
 
 UPDATE gym_master 
@@ -26,3 +35,7 @@ set JSON = '{' ||
  ' "gmap_url":"' ||gmap_url || '",' ||
  ' "gym_image":"' ||gym_image || '"}'  
  ;
+ 
+ 
+ 
+ 
