@@ -2079,17 +2079,18 @@ registers a role and a gym
 
 
 def get_gym_info_wrapper(message, gym_code):
-    city_state_list = get_city_list(message)
-    gym_info = gymutil.get_gym_info(gym_code, city_state=city_state_list)
-
-    if gym_info:
-        return gym_info
 
     city_state = read_channel_city(message)
     gym_info_new_format = gymsql.get_gym_by_code(gym_code_key=gym_code, city_state_key=city_state)
 
     if gym_info_new_format:
         return gymsql.convert_into_gym_info(gym_info_new_format)
+
+    city_state_list = get_city_list(message)
+    gym_info = gymutil.get_gym_info(gym_code, city_state=city_state_list)
+
+    if gym_info:
+        return gym_info
 
     return None
 
@@ -3971,13 +3972,13 @@ async def gym(ctx):
 
     if gym_code:
 
-        gym_info = await _get_gym_info_old(ctx.message, gym_code)
-
+        gym_info = await _get_gym_info(ctx.message, gym_code)
         if gym_info:
-            await _update_channel_with_link(ctx.message, gym_info['gmap_link'])
-        else:
-            gym_info = await _get_gym_info(ctx.message, gym_code)
             await _update_channel_with_link(ctx.message, gym_info['gmap_url'])
+        else:
+            gym_info = await _get_gym_info_old(ctx.message, gym_code)
+            if gym_info:
+                await _update_channel_with_link(ctx.message, gym_info['gmap_link'])
 
     else:
         await Clembot.send_message(ctx.message.channel, content="Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
