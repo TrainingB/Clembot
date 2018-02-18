@@ -3529,7 +3529,7 @@ async def _eggtoraid(entered_raid, channel):
                 await Clembot.send_message(channel, _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
                 return
 
-    region_prefix = get_region_prefix(channel.server.id, channel.id)
+    region_prefix = get_region_prefix_by_channel_id(channel.server.id, channel.id)
     if region_prefix:
         prefix = region_prefix + "-"
     else:
@@ -3636,7 +3636,7 @@ async def gymhelp(ctx):
     await Clembot.send_message(ctx.message.channel, _("Beep Beep! We've moved this command to `!beep gym`."))
 
 
-def get_region_prefix(server_id, channel_id):
+def get_region_prefix_by_channel_id(server_id, channel_id):
     configuration = gymsql.read_guild_configuration(guild_id=server_id)
 
     if configuration:
