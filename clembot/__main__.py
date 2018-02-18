@@ -3529,7 +3529,7 @@ async def _eggtoraid(entered_raid, channel):
                 await Clembot.send_message(channel, _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
                 return
 
-    region_prefix = get_region_prefix_by_channel_id(channel.server.id, channel.id)
+    region_prefix = get_region_prefix_by_channel_id(server_id=channel.server.id, channel_id=reportcitychannel.id)
     if region_prefix:
         prefix = region_prefix + "-"
     else:
