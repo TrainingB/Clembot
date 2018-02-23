@@ -40,15 +40,15 @@ def disconnect():
     print("disconnect() called")
     connection.close()
 
-def read_server_city(server_id):
+def read_guild_city(guild_id):
     try:
-        print("read_server_city({server_id})".format(server_id=server_id))
+        print("read_guild_city({guild_id})".format(guild_id=guild_id))
 
         global cursor
         if cursor == None:
             connect()
 
-        cursor.execute("select city_state from server_channel_city where server_id = {server_id} and channel_id is null".format(server_id=server_id))
+        cursor.execute("select city_state from guild_channel_city where guild_id = {guild_id} and channel_id is null".format(guild_id=guild_id))
 
         all_rows = cursor.fetchall()
 
@@ -61,15 +61,15 @@ def read_server_city(server_id):
 
     return None
 
-def read_channel_city(server_id, channel_id):
+def read_channel_city(guild_id, channel_id):
     try:
-        print("read_channel_city({server_id}, {channel_id})".format(server_id=server_id, channel_id=channel_id))
+        print("read_channel_city({guild_id}, {channel_id})".format(guild_id=guild_id, channel_id=channel_id))
 
         global cursor
         if cursor == None:
             connect()
 
-        cursor.execute("select city_state from server_channel_city where server_id = {server_id} and channel_id = {channel_id}".format(server_id=server_id, channel_id=channel_id))
+        cursor.execute("select city_state from guild_channel_city where guild_id = {guild_id} and channel_id = {channel_id}".format(guild_id=guild_id, channel_id=channel_id))
 
         all_rows = cursor.fetchall()
 
@@ -96,25 +96,25 @@ def read_channel_city(server_id, channel_id):
 
 
 
-#--SQL-- insert into server_channel_city (server_id, channel_id, city_state) select server_id, channel_id, city_state from channel_city;
+#--SQL-- insert into guild_channel_city (guild_id, channel_id, city_state) select guild_id, channel_id, city_state from channel_city;
 
 
-def save_server_city(server_id, city_state):
+def save_guild_city(guild_id, city_state):
 
     try:
-        print("save_server_city({server_id}, {city_state})".format(server_id=server_id,city_state=city_state))
+        print("save_guild_city({guild_id}, {city_state})".format(guild_id=guild_id,city_state=city_state))
 
         global cursor, connection
         if cursor == None:
             connect()
 
         # try updating first
-        cursor.execute("update server_channel_city set city_state = '{city_state}' where server_id = {server_id} and channel_id is null"
-                     .format(server_id=server_id,city_state=city_state))
+        cursor.execute("update guild_channel_city set city_state = '{city_state}' where guild_id = {guild_id} and channel_id is null"
+                     .format(guild_id=guild_id,city_state=city_state))
         # otherwise insert the new row
-        cursor.execute("insert into server_channel_city (server_id, city_state ) "
-                     "SELECT {server_id}, '{city_state}'  where (select Changes() = 0)"
-                     .format(server_id=server_id,city_state=city_state))
+        cursor.execute("insert into guild_channel_city (guild_id, city_state ) "
+                     "SELECT {guild_id}, '{city_state}'  where (select Changes() = 0)"
+                     .format(guild_id=guild_id,city_state=city_state))
 
         connection.commit()
         return city_state
@@ -124,22 +124,22 @@ def save_server_city(server_id, city_state):
     return None
 
 
-def save_channel_city(server_id, channel_id, city_state):
+def save_channel_city(guild_id, channel_id, city_state):
 
     try:
-        print("save_channel_city({server_id}, {channel_id}, {city_state})".format(server_id=server_id,channel_id=channel_id,city_state=city_state))
+        print("save_channel_city({guild_id}, {channel_id}, {city_state})".format(guild_id=guild_id,channel_id=channel_id,city_state=city_state))
 
         global cursor, connection
         if cursor == None:
             connect()
 
         # try updating first
-        cursor.execute("update server_channel_city set city_state = '{city_state}' where server_id = {server_id} and channel_id = {channel_id}"
-                     .format(server_id=server_id,channel_id=channel_id,city_state=city_state))
+        cursor.execute("update guild_channel_city set city_state = '{city_state}' where guild_id = {guild_id} and channel_id = {channel_id}"
+                     .format(guild_id=guild_id,channel_id=channel_id,city_state=city_state))
         # otherwise insert the new row
-        cursor.execute("insert into server_channel_city (server_id, channel_id , city_state ) "
-                     "SELECT {server_id}, {channel_id}, '{city_state}'  where (select Changes() = 0)"
-                     .format(server_id=server_id,channel_id=channel_id,city_state=city_state))
+        cursor.execute("insert into guild_channel_city (guild_id, channel_id , city_state ) "
+                     "SELECT {guild_id}, {channel_id}, '{city_state}'  where (select Changes() = 0)"
+                     .format(guild_id=guild_id,channel_id=channel_id,city_state=city_state))
 
         connection.commit()
         return city_state
@@ -183,16 +183,16 @@ def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
 
 def get_gym_by_code(city_state_key, gym_code_key) -> []:
     try:
-        print("get_gym_list_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
+        print("get_gym_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
 
         global cursor
         if cursor == None:
             connect()
 
-        statement = "select json from gym_master where city_state_key = '{city_state_key}' and gym_code_key like '{gym_code_key}%' order by gym_code_key ".format(city_state_key=city_state_key, gym_code_key=gym_code_key)
+        statement = "select json from gym_master where city_state_key = ? and gym_code_key = ? "
 
         # print(statement)
-        cursor.execute(statement)
+        cursor.execute(statement, (city_state_key,gym_code_key,))
 
         all_rows = cursor.fetchall()
 
@@ -218,10 +218,10 @@ def update_gym(gym_code_key, field_name, field_value):
         if cursor == None:
             connect()
 
-        statement = "update gym_master set {field_name} = '{field_value}' where gym_code_key = '{gym_code_key}' ".format(gym_code_key=gym_code_key, field_name=field_name, field_value=field_value)
+        statement = "update gym_master set {field_name} = ? where gym_code_key = ? ".format(field_name=field_name)
         # print(statement)
 
-        cursor.execute(statement)
+        cursor.execute(statement, (field_value,gym_code_key,))
         connection.commit()
 
         if field_name == 'GYM_CODE_KEY':
@@ -361,10 +361,15 @@ def save_guild_configuration(guild_id, configuration, channel_id=None ) -> {}:
     return None
 
 def main():
+
+    gyms_lookup_test()
+
+def gyms_test():
     set_db_name(SQLITE_DB)
     print(get_gym_list_by_code('NORTHHILLSCA', 'BIJI'))
     print(convert_into_gym_info(get_gym_list_by_code('NORTHHILLSCA', 'BIJI')[0]))
 
+def configuration_test():
     configuration = {}
     configuration['region_prefix'] = "SO"
 
@@ -380,6 +385,20 @@ def main():
     print(read_guild_configuration(guild_id=1))
 
     print(read_guild_configuration(guild_id=2))
+
+
+def print_list(dict_list):
+    for d in dict_list:
+        print(d)
+
+
+def gyms_lookup_test():
+
+    set_db_name(SQLITE_DB)
+    print_list(get_gym_list_by_code('SPRINGFIELDIL', 'RIPA'))
+
+    print(get_gym_by_code('SPRINGFIELDIL', 'RIPA'))
+
 
 
 # main()

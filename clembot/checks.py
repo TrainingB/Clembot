@@ -33,122 +33,122 @@ def role_or_permissions(ctx, check, **perms):
     role = discord.utils.find(check, author.roles)
     return role is not None
 
-def serverowner_or_permissions(**perms):
+def guildowner_or_permissions(**perms):
     def predicate(ctx):
-        owner = ctx.message.server.owner
+        owner = ctx.message.guild.owner
         if ctx.message.author.id == owner.id:
             return True
 
         return check_permissions(ctx,perms)
     return commands.check(predicate)
 
-def serverowner():
-    return serverowner_or_permissions()
+def guildowner():
+    return guildowner_or_permissions()
 
 def check_wantchannel(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
             return False
     channel = ctx.message.channel
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        want_channels = ctx.bot.server_dict[server.id]['want_channel_list']
+        want_channels = ctx.bot.guild_dict[guild.id]['want_channel_list']
     except KeyError:
         return False
     if channel.id in want_channels:
         return True
 
 def check_citychannel(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
             return False
     channel = ctx.message.channel.name
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        city_channels = ctx.bot.server_dict[server.id]['city_channels'].keys()
+        city_channels = ctx.bot.guild_dict[guild.id]['city_channels'].keys()
     except KeyError:
         return False
     if channel in city_channels:
         return True
 
 def check_raidchannel(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
     channel = ctx.message.channel
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        raid_channels = ctx.bot.server_dict[server.id]['raidchannel_dict'].keys()
+        raid_channels = ctx.bot.guild_dict[guild.id]['raidchannel_dict'].keys()
     except KeyError:
         return False
     if channel.id in raid_channels:
         return True
 
 def check_eggchannel(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
     channel = ctx.message.channel
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        type = ctx.bot.server_dict[server.id]['raidchannel_dict'][channel.id]['type']
+        type = ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['type']
     except KeyError:
         return False
     if type == 'egg':
         return True
 
 def check_exraidchannel(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
     channel = ctx.message.channel
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        level = ctx.bot.server_dict[server.id]['raidchannel_dict'][channel.id]['egglevel']
-        type = ctx.bot.server_dict[server.id]['raidchannel_dict'][channel.id]['type']
+        level = ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['egglevel']
+        type = ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['type']
     except KeyError:
         return False
     if level == 'EX' or type == 'exraid':
         return True
 
 def check_raidactive(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
     channel = ctx.message.channel
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        return ctx.bot.server_dict[server.id]['raidchannel_dict'][channel.id]['active']
+        return ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['active']
     except KeyError:
         return False
 
 def check_raidset(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        return ctx.bot.server_dict[server.id]['raidset']
+        return ctx.bot.guild_dict[guild.id]['raidset']
     except KeyError:
         return False
 
 def check_wildset(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        return ctx.bot.server_dict[server.id]['wildset']
+        return ctx.bot.guild_dict[guild.id]['wildset']
     except KeyError:
         return False
 
 def check_wantset(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        return ctx.bot.server_dict[server.id]['wantset']
+        return ctx.bot.guild_dict[guild.id]['wantset']
     except KeyError:
         return False
 
 def check_teamset(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        return ctx.bot.server_dict[server.id]['team']
+        return ctx.bot.guild_dict[guild.id]['team']
     except KeyError:
         return False
 
@@ -264,12 +264,12 @@ def raidpartychannel():
     return commands.check(predicate)
 
 def check_raidpartychannel(ctx):
-    if ctx.message.server is None:
+    if ctx.message.guild is None:
         return False
     channel = ctx.message.channel
-    server = ctx.message.server
+    guild = ctx.message.guild
     try:
-        type = ctx.bot.server_dict[server.id]['raidchannel_dict'][channel.id]['type']
+        type = ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['type']
     except KeyError:
         return False
     if type == 'raidparty':
