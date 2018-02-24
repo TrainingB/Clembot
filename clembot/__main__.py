@@ -1761,61 +1761,63 @@ async def cmd_uptime(ctx):
 
 @Clembot.group(pass_context=True, hidden=True)
 async def about(ctx):
-    if ctx.invoked_subcommand is not None:
-        return
-
-    if len(ctx.message.mentions) > 0:
-        author = ctx.message.mentions[0]
-        if author:
-            await _about_user(author, ctx.message.channel)
+    try:
+        if ctx.invoked_subcommand is not None:
             return
 
-    """Shows info about Clembot"""
-    original_author_repo = "https://github.com/FoglyOgly"
-    original_author_name = "FoglyOgly"
+        if len(ctx.message.mentions) > 0:
+            author = ctx.message.mentions[0]
+            if author:
+                await _about_user(author, ctx.message.channel)
+                return
 
-    author_repo = "https://github.com/TrainingB"
-    author_name = "TrainingB"
-    bot_repo = author_repo + "/Clembot"
-    guild_url = "https://discord.gg/{invite}".format(invite=INVITE_CODE)
-    owner = Clembot.owner
-    channel = ctx.message.channel
-    uptime_str = await _uptime(Clembot)
-    yourguild = ctx.message.guild.name
-    yourmembers = len(ctx.message.guild.members)
-    embed_colour = ctx.message.guild.me.colour or discord.Colour.lighter_grey()
+        """Shows info about Clembot"""
+        original_author_repo = "https://github.com/FoglyOgly"
+        original_author_name = "FoglyOgly"
 
-    about = ("I'm Clembot! A Pokemon Go helper bot for Discord!\n\n"
-             "[{author_name}]({author_repo}) has been working on me and I am evovled from [{original_author_name}]({original_author_repo})'s famous bot Meowth!\n\n"
-             "[Join our guild]({guild_invite}) if you have any questions or feedback.\n\n"
-             "".format(original_author_name=original_author_name, original_author_repo=original_author_repo, author_name=author_name, author_repo=author_repo, guild_invite=guild_url))
+        author_repo = "https://github.com/TrainingB"
+        author_name = "TrainingB"
+        bot_repo = author_repo + "/Clembot"
+        guild_url = "https://discord.gg/{invite}".format(invite=INVITE_CODE)
+        owner = Clembot.owner
+        channel = ctx.message.channel
+        uptime_str = await _uptime(Clembot)
+        yourguild = ctx.message.guild.name
+        yourmembers = len(ctx.message.guild.members)
+        embed_colour = ctx.message.guild.me.colour or discord.Colour.lighter_grey()
 
-    member_count = 0
-    guild_count = 0
-    for guild in Clembot.guilds:
-        guild_count += 1
-        member_count += len(guild.members)
+        about = ("I'm Clembot! A Pokemon Go helper bot for Discord!\n\n"
+                 "[{author_name}]({author_repo}) has been working on me and I am evovled from [{original_author_name}]({original_author_repo})'s famous bot Meowth!\n\n"
+                 "[Join our guild]({guild_invite}) if you have any questions or feedback.\n\n"
+                 "".format(original_author_name=original_author_name, original_author_repo=original_author_repo, author_name=author_name, author_repo=author_repo, guild_invite=guild_url))
 
-    embed = discord.Embed(title="For support, Click here to contact Clembot's discord guild.", url="https://discord.gg/" + INVITE_CODE, colour=embed_colour, icon_url=Clembot.user.avatar_url)
-    embed.add_field(name="About Clembot", value=about, inline=False)
-    embed.add_field(name="Owner", value=owner)
-    if guild_count > 1:
-        embed.add_field(name="Servers", value=guild_count)
-        embed.add_field(name="Members", value=member_count)
-    embed.add_field(name="Your Server", value=yourguild)
-    embed.add_field(name="Your Members", value=yourmembers)
-    embed.add_field(name="Uptime", value=uptime_str)
-    embed.set_footer(text="This message will be auto-deleted after 40 seconds".format(invite=INVITE_CODE))
+        member_count = 0
+        guild_count = 0
+        for guild in Clembot.guilds:
+            guild_count += 1
+            member_count += len(guild.members)
 
-    try:
-        about_msg = await channel.send( embed=embed)
-    except discord.HTTPException:
-        about_msg = await channel.send( "I need the `Embed links` permission to send this")
+        embed = discord.Embed(title="For support, Click here to contact Clembot's discord guild.", url="https://discord.gg/" + INVITE_CODE, colour=embed_colour, icon_url=Clembot.user.avatar_url)
+        embed.add_field(name="About Clembot", value=about, inline=False)
+        embed.add_field(name="Owner", value=owner)
+        if guild_count > 1:
+            embed.add_field(name="Servers", value=guild_count)
+            embed.add_field(name="Members", value=member_count)
+        embed.add_field(name="Your Server", value=yourguild)
+        embed.add_field(name="Your Members", value=yourmembers)
+        embed.add_field(name="Uptime", value=uptime_str)
+        embed.set_footer(text="This message will be auto-deleted after 40 seconds".format(invite=INVITE_CODE))
 
-    await asyncio.sleep(40)
-    await Clembot.delete_message(about_msg)
-    await Clembot.delete_message(ctx.message)
+        try:
+            about_msg = await channel.send( embed=embed)
+        except discord.HTTPException:
+            about_msg = await channel.send( "I need the `Embed links` permission to send this")
 
+        await asyncio.sleep(40)
+        await Clembot.delete_message(about_msg)
+        await Clembot.delete_message(ctx.message)
+    except Exception as error:
+        print(error)
 
 @about.command(pass_context=True)
 async def me(ctx):
