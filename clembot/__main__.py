@@ -516,7 +516,7 @@ async def ask(message, destination, user_id, *, react_list=['✅', '❎']):
     def check(reaction, user):
         return (user.id == user_id) and (reaction.message == msg) and (reaction in react_list)
     try:
-        reaction, user = await Meowth.wait_for('reaction_add', check=check, timeout=60)
+        reaction, user = await Clembot.wait_for('reaction_add', check=check, timeout=60)
         return reaction.emoji
     except asyncio.TimeoutError:
         return
@@ -1255,7 +1255,7 @@ async def announce(ctx, *, announce=None):
 @Clembot.command(pass_context=True, hidden=True)
 @commands.has_permissions(manage_guild=True)
 async def configure(ctx):
-    'Meowth Configuration\n\n    Usage: !configure\n    Meowth will DM you instructions on how to configure Meowth for your server.\n    If it is not your first time configuring, you can choose a section to jump to.'
+    'Clembot Configuration\n\n    Usage: !configure\n    Clembot will DM you instructions on how to configure Clembot for your server.\n    If it is not your first time configuring, you can choose a section to jump to.'
     guild = ctx.message.guild
     owner = ctx.message.author
     guild_dict_check = {
@@ -1293,18 +1293,18 @@ async def configure(ctx):
             pass
     except KeyError:
         guild_dict_temp['want_channel_list'] = []
-    configmessage = "That's Right! Welcome to the configuration for Meowth the Pokemon Go Helper Bot! I will be guiding you through some steps to get me setup on your server.\n\n**Role Setup**\nBefore you begin the configuration, please make sure my role is moved to the top end of the server role hierarchy. It can be under admins and mods, but must be above team ands general roles. [Here is an example](http://i.imgur.com/c5eaX1u.png)"
+    configmessage = "That's Right! Welcome to the configuration for Clembot the Pokemon Go Helper Bot! I will be guiding you through some steps to get me setup on your server.\n\n**Role Setup**\nBefore you begin the configuration, please make sure my role is moved to the top end of the server role hierarchy. It can be under admins and mods, but must be above team ands general roles. [Here is an example](http://i.imgur.com/c5eaX1u.png)"
     if firstconfig == False:
         if guild_dict_temp['other']:
             configreplylist = ['all', 'team', 'welcome', 'main', 'regions', 'raid', 'wild', 'want', 'timezone', 'allmain']
             configmessage += "\n\n**Welcome Back**\nThis isn't your first time configuring. You can either reconfigure everything by replying with **all** or reply with one of the following to configure that specific setting:\n\n**all** - To redo configuration\n**team** - For Team Assignment configuration\n**welcome** - For Welcome Message configuration\n**main** - For main command configuration\n**raid** - for raid command configuration\n**wild** - for wild command configuration\n**regions** - For configuration of reporting channels or map links\n**want** - for want/unwant command configuration and channel\n**timezone** - For timezone configuration\n**allmain** - For main, regions, raid, wild, want, timezone configuration"
             configmessage += '\n\nReply with **cancel** at any time throughout the questions to cancel the configure process.'
-            await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=configmessage).set_author(name=_('Meowth Configuration - {0}').format(guild), icon_url=Clembot.user.avatar_url))
+            await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=configmessage).set_author(name=_('Clembot Configuration - {0}').format(guild), icon_url=Clembot.user.avatar_url))
         else:
             configreplylist = ['all', 'team', 'welcome', 'main', 'allmain']
             configmessage += "\n\n**Welcome Back**\nThis isn't your first time configuring. You can either reconfigure everything by replying with **all** or reply with one of the following to configure that specific setting:\n\n**all** - To redo configuration\n**team** - For Team Assignment configuration\n**welcome** - For Welcome Message configuration\n**main** - For main command configuration\n**allmain** - For main, regions, raid, wild, want, timezone configuration"
             configmessage += '\n\nReply with **cancel** at any time throughout the questions to cancel the configure process.'
-            await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=configmessage).set_author(name=_('Meowth Configuration - {0}').format(guild), icon_url=Clembot.user.avatar_url))
+            await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=configmessage).set_author(name=_('Clembot Configuration - {0}').format(guild), icon_url=Clembot.user.avatar_url))
         while True:
             def check(m):
                 return m.guild == None and m.author == owner
@@ -1320,7 +1320,7 @@ async def configure(ctx):
                 await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="I'm sorry I don't understand. Please reply with one of the choices above."))
                 continue
     elif firstconfig == True:
-        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=configmessage).set_author(name=_('Meowth Configuration - {0}').format(guild), icon_url=Clembot.user.avatar_url))
+        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=configmessage).set_author(name=_('Clembot Configuration - {0}').format(guild), icon_url=Clembot.user.avatar_url))
     if (configcancel == False) and ((firstconfig == True) or (configgoto == 'all') or (configgoto == 'team')):
         await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="Team assignment allows users to assign their Pokemon Go team role using the **!team** command. If you have a bot that handles this already, you may want to disable this feature.\n\nIf you are to use this feature, ensure existing team roles are as follows: mystic, valor, instinct. These must be all lowercase letters. If they don't exist yet, I'll make some for you instead.\n\nRespond with: **N** to disable, **Y** to enable:").set_author(name='Team Assignments', icon_url=Clembot.user.avatar_url))
         while True:
@@ -3478,11 +3478,15 @@ async def _raidparty(message):
         prefix = ""
     raid_channel_name = prefix + "raid-party-" + sanitize_channel_name(raid_details)
     raid_channel_overwrites = message.channel.overwrites
-    clembot_overwrite = (Clembot.user, discord.PermissionOverwrite(send_messages=True))
+    # clembot_overwrite = (Clembot.user, discord.PermissionOverwrite(send_messages=True))
+    #
+    # raid_channel_overwrites.update(clembot_overwrite)
 
-    raid_channel_overwrites.update(clembot_overwrite)
-
-    await message.guild.create_text_channel(raid_channel_name, overwrites=raid_channel_overwrites , category=None)
+    try:
+        raid_channel_category = get_category(message.channel, None)
+        raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(raid_channel_overwrites) , category=raid_channel_category)
+    except Exception as error:
+        print(error)
 
     raidreport = await message.channel.send( content=_("Beep Beep! A raid party is being organized by {member}! You can coordinate in {raid_channel}").format(member=message.author.mention, raid_channel=raid_channel.mention))
     await asyncio.sleep(1)  # Wait for the channel to be created.
@@ -4866,35 +4870,36 @@ async def ask_confirmation(message, rusure_message, yes_message, no_message, tim
     # reaction_list = ['❔', '✅', '❎']
 
     rusure = await channel.send( _("Beep Beep! {message}".format(message=rusure_message)))
-    await Clembot.add_reaction(rusure, "✅")  # checkmark
-    await Clembot.add_reaction(rusure, "❎")  # cross
+    await rusure.add_reaction( "✅")  # checkmark
+    await rusure.add_reaction( "❎")  # cross
 
     def check(react, user):
         if user.id != author.id:
             return False
         return True
 
-    res = await Clembot.wait_for_reaction(reaction_list, message=rusure, check=check, timeout=60)
+    # res = await Clembot.wait_for_reaction(reaction_list, message=rusure, check=check, timeout=60)
 
-    if res is not None:
-        if res.reaction.emoji == "❎":
-            await Clembot.delete_message(rusure)
-            confirmation = await channel.send( _("Beep Beep! {message}".format(message=no_message)))
-            await asyncio.sleep(3)
-            await Clembot.delete_message(confirmation)
-            return False
-        elif res.reaction.emoji == "✅":
-            await Clembot.delete_message(rusure)
-            confirmation = await channel.send( _("Beep Beep! {message}".format(message=yes_message)))
-            await asyncio.sleep(3)
-            await Clembot.delete_message(confirmation)
-            return True
-    else:
-        await Clembot.delete_message(rusure)
-        confirmation = await channel.send( _("Beep Beep! {message}".format(message=timed_out_message)))
+    reaction, user = await Clembot.wait_for('reaction_add', check=check, timeout=60)
+
+    if reaction.emoji == "❎":
+        await rusure.delete()
+        confirmation = await channel.send( _("Beep Beep! {message}".format(message=no_message)))
         await asyncio.sleep(3)
-        await Clembot.delete_message(confirmation)
+        await confirmation.delete()
         return False
+    elif reaction.emoji == "✅":
+        await rusure.delete()
+        confirmation = await channel.send( _("Beep Beep! {message}".format(message=yes_message)))
+        await asyncio.sleep(3)
+        await confirmation.delete()
+        return True
+
+    await Clembot.delete_message(rusure)
+    confirmation = await channel.send( _("Beep Beep! {message}".format(message=timed_out_message)))
+    await asyncio.sleep(3)
+    await confirmation.delete()
+    return False
 
 
 @Clembot.command(pass_context=True, hidden=True)

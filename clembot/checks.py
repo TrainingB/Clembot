@@ -3,7 +3,7 @@ import discord.utils
 import errors
 
 def is_owner_check(ctx):
-    author = str(ctx.message.author.id)
+    author = ctx.author.id
     owner = ctx.bot.config['master']
     return author == owner
 
@@ -11,32 +11,27 @@ def is_owner():
     return commands.check(is_owner_check)
 
 def check_permissions(ctx, perms):
-    #if is_owner_check(ctx):
-    #    return True
-    if not perms:
+    if (not perms):
         return False
-
-    ch = ctx.message.channel
-    author = ctx.message.author
+    ch = ctx.channel
+    author = ctx.author
     resolved = ch.permissions_for(author)
-    return all(getattr(resolved, name, None) == value for name, value in perms.items())
+    return all((getattr(resolved, name, None) == value for (name, value) in perms.items()))
 
 def role_or_permissions(ctx, check, **perms):
     if check_permissions(ctx, perms):
         return True
-
-    ch = ctx.message.channel
-    author = ctx.message.author
+    ch = ctx.channel
+    author = ctx.author
     if ch.is_private:
-        return False # can't have roles in PMs
-
+        return False
     role = discord.utils.find(check, author.roles)
     return role is not None
 
 def guildowner_or_permissions(**perms):
     def predicate(ctx):
-        owner = ctx.message.guild.owner
-        if ctx.message.author.id == owner.id:
+        owner = ctx.guild.owner
+        if ctx.author.id == owner.id:
             return True
 
         return check_permissions(ctx,perms)
@@ -46,10 +41,10 @@ def guildowner():
     return guildowner_or_permissions()
 
 def check_wantchannel(ctx):
-    if ctx.message.guild is None:
-            return False
-    channel = ctx.message.channel
-    guild = ctx.message.guild
+    if ctx.guild is None:
+        return False
+    channel = ctx.channel
+    guild = ctx.guild
     try:
         want_channels = ctx.bot.guild_dict[guild.id]['want_channel_list']
     except KeyError:
@@ -58,10 +53,10 @@ def check_wantchannel(ctx):
         return True
 
 def check_citychannel(ctx):
-    if ctx.message.guild is None:
-            return False
-    channel = ctx.message.channel.name
-    guild = ctx.message.guild
+    if ctx.guild is None:
+        return False
+    channel = ctx.channel.name
+    guild = ctx.guild
     try:
         city_channels = ctx.bot.guild_dict[guild.id]['city_channels'].keys()
     except KeyError:
@@ -70,10 +65,10 @@ def check_citychannel(ctx):
         return True
 
 def check_raidchannel(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
-    channel = ctx.message.channel
-    guild = ctx.message.guild
+    channel = ctx.channel
+    guild = ctx.guild
     try:
         raid_channels = ctx.bot.guild_dict[guild.id]['raidchannel_dict'].keys()
     except KeyError:
@@ -82,10 +77,10 @@ def check_raidchannel(ctx):
         return True
 
 def check_eggchannel(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
-    channel = ctx.message.channel
-    guild = ctx.message.guild
+    channel = ctx.channel
+    guild = ctx.guild
     try:
         type = ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['type']
     except KeyError:
@@ -94,59 +89,59 @@ def check_eggchannel(ctx):
         return True
 
 def check_exraidchannel(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
-    channel = ctx.message.channel
-    guild = ctx.message.guild
+    channel = ctx.channel
+    guild = ctx.guild
     try:
         level = ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['egglevel']
         type = ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['type']
     except KeyError:
         return False
-    if level == 'EX' or type == 'exraid':
+    if (level == 'EX') or (type == 'exraid'):
         return True
 
 def check_raidactive(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
-    channel = ctx.message.channel
-    guild = ctx.message.guild
+    channel = ctx.channel
+    guild = ctx.guild
     try:
         return ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['active']
     except KeyError:
         return False
 
 def check_raidset(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
-    guild = ctx.message.guild
+    guild = ctx.guild
     try:
         return ctx.bot.guild_dict[guild.id]['raidset']
     except KeyError:
         return False
 
 def check_wildset(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
-    guild = ctx.message.guild
+    guild = ctx.guild
     try:
         return ctx.bot.guild_dict[guild.id]['wildset']
     except KeyError:
         return False
 
 def check_wantset(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
-    guild = ctx.message.guild
+    guild = ctx.guild
     try:
         return ctx.bot.guild_dict[guild.id]['wantset']
     except KeyError:
         return False
 
 def check_teamset(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
-    guild = ctx.message.guild
+    guild = ctx.guild
     try:
         return ctx.bot.guild_dict[guild.id]['team']
     except KeyError:
@@ -212,7 +207,7 @@ def exraidchannel():
 
 def nonraidchannel():
     def predicate(ctx):
-        if not check_raidchannel(ctx):
+        if (not check_raidchannel(ctx)):
             return True
         raise errors.NonRaidChannelCheckFail()
     return commands.check(predicate)
@@ -264,10 +259,10 @@ def raidpartychannel():
     return commands.check(predicate)
 
 def check_raidpartychannel(ctx):
-    if ctx.message.guild is None:
+    if ctx.guild is None:
         return False
     channel = ctx.message.channel
-    guild = ctx.message.guild
+    guild = ctx.guild
     try:
         type = ctx.bot.guild_dict[guild.id]['raidchannel_dict'][channel.id]['type']
     except KeyError:
