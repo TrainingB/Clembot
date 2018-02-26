@@ -1814,8 +1814,8 @@ async def about(ctx):
             about_msg = await channel.send( "I need the `Embed links` permission to send this")
 
         await asyncio.sleep(40)
-        await Clembot.delete_message(about_msg)
-        await Clembot.delete_message(ctx.message)
+        await about_msg.delete()
+        await ctx.message.delete()
     except Exception as error:
         print(error)
 
