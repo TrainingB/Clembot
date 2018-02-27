@@ -663,7 +663,7 @@ To reactivate the channel, use **!timerset** to set the timer again."""))
                     try:
                         report_channel = discord.utils.get(channel.guild.channels, name=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['reportcity'])
                         reportmsg = await report_channel.get_message( guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['raidreport'])
-                        await Clembot.delete_message(reportmsg)
+                        await reportmsg.delete()
                     except:
                         pass
                 else:
@@ -813,21 +813,25 @@ async def channel_cleanup(loop=True):
 
                 try:
                     # delete channel if it still exists in discord
-                    await Clembot.delete_channel(c)
+                    await c.delete()
                     logger.info("Channel_Cleanup - Channel Deleted - " + c.name)
-                except:
+                except Exception as error:
+                    await _print(Clembot.owner, "Channel_Cleanup - Channel Deletion Failure - " + c.guild.name + " "  + c.name + " >> " + error)
                     logger.info("Channel_Cleanup - Channel Deletion Failure - " + c.name)
+
                     pass
 
             # for every channel listed to have the discord channel deleted
             for c in discord_channel_delete:
                 try:
                     # delete channel from discord
-                    await Clembot.delete_channel(c)
+                    await c.delete()
                     logger.info("Channel_Cleanup - Channel Deleted - " + c.name)
                 except:
                     logger.info("Channel_Cleanup - Channel Deletion Failure - " + c.name)
+                    await _print(Clembot.owner, "Channel_Cleanup - Channel Deletion Failure - " + c.guild.name + " " + c.name + " >> " + error)
                     pass
+
 
         # save guild_dict changes after cleanup
         logger.info("Channel_Cleanup - SAVING CHANGES")
@@ -1027,7 +1031,7 @@ async def _save():
 @checks.is_owner()
 async def reload_json(ctx):
     load_config()
-    await Clembot.add_reaction(ctx.message, '?')
+    await ctx.message.add_reaction('?')
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -1170,10 +1174,10 @@ async def announce(ctx, *, announce=None):
     if announce is None:
         announcewait = await channel.send( "I'll wait for your announcement!")
         announcemsg = await Clembot.wait_for('message', timeout=180)
-        await Clembot.delete_message(announcewait)
+        await announcewait.delete()
         if announcemsg is not None:
             announce = announcemsg.content
-            await Clembot.delete_message(announcemsg)
+            await announcemsg.delete()
         else:
             confirmation = await channel.send( "Beep Beep! You took too long to send me your announcement! Retry when you're ready.")
     embeddraft = discord.Embed(colour=guild.me.colour, description=announce)
@@ -1197,13 +1201,13 @@ async def announce(ctx, *, announce=None):
     rusure = await channel.send( _("That's what you sent, does it look good? React with {}❔ to send to another channel, ✅ to send it to this channel, or ❎ to cancel").format(owner_msg_add))
     for r in reaction_list:
         await asyncio.sleep(0.25)
-        await Clembot.add_reaction(rusure, r)
+        await rusure.add_reaction(r)
     res = await Clembot.wait_for_reaction(reaction_list, message=rusure, check=check, timeout=60)
     if res is not None:
-        await Clembot.delete_message(rusure)
+        await rusure .delete()
         if res.reaction.emoji == "❎":
             confirmation = await channel.send( _("Announcement Cancelled."))
-            await Clembot.delete_message(draft)
+            await draft .delete()
         elif res.reaction.emoji == "✅":
             confirmation = await channel.send( _("Announcement Sent."))
         elif res.reaction.emoji == "❔":
@@ -1220,9 +1224,9 @@ async def announce(ctx, *, announce=None):
                 confirmation = await channel.send( "Beep Beep! That channel doesn't exist! Retry when you're ready.")
             else:
                 confirmation = await channel.send( "Beep Beep! You took too long to send me your announcement! Retry when you're ready.")
-            await Clembot.delete_message(channelwait)
-            await Clembot.delete_message(channelmsg)
-            await Clembot.delete_message(draft)
+            await channelwait .delete()
+            await channelmsg .delete()
+            await draft .delete()
         elif res.reaction.emoji == "🌎" and checks.is_owner_check(ctx):
             failed = 0
             sent = 0
@@ -1241,14 +1245,14 @@ async def announce(ctx, *, announce=None):
                 count += 1
             confirmation = await channel.send( "Announcement sent to {} guild owners: {} successful, {} failed.".format(count, sent, failed))
         await asyncio.sleep(10)
-        await Clembot.delete_message(confirmation)
+        await confirmation.delete()
     else:
-        await Clembot.delete_message(rusure)
+        await rusure.delete()
         confirmation = await channel.send( _("Announcement Timed Out."))
         await asyncio.sleep(10)
-        await Clembot.delete_message(confirmation)
+        await confirmation.delete()
     await asyncio.sleep(30)
-    await Clembot.delete_message(message)
+    await message.delete()
 
 
 
@@ -1853,7 +1857,7 @@ async def analyze(ctx, *, count: str = None):
             count = int(count)
             limit = count
     channel = ctx.message.channel
-    await Clembot.delete_message(ctx.message)
+    await ctx.message .delete()
 
     map_users = {}
     try:
@@ -1949,6 +1953,16 @@ async def sprite(ctx):
     want_embed.set_thumbnail(url=want_img_url)
     await channel.send( embed=want_embed)
 
+@Clembot.command()
+@commands.has_permissions(manage_guild=True)
+async def cleanroles(ctx):
+    cleancount = 0
+    for role in ctx.guild.roles:
+        if role.members == [] and role.name in pkmn_info['raid_list']:
+            await role.delete()
+            cleancount += 1
+    await ctx.message.channel.send("Removed {cleancount} empty roles".format(cleancount=cleancount))
+
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.wantset()
@@ -2026,11 +2040,11 @@ async def unwant(ctx):
             # If user is not already wanting the Pokemon,
             # print a less noisy message
             if role not in ctx.message.author.roles:
-                await Clembot.add_reaction(ctx.message, '✅')
+                await ctx.message.add_reaction('✅')
             else:
                 await Clembot.remove_roles(message.author, role)
                 unwant_number = pkmn_info['pokemon_list'].index(entered_unwant) + 1
-                await Clembot.add_reaction(message, '✅')
+                await message.add_reaction('✅')
 
 
 @unwant.command(pass_context=True, hidden=True)
@@ -2409,10 +2423,10 @@ async def _unsubscribe(ctx):
         return
 
     if role not in ctx.message.author.roles:
-        await Clembot.add_reaction(ctx.message, '✅')
+        await ctx.message.add_reaction( '✅')
     else:
         await Clembot.remove_roles(message.author, role)
-        await Clembot.add_reaction(message, '✅')
+        await message.add_reaction('✅')
 
 
 # ---------------------------- Raid Notification Module --------------------------------------
@@ -2493,7 +2507,7 @@ async def _contest(message):
         embed.add_field(name="**Pokemon**", value=_(" {member}").format(member=pokemon), inline=True)
         embed.add_field(name="**Server:**", value=_("{member}").format(member=message.guild.name), inline=True)
         embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
-        await Clembot.owner.send( embed=embed)
+        await Clembot.owner.send(embed=embed)
         if message.author.id != Clembot.owner.id:
             await message.author.send(embed=embed)
 
@@ -2530,7 +2544,7 @@ async def renew(ctx):
                 embed.add_field(name="**Server:**", value=_("{member}").format(member=message.guild.name), inline=True)
                 embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
 
-                await Clembot.delete_message(ctx.message)
+                await ctx.message.delete()
                 await Clembot.owner.send( embed=embed)
                 if message.author.id != Clembot.owner.id:
                     await message.author.send( embed=embed)
@@ -2572,8 +2586,8 @@ async def contestEntry(message, pokemon=None):
 
     if pokemon.lower() == message.content.lower():
         del guild_dict[message.guild.id]['contest_channel'][message.channel.id]
-        await Clembot.add_reaction(message, '✅')
-        await Clembot.add_reaction(message, '🎉')
+        await message.add_reaction( '✅')
+        await message.add_reaction( '🎉')
 
         raid_embed = discord.Embed(title=_("**We have a winner!🎉🎉🎉**"), description="", colour=discord.Colour.dark_gold())
 
@@ -2587,7 +2601,7 @@ async def contestEntry(message, pokemon=None):
         await message.channel.send( content=_("Beep Beep! Congratulations {winner}!").format(winner=message.author.mention))
 
     elif message.content.lower() in pkmn_info['pokemon_list']:
-        await Clembot.add_reaction(message, '🔴')
+        await message.add_reaction('🔴')
     return
 
 
@@ -3305,26 +3319,26 @@ async def process_map_link(message, newloc=None):
 
     reportcitychannel = discord.utils.get(message.channel.guild.channels, name=reportcityid)
 
-    oldraidmsg = await message.channel.get_message( oldraidmsgid)
-
+    oldraidmsg = await message.channel.get_message(oldraidmsgid)
+    oldreportmsg = await reportcitychannel.get_message(oldreportmsgid)
     oldembed = oldraidmsg.embeds[0]
-    newembed = discord.Embed(title=oldembed['title'], url=newloc, colour=message.guild.me.colour)
-    newembed.add_field(name=oldembed['fields'][0]['name'], value=oldembed['fields'][0]['value'], inline=True)
-    newembed.add_field(name=oldembed['fields'][1]['name'], value=oldembed['fields'][1]['value'], inline=True)
-    newembed.set_footer(text=oldembed['footer']['text'], icon_url=oldembed['footer']['icon_url'])
-    newembed.set_thumbnail(url=oldembed['thumbnail']['url'])
+    newembed = discord.Embed(title=oldembed.title, url=newloc, colour=message.guild.me.colour)
+
+    for field in oldembed.fields:
+        newembed.add_field(name=field.name, value=field.value, inline=field.inline)
+    newembed.set_footer(text=oldembed.footer.text, icon_url=oldembed.footer.icon_url)
+    newembed.set_thumbnail(url=oldembed.thumbnail.url)
     try:
-        newraidmsg = await oldraidmsg.edit(new_content=oldraidmsg.content, embed=newembed)
+        await oldraidmsg.edit(new_content=oldraidmsg.content, embed=newembed)
     except:
         pass
     try:
-        oldreportmsg = await reportcitychannel.get_message(oldreportmsgid)
-        newreportmsg = await oldreportmsg.edit(new_content=oldreportmsg.content, embed=newembed)
+        oldreportmsg.edit(new_content=oldreportmsg.content, embed=newembed)
     except:
         pass
 
-    guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['raidmessage'] = newraidmsg.id
-    guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['raidreport'] = newreportmsg.id
+    guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['raidmessage'] = oldraidmsg.id
+    guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['raidreport'] = oldreportmsg.id
     otw_list = []
     trainer_dict = copy.deepcopy(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
     for trainer in trainer_dict.keys():
@@ -3704,7 +3718,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         # Message **!raid assume <pokemon>** to have the channel auto-update into an open raid.
         #
         # When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
-        raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
+
 
         guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
 		'reportcity': message.channel.name,
@@ -3757,7 +3771,7 @@ async def _eggassume(args, raid_channel):
     eggdetails['pokemon'] = entered_raid
     raidrole = discord.utils.get(raid_channel.guild.roles, name=entered_raid)
     if raidrole is None:
-        # raidrole = await Clembot.create_role(guild=raid_channel.guild, name=entered_raid, hoist=False, mentionable=True)
+        raidrole = await Clembot.create_role(guild=raid_channel.guild, name=entered_raid, hoist=False, mentionable=True)
         # await asyncio.sleep(0.5)
         raid_role = "**{pokemon}**".format(pokemon=entered_raid.capitalize())
     else:
@@ -3864,13 +3878,17 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
     #                                                                               location_details=egg_address)
 
     try:
-        raid_message = await raid_message.edit(new_content=raidmsg, embed=raid_embed)
-    except discord.errors.NotFound:
-        pass
+        await raid_message.edit(new_content=raidmsg, embed=raid_embed, content=raidmsg)
+        raid_message_id = raid_message.id
+    except (discord.errors.NotFound, AttributeError):
+        raid_message_id = None
+
     try:
-        egg_report = await egg_report.edit(new_content=raidreportcontent, embed=raid_embed)
-    except discord.errors.NotFound:
-        pass
+        await egg_report.edit(new_content=raidreportcontent, embed=raid_embed, content=raidreportcontent)
+        egg_report_id = egg_report.id
+    except (discord.errors.NotFound, AttributeError):
+        egg_report_id = None
+
 
     guild_dict[channel.guild.id]['raidchannel_dict'][channel.id] = {
         'reportcity': reportcity,
@@ -3878,8 +3896,8 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         'exp': raidexp,
         'manual_timer': manual_timer,
         'active': True,
-        'raidmessage' : raid_message.id,
-        'raidreport' : egg_report.id,
+        'raidmessage' : raid_message_id,
+        'raidreport' : egg_report_id,
         'address': egg_address,
         'type': hatchtype,
         'pokemon': entered_raid,
@@ -4895,7 +4913,7 @@ async def ask_confirmation(message, rusure_message, yes_message, no_message, tim
         await confirmation.delete()
         return True
 
-    await Clembot.delete_message(rusure)
+    await rusure.delete()
     confirmation = await channel.send( _("Beep Beep! {message}".format(message=timed_out_message)))
     await asyncio.sleep(3)
     await confirmation.delete()
@@ -4926,7 +4944,7 @@ async def duplicate(ctx):
                 if t_dict[author.id]['dupereporter']:
                     dupeauthmsg = await channel.send( _("Beep Beep! You've already made a duplicate report for this raid!"))
                     await asyncio.sleep(10)
-                    await Clembot.delete_message(dupeauthmsg)
+                    await dupeauthmsg.delete()
                     return
                 else:
                     t_dict[author.id]['dupereporter'] = True
@@ -4946,9 +4964,9 @@ async def duplicate(ctx):
     if dupecount >= 3:
         rusure = await channel.send( _("Beep Beep! Are you sure you wish to remove this raid?"))
         await asyncio.sleep(0.25)
-        await Clembot.add_reaction(rusure, "✅")  # checkmark
+        await rusure.add_reaction( "✅")  # checkmark
         await asyncio.sleep(0.25)
-        await Clembot.add_reaction(rusure, "❎")  # cross
+        await rusure.add_reaction( "❎")  # cross
 
         def check(react, user):
             if user.id != author.id:
@@ -4959,28 +4977,28 @@ async def duplicate(ctx):
 
         if res is not None:
             if res.reaction.emoji == "❎":
-                await Clembot.delete_message(rusure)
+                await rusure.delete()
                 confirmation = await channel.send( _("Duplicate Report cancelled."))
                 logger.info("Duplicate Report - Cancelled - " + channel.name + " - Report by " + author.name)
                 dupecount = 2
                 guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
                 await asyncio.sleep(10)
-                await Clembot.delete_message(confirmation)
+                await confirmation.delete()
                 return
             elif res.reaction.emoji == "✅":
-                await Clembot.delete_message(rusure)
+                await rusure.delete()
                 await channel.send( "Duplicate Confirmed")
                 logger.info("Duplicate Report - Channel Expired - " + channel.name + " - Last Report by " + author.name)
                 await expire_channel(channel)
                 return
         else:
-            await Clembot.delete_message(rusure)
+            await rusure.delete()
             confirmation = await channel.send( _("Duplicate Report Timed Out."))
             logger.info("Duplicate Report - Timeout - " + channel.name + " - Report by " + author.name)
             dupecount = 2
             guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
             await asyncio.sleep(10)
-            await Clembot.delete_message(confirmation)
+            await confirmation.delete()
     else:
         rc_d['duplicate'] = dupecount
         confirmation = await channel.send( _("Duplicate report #{duplicate_report_count} received.").format(duplicate_report_count=str(dupecount)))
@@ -5016,7 +5034,7 @@ async def location(ctx):
         newembed.set_thumbnail(url=oldembed['thumbnail']['url'])
         locationmsg = await channel.send( content=_("Beep Beep! Here's the current location for the raid!\nDetails:{location}").format(location=location), embed=newembed)
         await asyncio.sleep(60)
-        await Clembot.delete_message(locationmsg)
+        await locationmsg.delete()
 
 
 @location.command(pass_context=True, hidden=True)
