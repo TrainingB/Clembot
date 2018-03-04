@@ -56,6 +56,18 @@
 	"dark"     : "<:type_dark:394992043706810368>",
 	"steel"    : "<:type_steel:394992044604391434>",
 	"fairy"    : "<:type_fairy:394992043312807949>"
+},
+"//": "Emoji for Pokemon types.",
+"weather_id_dict": {
+	"clear"        : "<:weather_clear:419935674662125568>",
+	"cloudy"       : "<:weather_cloudy:419935764290469890>",
+	"foggy"        : "<:weather_foggy:419936215031087115>",
+	"partlyclody"  : "<:weather_partlycloudy:419935852672843776>",
+	"rainy"        : "<:weather_rainy:419936002581463045>",
+	"snowy"        : "<:weather_snowy:419936112455188480>",
+	"windy"        : "<:weather_windy:419936396556369920>",
+	"extreme"      : "<:weather_extreme:419942598061457408>",
+	"none"         : "<:weather_none:419944231289880577>"
 }
 
 }

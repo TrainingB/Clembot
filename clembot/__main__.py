@@ -261,6 +261,10 @@ def get_type(guild, pkmn_number):
     return ret
 
 
+def get_weather(guild, weather):
+    weather_emoji = parse_emoji(guild, config['weather_id_dict'][weather.lower()])
+    return weather_emoji
+
 def get_name(pkmn_number):
     pkmn_number = int(pkmn_number) - 1
     name = pkmn_info['pokemon_list'][pkmn_number].capitalize()
@@ -3599,6 +3603,7 @@ async def process_map_link(message, newloc=None):
             user = await Clembot.get_user_info(trainer)
             otw_list.append(user.mention)
     await message.channel.send( content=_("Beep Beep! Someone has suggested a different location for the raid! Trainers {trainer_list}: make sure you are headed to the right place!").format(trainer_list=", ".join(otw_list)), embed=newembed)
+
     return
 
 
@@ -4470,6 +4475,9 @@ async def gym(ctx):
             if gym_info:
                 await _update_channel_with_link(ctx.message, gym_info['gmap_link'])
 
+        if gym_info:
+            await _change_channel_name(ctx.message, gym_info)
+
     else:
         await ctx.message.channel.send( content="Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
         return
@@ -4501,6 +4509,21 @@ async def _generate_gym_embed_old(message, gym_info):
         raid_embed.set_footer(text="Note: Still using old gym-codes? lookup new gym-codes using !gyms command.")
 
         await message.channel.send( content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention, roster_message=roster_message), embed=raid_embed)
+    except Exception as error:
+        print(error)
+
+
+async def _change_channel_name(message, gym_info):
+    try:
+        region_prefix = get_region_prefix(message)
+        entered_raid = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['pokemon']
+        if region_prefix:
+            prefix = region_prefix + "-"
+        else:
+            prefix = ""
+        raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
+
+        await message.channel.edit(name=raid_channel_name)
     except Exception as error:
         print(error)
 
@@ -4707,7 +4730,7 @@ async def weather(ctx, *, weather):
         return await ctx.channel.send("Beep Beep! Enter one of the following weather conditions: {}".format(", ".join(weather_list)))
     else:
         guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]['weather'] = weather.lower()
-        return await ctx.channel.send("Beep Beep! Weather set to {}!".format(weather.lower()))
+        return await ctx.channel.send("Beep Beep! Weather set to {}!".format(get_weather(ctx.guild,weather)))
 
 
 @Clembot.command()
@@ -5066,6 +5089,10 @@ async def list(ctx):
                     embed.add_field(name=raid_time_label, value=raid_time_value)
 
                     embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(ctx.message, "waiting"), omw=get_count_from_channel(ctx.message, "omw"), maybe=get_count_from_channel(ctx.message, "maybe")), inline=True)
+
+                    weather = rc_d.get('weather', None)
+                    if weather:
+                        embed.add_field(name="Weather", value=get_weather(ctx.guild,weather))
 
                     maybe = get_names_from_channel(ctx.message, "maybe")
                     if maybe:
