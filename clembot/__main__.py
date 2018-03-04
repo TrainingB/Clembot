@@ -4783,7 +4783,7 @@ async def counters(ctx, *, entered_pkmn = None):
         else:
             await ctx.channel.send("Beep Beep! Enter a Pokemon that appears in raids, or wait for this raid egg to hatch!")
     except Exception as error:
-        print(error)
+        await ctx.channel.send(error)
 
 
 
