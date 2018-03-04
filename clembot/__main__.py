@@ -44,6 +44,8 @@ from random import *
 import pytz
 from pytz import timezone
 import jsonpickle
+import argparser
+
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = "-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6"
@@ -505,22 +507,32 @@ def do_template(message, author, guild):
 
 
 async def ask(message, destination, user_id, *, react_list=['✅', '❎']):
-    if isinstance(message, discord.Embed):
-        msg = await destination.send(embed=message)
-    else:
-        msg = await destination.send(message)
+    def check(reaction, user):
+        return (user.id == user_id) and (reaction.message.id == message.id) and (reaction.emoji in react_list)
     for r in react_list:
         await asyncio.sleep(0.25)
-        await msg.add_reaction(r)
-
-    def check(reaction, user):
-        return (user.id == user_id) and (reaction.message == msg) and (reaction in react_list)
+        await message.add_reaction(r)
     try:
         reaction, user = await Clembot.wait_for('reaction_add', check=check, timeout=60)
         return reaction.emoji
-    except asyncio.TimeoutError:
+    except Exception as error:
+        print (error)
         return
 
+async def letter_case(iterable, find, *, limits=None):
+    servercase_list = []
+    lowercase_list = []
+    for item in iterable:
+        if not item.name:
+            continue
+        elif item.name and (not limits or item.name.lower() in limits):
+            servercase_list.append(item.name)
+            lowercase_list.append(item.name.lower())
+    if find.lower() in lowercase_list:
+        index = lowercase_list.index(find.lower())
+        return servercase_list[index]
+    else:
+        return None
 def get_category(channel, level):
     guild = channel.guild
     catsort = guild_dict[guild.id].get('categories', None)
@@ -688,6 +700,9 @@ To reactivate the channel, use **!timerset** to set the timer again."""))
             pass
 
 
+
+
+
 async def channel_cleanup(loop=True):
     while (not Clembot.is_closed()):
         global active_raids
@@ -710,7 +725,7 @@ async def channel_cleanup(loop=True):
                     channel = Clembot.get_channel(channelid)
                     if channel is None:
                         del guild_dict[guildid]['contest_channel'][channelid]
-                        # logger.info("Channel_Cleanup - Server: " + guild.name + ": Channel:" + channel.name + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
+                        logger.info("Channel_Cleanup - Server: " + guild.name + ": Channel:" + channel.name + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
                 except Exception as error:
                     continue
             # check every raid channel data for each guild
@@ -718,7 +733,7 @@ async def channel_cleanup(loop=True):
                 channel = Clembot.get_channel(channelid)
                 if channel is None:
                     del guild_dict[guildid]['raidchannel_dict'][channelid]
-                    # logger.info( "Channel_Cleanup - Server: " + guild.name + ": Channel:" + channelid + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
+                    logger.info( "Channel_Cleanup - Server: " + guild.name + ": Channel: {channelId} CLEANED UP DICT - DOESN'T EXIST IN DISCORD".format(channelId=channelid))
                     continue
                 log_str = "Channel_Cleanup - Server: " + guild.name
                 log_str = log_str + ": Channel:" + channel.name
@@ -726,7 +741,7 @@ async def channel_cleanup(loop=True):
 
                 channelmatch = Clembot.get_channel(channel.id)
 
-                if channelmatch is None:
+                if channelmatch == None:
                     # list channel for deletion from save data
                     dict_channel_delete.append(channel)
                     logger.info(log_str + " - DOESN'T EXIST IN DISCORD")
@@ -821,16 +836,16 @@ async def channel_cleanup(loop=True):
 
                     pass
 
-            # for every channel listed to have the discord channel deleted
-            for c in discord_channel_delete:
-                try:
-                    # delete channel from discord
-                    await c.delete()
-                    logger.info("Channel_Cleanup - Channel Deleted - " + c.name)
-                except:
-                    logger.info("Channel_Cleanup - Channel Deletion Failure - " + c.name)
-                    await _print(Clembot.owner, "Channel_Cleanup - Channel Deletion Failure - " + c.guild.name + " " + c.name + " >> " + error)
-                    pass
+            # # for every channel listed to have the discord channel deleted
+            # for c in discord_channel_delete:
+            #     try:
+            #         # delete channel from discord
+            #         await c.delete()
+            #         logger.info("Channel_Cleanup - Channel Deleted - " + c.name)
+            #     except Exception as error:
+            #         logger.info("Channel_Cleanup - Channel Deletion Failure - " + c.name)
+            #         await _print(Clembot.owner, "Channel_Cleanup - Channel Deletion Failure -" + c.guild.name + " " + c.name + " >> " + error)
+            #         pass
 
 
         # save guild_dict changes after cleanup
@@ -841,13 +856,30 @@ async def channel_cleanup(loop=True):
             logger.info("Channel_Cleanup - SAVING FAILED" + err)
         logger.info("Channel_Cleanup ------ END ------")
 
-        await asyncio.sleep(600)  # 600 default
+        await asyncio.sleep(60)  # 600 default
         continue
-
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.is_owner()
-async def cleanup():
+async def mysetup(ctx):
+    text=[]
+    current_guild = ctx.message.guild
+
+    user = ctx.message.guild.me
+
+    for permission in user.guild_permissions:
+        if permission[1] == True:
+            text.append("{permission}".format(permission=permission[0]) )
+
+    raid_embed = discord.Embed(colour=discord.Colour.gold())
+    raid_embed.add_field(name="**Username:**", value=_("{option}").format(option=user.name))
+    raid_embed.add_field(name="**Roles:**", value=_("{roles}").format(roles=" \ ".join(text)))
+    raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=user, format="jpg")))
+    await ctx.message.channel.send(embed=raid_embed)
+
+@Clembot.command(pass_context=True, hidden=True)
+@checks.is_owner()
+async def cleanup(ctx):
     await channel_cleanup()
 
 
@@ -1171,84 +1203,92 @@ async def announce(ctx, *, announce=None):
     channel = message.channel
     guild = message.guild
     author = message.author
-    if announce is None:
+    if announce == None:
         announcewait = await channel.send( "I'll wait for your announcement!")
-        announcemsg = await Clembot.wait_for('message', timeout=180)
+        announcemsg = await Clembot.wait_for('message', timeout=180, check=(lambda reply: reply.author == message.author))
         await announcewait.delete()
-        if announcemsg is not None:
+        if announcemsg != None:
             announce = announcemsg.content
             await announcemsg.delete()
         else:
             confirmation = await channel.send( "Beep Beep! You took too long to send me your announcement! Retry when you're ready.")
     embeddraft = discord.Embed(colour=guild.me.colour, description=announce)
-    title = "Announcement"
+    title = 'Announcement'
     if Clembot.user.avatar_url:
         embeddraft.set_author(name=title, icon_url=Clembot.user.avatar_url)
     else:
         embeddraft.set_author(name=title)
     draft = await channel.send( embed=embeddraft)
 
-    def check(react, user):
-        if user.id is not author.id:
-            return False
-        return True
-
     reaction_list = ['❔', '✅', '❎']
-    owner_msg_add = ""
+    owner_msg_add = ''
     if checks.is_owner_check(ctx):
         owner_msg_add = "🌎 to send it to all guilds, "
         reaction_list.insert(0, '🌎')
+
+    def check(reaction, user):
+        if user.id == author.id:
+            if (str(reaction.emoji) in reaction_list) and (reaction.message.id == rusure.id):
+                return True
+        return False
+
     rusure = await channel.send( _("That's what you sent, does it look good? React with {}❔ to send to another channel, ✅ to send it to this channel, or ❎ to cancel").format(owner_msg_add))
-    for r in reaction_list:
-        await asyncio.sleep(0.25)
-        await rusure.add_reaction(r)
-    res = await Clembot.wait_for_reaction(reaction_list, message=rusure, check=check, timeout=60)
-    if res is not None:
+    res = await ask(rusure, channel, author.id, react_list=reaction_list)
+    if res:
         await rusure .delete()
-        if res.reaction.emoji == "❎":
+        if res == "❎":
             confirmation = await channel.send( _("Announcement Cancelled."))
             await draft .delete()
-        elif res.reaction.emoji == "✅":
+        elif res == "✅":
             confirmation = await channel.send( _("Announcement Sent."))
-        elif res.reaction.emoji == "❔":
-            channelwait = await channel.send( "What channel would you like me to send it to?")
-            channelmsg = await Clembot.wait_for('message', timeout=60)
-            try:
-                sendchannel = commands.ChannelConverter(ctx, str(channelmsg.content).strip()).convert()
-            except commands.BadArgument:
-                sendchannel = None
-            if channelmsg is not None and sendchannel is not None:
+        elif res == "❔":
+            channelwait = await channel.send( 'What channel would you like me to send it to?')
+            channelmsg = await Clembot.wait_for('message', timeout=60, check=(lambda reply: reply.author == message.author))
+            if channelmsg.content.isdigit():
+                sendchannel = Meowth.get_channel(int(channelmsg.content))
+            elif channelmsg.raw_channel_mentions:
+                sendchannel = Meowth.get_channel(channelmsg.raw_channel_mentions[0])
+            else:
+                sendchannel = discord.utils.get(guild.text_channels, name=channelmsg.content)
+            if (channelmsg != None) and (sendchannel != None):
                 announcement = await sendchannel.send( embed=embeddraft)
-                confirmation = await channel.send( _("Announcement Sent."))
-            elif sendchannel is None:
+                confirmation = await channel.send( _('Announcement Sent.'))
+            elif sendchannel == None:
                 confirmation = await channel.send( "Beep Beep! That channel doesn't exist! Retry when you're ready.")
             else:
                 confirmation = await channel.send( "Beep Beep! You took too long to send me your announcement! Retry when you're ready.")
             await channelwait .delete()
             await channelmsg .delete()
             await draft .delete()
-        elif res.reaction.emoji == "🌎" and checks.is_owner_check(ctx):
+        elif (res == '🌎') and checks.is_owner_check(ctx):
             failed = 0
             sent = 0
             count = 0
+            recipients = {
+
+            }
+
+            embeddraft.set_footer(text="For support, contact us on our Discord guild. https://discord.gg/AUzEXRU")
+            embeddraft.colour = discord.Colour.lighter_grey()
             for guild in Clembot.guilds:
-                destination = guild.owner
-                embeddraft.set_footer(text="For support, contact us on our Discord guild. Invite Code: AUzEXRU")
-                embeddraft.colour = discord.Colour.lighter_grey()
+                recipients[guild.name] = guild.owner
+            for (guild, destination) in recipients.items():
+
                 try:
                     await destination.send(embed=embeddraft)
-                except:
+                except discord.HTTPException:
                     failed += 1
-                    logger.info("Announcement Delivery Failure: {} - {}".format(destination.name, guild.name))
+                    logger.info('Announcement Delivery Failure: {} - {}'.format(destination.name, guild))
                 else:
                     sent += 1
                 count += 1
-            confirmation = await channel.send( "Announcement sent to {} guild owners: {} successful, {} failed.".format(count, sent, failed))
+            logger.info('Announcement sent to {} server owners: {} successful, {} failed.'.format(count, sent, failed))
+            confirmation = await channel.send('Announcement sent to {} server owners: {} successful, {} failed.'.format(count, sent, failed))
         await asyncio.sleep(10)
         await confirmation.delete()
     else:
         await rusure.delete()
-        confirmation = await channel.send( _("Announcement Timed Out."))
+        confirmation = await channel.send( _('Announcement Timed Out.'))
         await asyncio.sleep(10)
         await confirmation.delete()
     await asyncio.sleep(30)
@@ -1929,7 +1969,7 @@ async def team(ctx):
         await ctx.message.channel.send( _("Beep Beep! The \"{entered_team}\" role isn't configured on this guild! Contact an admin!").format(entered_team=entered_team))
     else:
         try:
-            await Clembot.add_roles(ctx.message.author, role)
+            await ctx.message.author.add_roles(role)
             await ctx.message.channel.send( _("Beep Beep! Added {member} to Team {team_name}! {team_emoji}").format(member=ctx.message.author.mention, team_name=role.name.capitalize(), team_emoji=config['team_dict'][entered_team]))
         except discord.Forbidden:
             await ctx.message.channel.send( _("Beep Beep! I can't add roles!"))
@@ -1993,7 +2033,7 @@ async def want(ctx):
     role = discord.utils.get(guild.roles, name=entered_want)
     # Create role if it doesn't exist yet
     if role is None:
-        role = await Clembot.create_role(guild=guild, name=entered_want, hoist=False, mentionable=True)
+        role = await guild.create_role(name=entered_want, hoist=False, mentionable=True)
         await asyncio.sleep(0.5)
 
     # If user is already wanting the Pokemon,
@@ -2001,7 +2041,7 @@ async def want(ctx):
     if role in ctx.message.author.roles:
         await channel.send( content=_("Beep Beep! {member}, I already know you want {pokemon}!").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()))
     else:
-        await Clembot.add_roles(ctx.message.author, role)
+        await ctx.message.author.add_roles(role)
         want_number = pkmn_info['pokemon_list'].index(entered_want) + 1
         want_img_url = "https://raw.githubusercontent.com/TrainingB/Clembot/master/images/pkmn/{0}_.png".format(str(want_number).zfill(3))  # This part embeds the sprite
         want_img_url = get_pokemon_image_url(want_number)  # This part embeds the sprite
@@ -2040,7 +2080,7 @@ async def unwant(ctx):
             # If user is not already wanting the Pokemon,
             # print a less noisy message
             if role not in ctx.message.author.roles:
-                await ctx.message.add_reaction('✅')
+                await message.add_reaction('✅')
             else:
                 await Clembot.remove_roles(message.author, role)
                 unwant_number = pkmn_info['pokemon_list'].index(entered_unwant) + 1
@@ -2119,7 +2159,7 @@ async def _wild(message):
     else:
         wild = discord.utils.get(message.guild.roles, name=entered_wild)
         if wild is None:
-            wild = await Clembot.create_role(guild=message.guild, name=entered_wild, hoist=False, mentionable=True)
+            wild = await guild.create_role(name=entered_wild, hoist=False, mentionable=True)
             await asyncio.sleep(0.5)
         wild_number = pkmn_info['pokemon_list'].index(entered_wild) + 1
         wild_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(wild_number).zfill(3))
@@ -2286,9 +2326,11 @@ registers a role and a gym
 
         if create_role == False:
             return
-
-        role = await Clembot.create_role(guild=guild, name=role_name, hoist=False, mentionable=True)
-        await asyncio.sleep(0.5)
+        try :
+            role = await guild.create_role(name=role_name, hoist=False, mentionable=True)
+            await asyncio.sleep(0.5)
+        except Exception as error:
+            print(error)
 
     add_notifications_guild_dict(message.guild.id)
     guild_dict[guild.id]['notifications']['roles'].append(role.id)
@@ -2344,6 +2386,9 @@ registers a role and a gym
     return
 
 
+def get_gym_by_code(gym_code, message):
+    return get_gym_info_wrapper(message,gym_code)
+
 def get_gym_info_wrapper(message, gym_code):
 
     city_state = read_channel_city(message)
@@ -2387,7 +2432,7 @@ async def _subscribe(ctx):
         await channel.send( content=_("Beep Beep! {member}, {role} has not been registered for notifications. Please ask an admin to use `!register-role`!").format(member=ctx.message.author.mention, role=role_name))
         return
 
-    await Clembot.add_roles(ctx.message.author, role)
+    await ctx.message.author.add_roles(role)
     await channel.send( content=_("Beep Beep! {member}, You have successfully subscribed for {role}!".format(role=role_name, member=ctx.message.author.mention)))
 
 
@@ -2603,6 +2648,200 @@ async def contestEntry(message, pokemon=None):
     elif message.content.lower() in pkmn_info['pokemon_list']:
         await message.add_reaction('🔴')
     return
+
+def is_egg_level_valid(text):
+    if text in ['1','2','3','4','5']:
+        return True
+    return False
+
+def is_pokemon_valid(entered_raid):
+    if entered_raid in pkmn_info['pokemon_list']:
+        return True
+    return False
+
+raidegg_SYNTAX_ATTRIBUTE = ['command', 'egg', 'gym_info', 'timer', 'location']
+
+raid_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'timer', 'location']
+
+
+@checks.cityeggchannel()
+@Clembot.command(pass_context=True)
+@checks.raidset()
+async def newraid(ctx):
+    """Report an ongoing raid.
+
+    Usage: !raid <species> <location> [minutes]
+    Clembot will insert the details (really just everything after the species name) into a
+    Google maps link and post the link to the same channel the report was made in.
+    Clembot's message will also include the type weaknesses of the boss.
+
+    Finally, Clembot will create a separate channel for the raid report, for the purposes of organizing the raid."""
+    await _newraid(ctx.message)
+
+
+async def _newraid(message):
+    fromegg = False
+    if message.channel.name not in guild_dict[message.guild.id]['city_channels'].keys():
+        if message.channel.id in guild_dict[message.channel.guild.id]['raidchannel_dict'] and guild_dict[message.channel.guild.id]['raidchannel_dict'][message.channel.id]['type'] == 'egg':
+            fromegg = True
+            eggdetails = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]
+            egglevel = eggdetails['egglevel']
+        else:
+            await message.channel.send( _("Beep Beep! Please restrict raid reports to a city channel!"))
+            return
+
+
+    argument_text = message.clean_content.lower()
+    parameters = argparser.parse_arguments(argument_text, raid_SYNTAX_ATTRIBUTE , {'pokemon' : is_pokemon_valid, 'gym_info' : get_gym_by_code} , {'message' : message})
+    print(parameters)
+
+    if fromegg and parameters['length'] > 2:
+        await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
+        return
+
+    entered_raid = None
+    if parameters.get('pokemon', None):
+        pokemon_list = parameters['pokemon']
+        if len(pokemon_list) < 0 :
+            await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
+            return
+        entered_raid = parameters['pokemon'][0]
+    else:
+        entered_raid = parameters['others'][0]
+        spellcheck_message = await message.channel.send(spellcheck(entered_raid))
+        await asyncio.sleep(15)
+        await spellcheck_message.delete()
+        return
+
+    if parameters.get('timer', None):
+        raidexp = parameters['timer']
+    else:
+        raidexp = False
+
+
+    if raidexp is not False:
+        if _timercheck(raidexp, raid_timer):
+            await message.channel.send( _("Beep Beep...that's too long. Raids currently last no more than {raid_timer} minutes...".format(raid_timer=raid_timer)))
+            return
+
+    channel_role = None
+    gym_info = None
+    if parameters.get('gym_info', None):
+        gym_info = parameters['gym_info']
+        raid_details = gym_info['gym_name']
+        channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+    else:
+        raid_details = " ".join(parameters.get('others'))
+
+
+
+    if fromegg is True:
+        eggdetails = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]
+        egglevel = eggdetails['egglevel']
+        if raid_split[0] == 'assume':
+            if config['allow_assume'][egglevel] == "False":
+                await message.channel.send( _("Beep Beep! **!raid assume** is not allowed in this level egg."))
+                return
+            if guild_dict[message.channel.guild.id]['raidchannel_dict'][message.channel.id]['active'] == False:
+                await _eggtoraid(raid_split[1].lower(), message.channel)
+                return
+            else:
+                await _eggassume(" ".join(raid_split), message.channel)
+                return
+        elif guild_dict[message.channel.guild.id]['raidchannel_dict'][message.channel.id]['active'] == False:
+                await _eggtoraid(" ".join(raid_split).lower(), message.channel)
+                return
+        else:
+            await message.channel.send( _("Beep Beep! Please wait until the egg has hatched before changing it to an open raid!"))
+            return
+    elif len(raid_split) <= 1:
+        await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
+        return
+
+
+    if entered_raid not in pkmn_info['pokemon_list']:
+        await message.channel.send(spellcheck(entered_raid))
+        return
+    if entered_raid not in pkmn_info['raid_list'] and entered_raid in pkmn_info['pokemon_list']:
+        await message.channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
+        return
+
+    region_prefix = get_region_prefix(message)
+    if region_prefix:
+        prefix =  region_prefix + "-"
+    else:
+        prefix = ""
+
+
+    if gym_info:
+        raid_gmaps_link = gym_info['gmap_link']
+        raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
+        channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+    else:
+        raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
+        raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(raid_details)
+
+    raid_channel = None
+    try :
+        raid_channel_category = get_category(message.channel, get_level(entered_raid))
+        raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
+    except Exception as error:
+        print(error)
+        return
+    raid = discord.utils.get(message.guild.roles, name=entered_raid)
+    if raid is None:
+        # raid = await Clembot.create_role(guild=message.guild, name=entered_raid, hoist=False, mentionable=True)
+        # await asyncio.sleep(0.5)
+        raid_role = "**" + entered_raid.capitalize() + "**"
+    else:
+        raid_role = raid.mention
+    raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
+    raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
+    raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
+    raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=message.guild.me.colour)
+    raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(message.guild, raid_number)), inline=True))
+    raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(message.guild, get_weaknesses(entered_raid))), inline=True)
+    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
+    raid_embed.set_thumbnail(url=raid_img_url)
+    content = _("Beep Beep! {pokemon} raid reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention)
+    raidreport = await message.channel.send( content= content, embed=raid_embed)
+
+    await asyncio.sleep(1)  # Wait for the channel to be created.
+
+    raidmsg = _("""Beep Beep! {pokemon} raid reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+This channel will be deleted five minutes after the timer expires.
+** **
+Please type `!beep raid` if you need a refresher of Clembot commands! 
+""").format(pokemon=raid_role, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+
+    raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
+    print(guild_dict[message.guild.id]['raidchannel_dict'])
+    guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
+		'reportcity': message.channel.name,
+		'trainer_dict': {},
+		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
+        'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
+        'active': True,
+        'raidmessage' : raidmessage.id,
+        'raidreport' : raidreport.id,
+		'address': raid_details,
+		'type': 'raid',
+		'pokemon': entered_raid,
+		'egglevel': '0',
+		'suggested_start': False
+		}
+
+    if channel_role:
+        await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+
+    if raidexp is not False:
+        await _timerset(raid_channel, raidexp)
+    else:
+        await raid_channel.send( content=_("Beep Beep! Hey {member}, if you can, set the time left on the raid using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
+    event_loop.create_task(expiry_check(raid_channel))
+
 
 
 @checks.cityeggchannel()
@@ -3175,13 +3414,24 @@ async def _here(message, count):
     await message.channel.send( embed=channel_status_embed(message=message, embed_msg_desc=embed_msg, colour=discord.Colour.green()))
 
 
-def get_names_from_channel(message, status):
+def get_names_from_channel(message, status, mentions=False):
     trainer_dict = copy.deepcopy(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
     name_list = []
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == status:
             # user = Clembot.get_user_info(trainer)
-            name_list.append("**<@!{trainer}>**".format(trainer=trainer))
+            if mentions:
+                user = message.channel.guild.get_member(trainer)
+
+                user_name = user.nick if user.nick else user.name
+
+                name_list.append("**{trainer}**".format(trainer=user_name))
+            else:
+                user = message.channel.guild.get_member(trainer)
+                user_name = user.nick if user.nick else user.name
+
+                name_list.append("**{trainer}**".format(trainer=user_name))
+            # name_list.append("**<@!{trainer}>**".format(trainer=trainer))
             # name_list.append(user.mention)
             # name_list.append("**<@!" + message.author.id + ">**")
     if len(name_list) > 0:
@@ -3283,8 +3533,10 @@ async def on_message(message):
                         return
     messagelist = message.content.split(" ")
     message.content = messagelist.pop(0).lower() + " " + " ".join(messagelist)
-    await Clembot.process_commands(message)
-
+    try:
+        await Clembot.process_commands(message)
+    except Exception as error:
+        print("error while processing message {message} : {error}".format(message=message.content,error=error) )
 
 def extract_link_from_text(text):
     newloc = None
@@ -3559,194 +3811,138 @@ def emojify_numbers(number):
     return number_emoji
 
 
+
+
+
 @Clembot.command(pass_context=True, hidden=True)
 @checks.citychannel()
 @checks.raidset()
 async def raidegg(ctx):
-    """Report a raid egg.
-
-    Usage: !raidegg <level> <location> [minutes]
-
-    Clembot will give a map link to the entered location and create a channel for organising the coming raid in.
-    Clembot will also provide info on the possible bosses that can hatch and their types.
-
-    <level> - Required. Level of the egg. Levels are from 1 to 5.
-    <location> - Required. Address/Location of the gym.
-    <minutes-remaining> - Not required. Time remaining until the egg hatches into an open raid. 1-60 minutes will be accepted. If not provided, 1 hour is assumed. Whole numbers only."""
     await _raidegg(ctx.message)
 
 
 async def _raidegg(message):
-    raidegg_split = message.clean_content.lower().split()
-    del raidegg_split[0]
-    if len(raidegg_split) <= 1:
-        await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
-        return
+        argument_text = message.clean_content.lower()
+        parameters = argparser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE , {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code} , {'message' : message})
+        print(parameters)
 
-    gym_info = None
-
-    if raidegg_split[-1].isalpha():
-        gym_code = raidegg_split[-1].upper()
-        # gym_info = gymutil.get_gym_info(gym_code, city_state=get_city_list(message))
-        gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
-
-        if gym_info:
-            channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
-            channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
-            del raidegg_split[-1]
-    if raidegg_split[0].isdigit():
-        egg_level = int(raidegg_split[0])
-        del raidegg_split[0]
-    else:
-        await message.channel.send( _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
-        return
-
-    if len(raidegg_split) > 1 and raidegg_split[-1].isdigit():
-        raidexp = int(raidegg_split[-1])
-        del raidegg_split[-1]
-    elif len(raidegg_split) > 1 and ":" in raidegg_split[-1]:
-        raidegg_split[-1] = re.sub(r"[a-zA-Z]", "", raidegg_split[-1])
-        if raidegg_split[-1].split(":")[0] == "":
-            endhours = 0
-        else:
-            endhours = int(raidegg_split[-1].split(":")[0])
-        if raidegg_split[-1].split(":")[1] == "":
-            endmins = 0
-        else:
-            endmins = int(raidegg_split[-1].split(":")[1])
-        raidexp = 60 * endhours + endmins
-        del raidegg_split[-1]
-    else:
-        raidexp = False
-
-    if raidexp is not False:
-        if _timercheck(raidexp, egg_timer):
-            await message.channel.send( _("Beep Beep...that's too long. Raid Eggs currently last no more than one hour..."))
+        if parameters['length'] <= 2:
+            await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
             return
 
-    raid_details = " ".join(raidegg_split)
-    raid_details = raid_details.strip()
-    if raid_details == '':
-        if gym_info:
-            raid_details = gym_info['gym_name']
+        if parameters.get('egg', None):
+            egg_level = parameters['egg']
         else:
-            await message.channel.send( _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
+            await message.channel.send(_("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
             return
 
-    if gym_info is None and 2 <= raid_details.__len__() <= 6:
-        raid_details_gym_code = raid_details.upper()
-        # raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state=get_city_list(message))
-        raid_details_gym_info = get_gym_info_wrapper(message, gym_code=raid_details_gym_code)
-        if raid_details_gym_info:
-            gym_info = raid_details_gym_info
-            raid_details = gym_info['gym_name']
-            channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
-            channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
-
-    if egg_level > 5 or egg_level == 0:
-        await message.channel.send( _("Beep Beep! Raid egg levels are only from 1-5!"))
-        return
-    else:
-        egg_level = str(egg_level)
-        egg_info = raid_info['raid_eggs'][egg_level]
-        egg_img = egg_info['egg_img']
-        boss_list = []
-        mon_in_one_line = 0
-        for p in egg_info['pokemon']:
-            p_name = get_name(p)
-            p_type = get_type(message.guild, p)
-            boss_list.append(p_name + " (" + str(p) + ") " + ''.join(p_type))
-
-        region_prefix = get_region_prefix(message)
-        if region_prefix:
-            prefix = region_prefix + "-"
+        if parameters.get('timer', None) == None:
+            raidexp = False
         else:
-            prefix = ""
-
-        if gym_info:
-            raid_gmaps_link = gym_info['gmap_link']
-            raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
-        else:
-            raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
-            raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
-        try:
-            raid_channel_category = get_category(message.channel, egg_level)
-            raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
-        except Exception as error:
-            print(error)
-            await message.channel.send( content=_("Beep Beep! An error occurred while creating the channel. {error}").format(error=error))
-            return
-
-        raid_img_url = get_egg_image_url(egg_level)
-        raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.guild.me.colour)
-        if len(egg_info['pokemon']) > 1:
-            raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
-            raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
-        else:
-            raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
-
-        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
-        raid_embed.set_thumbnail(url=raid_img_url)
-        try:
-            raidreport = await message.channel.send( content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
-        except Exception as error:
-            print(error)
-        await asyncio.sleep(1)  # Wait for the channel to be created.
-
-        raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
-When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.
-** **
-Please type `!beep raid` if you need a refresher of Clembot commands! 
-""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
-
-        #         raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
-        #
-        # Message **!interested** if you're interested in attending.
-        # If you are interested in bringing more than one trainer/account, add in the number at the end of the commend.
-        # Example: `!interested 5`
-        #
-        # Use **!list interested** to see the list of trainers who are interested.
-        #
-        # **!location** will show the current raid location.
-        # **!location new <address>** will let you correct the raid address.
-        # Sending a Google Maps link will also update the raid location.
-        #
-        # **!timer** will show how long until the egg catches into an open raid.
-        # **!timerset** will let you correct the egg countdown time.
-        #
-        # Message **!raid <pokemon>** to update this channel into an open raid.
-        # Message **!raid assume <pokemon>** to have the channel auto-update into an open raid.
-        #
-        # When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
-
-
-        guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-		'reportcity': message.channel.name,
-		'trainer_dict': {},
-		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer),  # One hour from now
-		'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
-		'active': True,
-		'raidmessage': raidmessage.id,
-		'raidreport': raidreport.id,
-		'address': raid_details,
-		'type': 'egg',
-		'pokemon': '',
-		'egglevel': egg_level,
-		'suggested_start': False
-		}
+            raidexp = parameters['timer']
 
         if raidexp is not False:
-            await _timerset(raid_channel, raidexp)
+            if _timercheck(raidexp, egg_timer):
+                await message.channel.send(_("Beep Beep...that's too long. Raid Eggs currently last no more than {egg_timer} minutes...".format(egg_timer=egg_timer)))
+                return
+
+        channel_role = None
+        gym_info = None
+        if parameters.get('gym_info', None):
+            gym_info = parameters['gym_info']
+            raid_details = gym_info['gym_name']
+            channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+            channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
         else:
-            await raid_channel.send( content=_("Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
+            raid_details = " ".join(parameters.get('others'))
 
-        if channel_role:
-            await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
 
-        if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
-            await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
+        if egg_level > 5 or egg_level == 0:
+            await message.channel.send(_("Beep Beep! Raid egg levels are only from 1-5!"))
+            return
+        else:
+            egg_level = str(egg_level)
+            egg_info = raid_info['raid_eggs'][egg_level]
+            egg_img = egg_info['egg_img']
+            boss_list = []
+            mon_in_one_line = 0
+            for p in egg_info['pokemon']:
+                p_name = get_name(p)
+                p_type = get_type(message.guild, p)
+                boss_list.append(p_name + " (" + str(p) + ") " + ''.join(p_type))
 
-        event_loop.create_task(expiry_check(raid_channel))
+            region_prefix = get_region_prefix(message)
+            if region_prefix:
+                prefix = region_prefix + "-"
+            else:
+                prefix = ""
+
+            if gym_info:
+                raid_gmaps_link = gym_info['gmap_link']
+                raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
+            else:
+                raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
+                raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+            try:
+                raid_channel_category = get_category(message.channel, egg_level)
+                raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
+            except Exception as error:
+                print(error)
+                await message.channel.send(content=_("Beep Beep! An error occurred while creating the channel. {error}").format(error=error))
+                return
+
+            raid_img_url = get_egg_image_url(egg_level)
+            raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.guild.me.colour)
+            if len(egg_info['pokemon']) > 1:
+                raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
+                raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
+            else:
+                raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
+
+            raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
+            raid_embed.set_thumbnail(url=raid_img_url)
+            try:
+                raidreport = await message.channel.send(content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
+            except Exception as error:
+                print(error)
+            await asyncio.sleep(1)  # Wait for the channel to be created.
+
+            raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+    When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.
+    ** **
+    Please type `!beep raid` if you need a refresher of Clembot commands! 
+    """).format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+
+            raidmessage = await raid_channel.send(content=raidmsg, embed=raid_embed)
+
+            guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
+                'reportcity': message.channel.name,
+                'trainer_dict': {},
+                'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer),  # One hour from now
+                'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
+                'active': True,
+                'raidmessage': raidmessage.id,
+                'raidreport': raidreport.id,
+                'address': raid_details,
+                'type': 'egg',
+                'pokemon': '',
+                'egglevel': egg_level,
+                'suggested_start': False}
+
+            if raidexp is not False:
+                await _timerset(raid_channel, raidexp)
+            else:
+                await raid_channel.send(content=_("Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
+
+            if channel_role:
+                await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+
+            if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
+                await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
+
+            event_loop.create_task(expiry_check(raid_channel))
+
+
 
 
 async def _eggassume(args, raid_channel):
@@ -3771,7 +3967,7 @@ async def _eggassume(args, raid_channel):
     eggdetails['pokemon'] = entered_raid
     raidrole = discord.utils.get(raid_channel.guild.roles, name=entered_raid)
     if raidrole is None:
-        raidrole = await Clembot.create_role(guild=raid_channel.guild, name=entered_raid, hoist=False, mentionable=True)
+        raidrole = await raid_channel.guild.create_role(name=entered_raid, hoist=False, mentionable=True)
         # await asyncio.sleep(0.5)
         raid_role = "**{pokemon}**".format(pokemon=entered_raid.capitalize())
     else:
@@ -4475,7 +4671,7 @@ async def dump(ctx):
         await ctx.message.channel.send( content=error)
 
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["b", "help"])
+@Clembot.command(pass_context=True, hidden=True, aliases=["b","help"])
 async def beep(ctx):
     args = ctx.message.clean_content[len("!beep"):]
     args_split = args.split()
@@ -4963,46 +5159,35 @@ async def duplicate(ctx):
 
     if dupecount >= 3:
         rusure = await channel.send( _("Beep Beep! Are you sure you wish to remove this raid?"))
-        await asyncio.sleep(0.25)
-        await rusure.add_reaction( "✅")  # checkmark
-        await asyncio.sleep(0.25)
-        await rusure.add_reaction( "❎")  # cross
-
-        def check(react, user):
-            if user.id != author.id:
-                return False
-            return True
-
-        res = await Clembot.wait_for_reaction(['✅', '❎'], message=rusure, check=check, timeout=60)
-
+        res = await ask(rusure, channel, author.id)
         if res is not None:
-            if res.reaction.emoji == "❎":
+            if res == "❎":
                 await rusure.delete()
-                confirmation = await channel.send( _("Duplicate Report cancelled."))
-                logger.info("Duplicate Report - Cancelled - " + channel.name + " - Report by " + author.name)
+                confirmation = await channel.send(_('Duplicate Report cancelled.'))
+                logger.info((('Duplicate Report - Cancelled - ' + channel.name) + ' - Report by ') + author.name)
                 dupecount = 2
                 guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
                 await asyncio.sleep(10)
                 await confirmation.delete()
                 return
-            elif res.reaction.emoji == "✅":
+            elif res == "✅":
                 await rusure.delete()
-                await channel.send( "Duplicate Confirmed")
-                logger.info("Duplicate Report - Channel Expired - " + channel.name + " - Last Report by " + author.name)
+                await channel.send('Duplicate Confirmed')
+                logger.info((('Duplicate Report - Channel Expired - ' + channel.name) + ' - Last Report by ') + author.name)
                 await expire_channel(channel)
                 return
         else:
             await rusure.delete()
-            confirmation = await channel.send( _("Duplicate Report Timed Out."))
-            logger.info("Duplicate Report - Timeout - " + channel.name + " - Report by " + author.name)
+            confirmation = await channel.send(_('Duplicate Report Timed Out.'))
+            logger.info((('Duplicate Report - Timeout - ' + channel.name) + ' - Report by ') + author.name)
             dupecount = 2
             guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
             await asyncio.sleep(10)
             await confirmation.delete()
     else:
         rc_d['duplicate'] = dupecount
-        confirmation = await channel.send( _("Duplicate report #{duplicate_report_count} received.").format(duplicate_report_count=str(dupecount)))
-        logger.info("Duplicate Report - " + channel.name + " - Report #" + str(dupecount) + "- Report by " + author.name)
+        confirmation = await channel.send(_('Duplicate report #{duplicate_report_count} received.').format(duplicate_report_count=str(dupecount)))
+        logger.info((((('Duplicate Report - ' + channel.name) + ' - Report #') + str(dupecount)) + '- Report by ') + author.name)
         return
 
 
@@ -5812,3 +5997,196 @@ finally:
     pass
 
 sys.exit(Clembot._shutdown_mode)
+
+
+
+# --------------- deprecated code ------------------------
+
+@Clembot.command(pass_context=True, hidden=True)
+@checks.citychannel()
+@checks.raidset()
+async def _old_raidegg(ctx):
+    """Report a raid egg.
+
+    Usage: !raidegg <level> <location> [minutes]
+
+    Clembot will give a map link to the entered location and create a channel for organising the coming raid in.
+    Clembot will also provide info on the possible bosses that can hatch and their types.
+
+    <level> - Required. Level of the egg. Levels are from 1 to 5.
+    <location> - Required. Address/Location of the gym.
+    <minutes-remaining> - Not required. Time remaining until the egg hatches into an open raid. 1-60 minutes will be accepted. If not provided, 1 hour is assumed. Whole numbers only."""
+    await _old__raidegg(ctx.message)
+
+async def _old__raidegg(message):
+    raidegg_split = message.clean_content.lower().split()
+    del raidegg_split[0]
+    if len(raidegg_split) <= 1:
+        await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
+        return
+
+    gym_info = None
+
+    if raidegg_split[-1].isalpha():
+        gym_code = raidegg_split[-1].upper()
+        # gym_info = gymutil.get_gym_info(gym_code, city_state=get_city_list(message))
+        gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
+
+        if gym_info:
+            channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+            channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+            del raidegg_split[-1]
+    if raidegg_split[0].isdigit():
+        egg_level = int(raidegg_split[0])
+        del raidegg_split[0]
+    else:
+        await message.channel.send( _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
+        return
+
+    if len(raidegg_split) > 1 and raidegg_split[-1].isdigit():
+        raidexp = int(raidegg_split[-1])
+        del raidegg_split[-1]
+    elif len(raidegg_split) > 1 and ":" in raidegg_split[-1]:
+        raidegg_split[-1] = re.sub(r"[a-zA-Z]", "", raidegg_split[-1])
+        if raidegg_split[-1].split(":")[0] == "":
+            endhours = 0
+        else:
+            endhours = int(raidegg_split[-1].split(":")[0])
+        if raidegg_split[-1].split(":")[1] == "":
+            endmins = 0
+        else:
+            endmins = int(raidegg_split[-1].split(":")[1])
+        raidexp = 60 * endhours + endmins
+        del raidegg_split[-1]
+    else:
+        raidexp = False
+
+    if raidexp is not False:
+        if _timercheck(raidexp, egg_timer):
+            await message.channel.send( _("Beep Beep...that's too long. Raid Eggs currently last no more than one hour..."))
+            return
+
+    raid_details = " ".join(raidegg_split)
+    raid_details = raid_details.strip()
+    if raid_details == '':
+        if gym_info:
+            raid_details = gym_info['gym_name']
+        else:
+            await message.channel.send( _("Beep Beep! Give more details when reporting! Use at least: **!raidegg <level> <location>**. Type **!help** raidegg for more info."))
+            return
+
+    if gym_info is None and 2 <= raid_details.__len__() <= 6:
+        raid_details_gym_code = raid_details.upper()
+        # raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state=get_city_list(message))
+        raid_details_gym_info = get_gym_info_wrapper(message, gym_code=raid_details_gym_code)
+        if raid_details_gym_info:
+            gym_info = raid_details_gym_info
+            raid_details = gym_info['gym_name']
+            channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+            channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+
+    if egg_level > 5 or egg_level == 0:
+        await message.channel.send( _("Beep Beep! Raid egg levels are only from 1-5!"))
+        return
+    else:
+        egg_level = str(egg_level)
+        egg_info = raid_info['raid_eggs'][egg_level]
+        egg_img = egg_info['egg_img']
+        boss_list = []
+        mon_in_one_line = 0
+        for p in egg_info['pokemon']:
+            p_name = get_name(p)
+            p_type = get_type(message.guild, p)
+            boss_list.append(p_name + " (" + str(p) + ") " + ''.join(p_type))
+
+        region_prefix = get_region_prefix(message)
+        if region_prefix:
+            prefix = region_prefix + "-"
+        else:
+            prefix = ""
+
+        if gym_info:
+            raid_gmaps_link = gym_info['gmap_link']
+            raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
+        else:
+            raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
+            raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+        try:
+            raid_channel_category = get_category(message.channel, egg_level)
+            raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
+        except Exception as error:
+            print(error)
+            await message.channel.send( content=_("Beep Beep! An error occurred while creating the channel. {error}").format(error=error))
+            return
+
+        raid_img_url = get_egg_image_url(egg_level)
+        raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.guild.me.colour)
+        if len(egg_info['pokemon']) > 1:
+            raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
+            raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
+        else:
+            raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
+
+        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
+        raid_embed.set_thumbnail(url=raid_img_url)
+        try:
+            raidreport = await message.channel.send( content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
+        except Exception as error:
+            print(error)
+        await asyncio.sleep(1)  # Wait for the channel to be created.
+
+        raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.
+** **
+Please type `!beep raid` if you need a refresher of Clembot commands! 
+""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+
+        #         raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+        #
+        # Message **!interested** if you're interested in attending.
+        # If you are interested in bringing more than one trainer/account, add in the number at the end of the commend.
+        # Example: `!interested 5`
+        #
+        # Use **!list interested** to see the list of trainers who are interested.
+        #
+        # **!location** will show the current raid location.
+        # **!location new <address>** will let you correct the raid address.
+        # Sending a Google Maps link will also update the raid location.
+        #
+        # **!timer** will show how long until the egg catches into an open raid.
+        # **!timerset** will let you correct the egg countdown time.
+        #
+        # Message **!raid <pokemon>** to update this channel into an open raid.
+        # Message **!raid assume <pokemon>** to have the channel auto-update into an open raid.
+        #
+        # When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+
+
+        guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
+		'reportcity': message.channel.name,
+		'trainer_dict': {},
+		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer),  # One hour from now
+		'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
+		'active': True,
+		'raidmessage': raidmessage.id,
+		'raidreport': raidreport.id,
+		'address': raid_details,
+		'type': 'egg',
+		'pokemon': '',
+		'egglevel': egg_level,
+		'suggested_start': False
+		}
+
+        if raidexp is not False:
+            await _timerset(raid_channel, raidexp)
+        else:
+            await raid_channel.send( content=_("Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
+
+        if channel_role:
+            await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+
+        if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
+            await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
+
+        event_loop.create_task(expiry_check(raid_channel))
+
