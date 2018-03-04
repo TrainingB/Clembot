@@ -8,6 +8,7 @@ import pickle
 import json
 import time
 import datetime
+import aiohttp
 from os import name
 
 from dateutil.relativedelta import relativedelta
@@ -856,7 +857,7 @@ async def channel_cleanup(loop=True):
             logger.info("Channel_Cleanup - SAVING FAILED" + err)
         logger.info("Channel_Cleanup ------ END ------")
 
-        await asyncio.sleep(60)  # 600 default
+        await asyncio.sleep(600)  # 600 default
         continue
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -4693,6 +4694,99 @@ async def beep(ctx):
             await ctx.message.channel.send( content=beep_notifications.format(member=ctx.message.author.mention))
 
 
+
+#         pokebattler integration
+
+@Clembot.command()
+@checks.activeraidchannel()
+async def weather(ctx, *, weather):
+    "Sets the weather for the raid. \nUsage: !weather <weather> \nOnly usable in raid channels. \n Acceptable options: none, extreme, clear, rainy, partlycloudy, cloudy, windy, snow, fog"
+    weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy',
+                    'partlycloudy', 'cloudy', 'windy', 'snow', 'fog']
+    if weather.lower() not in weather_list:
+        return await ctx.channel.send("Meowth! Enter one of the following weather conditions: {}".format(", ".join(weather_list)))
+    else:
+        guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]['weather'] = weather.lower()
+        return await ctx.channel.send("Meowth! Weather set to {}!".format(weather.lower()))
+
+
+@Clembot.command()
+@checks.activeraidchannel()
+async def counters(ctx, *, entered_pkmn = None):
+    """Simulate a Raid battle with Pokebattler.
+
+    Usage: !counters
+    Only usable in raid channels. Uses current boss and weather.
+    """
+    try:
+        channel = ctx.channel
+        guild = channel.guild
+        pkmn = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('pokemon', None)
+        if not pkmn:
+            pkmn = entered_pkmn.lower() if entered_pkmn.lower() in get_raidlist() else None
+        weather = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('weather', None)
+        if pkmn:
+            img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/master/images/pkmn/{0}_.png?cache=2'.format(str(get_number(pkmn)).zfill(3))
+            level = get_level(pkmn) if get_level(pkmn).isdigit() else "5"
+            if not weather:
+                weather = "NO_WEATHER"
+            else:
+                weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy', 'partlycloudy', 'cloudy', 'windy', 'snow', 'fog']
+                match_list = ['NO_WEATHER', 'NO_WEATHER', 'CLEAR', 'CLEAR', 'RAINY', 'PARTLY_CLOUDY', 'OVERCAST', 'WINDY', 'SNOW', 'FOG']
+                if not weather.lower() in weather_list:
+                    msg = "Please pick a valid weather option."
+                    await ctx.embed(msg, msg_type='error')
+                    return
+                index = weather_list.index(weather)
+                weather = match_list[index]
+            url = "https://fight.pokebattler.com/raids/defenders/"
+            url += "{pkmn}/levels/RAID_LEVEL_{level}/".format(pkmn=pkmn.replace('-', '_').upper(), level=level)
+            url += "attackers/levels/30/strategies/CINEMATIC_ATTACK_WHEN_POSSIBLE/DEFENSE_RANDOM_MC?sort=OVERALL&"
+            url += "weatherCondition={weather}&dodgeStrategy=DODGE_REACTION_TIME&aggregation=AVERAGE".format(weather=weather)
+
+            print(url)
+            async with ctx.typing():
+                async with aiohttp.ClientSession() as sess:
+                    async with sess.get(url) as resp:
+                        data = await resp.json()
+
+                title_url = url.replace('https://fight', 'https://www')
+                colour = guild.me.colour
+                hyperlink_icon = 'https://i.imgur.com/fn9E5nb.png'
+                pbtlr_icon = 'https://www.pokebattler.com/favicon-32x32.png'
+                data = data['attackers'][0]
+                raid_cp = data['cp']
+                atk_levels = '30'
+                ctrs = data['randomMove']['defenders'][-6:]
+                index = 1
+
+                def clean(txt):
+                    return txt.replace('_', ' ').title()
+
+                title = '{pkmn} | {weather}'.format(pkmn=pkmn.title(), weather=clean(weather))
+                stats_msg = "**CP:** {raid_cp}\n".format(raid_cp=raid_cp)
+                stats_msg += "**Weather:** {weather}\n".format(weather=clean(weather))
+                stats_msg += "**Attacker Level:** {atk_levels}".format(atk_levels=atk_levels)
+                ctrs_embed = discord.Embed(colour=colour)
+                ctrs_embed.set_author(name=title, url=title_url, icon_url=hyperlink_icon)
+                ctrs_embed.set_thumbnail(url=img_url)
+                ctrs_embed.set_footer(text='Results courtesy of Pokebattler', icon_url=pbtlr_icon)
+                for ctr in reversed(ctrs):
+                    ctr_name = clean(ctr['pokemonId'])
+                    moveset = ctr['byMove'][-1]
+                    moves = "{move1} | {move2}".format(move1=clean(moveset['move1'])[:-5], move2=clean(moveset['move2']))
+                    name = "#{index} - {ctr_name}".format(index=index, ctr_name=ctr_name)
+                    ctrs_embed.add_field(name=name, value=moves)
+                    index += 1
+                ctrs_embed.add_field(name="Results with Level 30 attackers", value="[See your personalized results!](https://www.pokebattler.com/raids/{pkmn})".format(pkmn=pkmn.replace('-', '_').upper()))
+                await ctx.channel.send(embed=ctrs_embed)
+        else:
+            await ctx.channel.send("Meowth! Enter a Pokemon that appears in raids, or wait for this raid egg to hatch!")
+    except Exception as error:
+        print(error)
+
+
+
 @Clembot.command(pass_context=True, hidden=True, aliases=["i", "maybe"])
 @checks.activeraidchannel()
 async def interested(ctx, *, count: str = None):
@@ -5970,7 +6064,8 @@ async def _get_gym_info(message, gym_code):
 
     return gym_info
 
-
+@Clembot.command(pass_context=True, hidden=True)
+@checks.is_owner()
 async def reloadconfig(ctx):
     try:
         load_config()
@@ -5978,6 +6073,37 @@ async def reloadconfig(ctx):
     except Exception as error:
         await ctx.message.channel.send( content=_("Beep Beep! Error : {error}").format(error=str(error)))
     return
+
+@Clembot.command(pass_context=True, hidden=True,aliases=["udpate-gym"])
+@checks.is_owner()
+async def _update_gym(ctx):
+    args = ctx.message.clean_content.lower().split()
+    del args[0]
+
+    if len(args) < 2:
+        await ctx.message.channel.send(content=_("Beep Beep! Please provide information as !update-gym gym-code field-name value"))
+
+    gymsql.update_gym(args[0], args[1], " ".join(args[2:]))
+
+@Clembot.command(pass_context=True, hidden=True,aliases=["get-gym"])
+@checks.is_owner()
+async def _get_gym(ctx):
+
+    try:
+        args = ctx.message.clean_content.lower().split()
+        del args[0]
+
+        if len(args) < 1:
+            await ctx.message.channel.send(content=_("Beep Beep! Please provide information as !get-gym gym-code"))
+        city_state = read_channel_city(ctx.message)
+        response = gymsql.get_gym_by_code(city_state, args[0])
+        await ctx.message.channel.send( content=json.dumps(response, indent=4, sort_keys=True))
+    except Exception as error:
+        print(error)
+
+
+
+
 
 
 try:

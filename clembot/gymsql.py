@@ -181,7 +181,7 @@ def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
 
     return None
 
-def get_gym_by_code(city_state_key, gym_code_key) -> []:
+def get_gym_by_code(city_state_key, gym_code_key):
     try:
         print("get_gym_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
 
@@ -192,7 +192,7 @@ def get_gym_by_code(city_state_key, gym_code_key) -> []:
         statement = "select json from gym_master where city_state_key = ? and gym_code_key = ? "
 
         # print(statement)
-        cursor.execute(statement, (city_state_key,gym_code_key,))
+        cursor.execute(statement, (city_state_key,gym_code_key.upper(),))
 
         all_rows = cursor.fetchall()
 
