@@ -1246,9 +1246,9 @@ async def announce(ctx, *, announce=None):
             channelwait = await channel.send( 'What channel would you like me to send it to?')
             channelmsg = await Clembot.wait_for('message', timeout=60, check=(lambda reply: reply.author == message.author))
             if channelmsg.content.isdigit():
-                sendchannel = Meowth.get_channel(int(channelmsg.content))
+                sendchannel = Clembot.get_channel(int(channelmsg.content))
             elif channelmsg.raw_channel_mentions:
-                sendchannel = Meowth.get_channel(channelmsg.raw_channel_mentions[0])
+                sendchannel = Clembot.get_channel(channelmsg.raw_channel_mentions[0])
             else:
                 sendchannel = discord.utils.get(guild.text_channels, name=channelmsg.content)
             if (channelmsg != None) and (sendchannel != None):
@@ -4704,10 +4704,10 @@ async def weather(ctx, *, weather):
     weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy',
                     'partlycloudy', 'cloudy', 'windy', 'snow', 'fog']
     if weather.lower() not in weather_list:
-        return await ctx.channel.send("Meowth! Enter one of the following weather conditions: {}".format(", ".join(weather_list)))
+        return await ctx.channel.send("Beep Beep! Enter one of the following weather conditions: {}".format(", ".join(weather_list)))
     else:
         guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]['weather'] = weather.lower()
-        return await ctx.channel.send("Meowth! Weather set to {}!".format(weather.lower()))
+        return await ctx.channel.send("Beep Beep! Weather set to {}!".format(weather.lower()))
 
 
 @Clembot.command()
@@ -4781,7 +4781,7 @@ async def counters(ctx, *, entered_pkmn = None):
                 ctrs_embed.add_field(name="Results with Level 30 attackers", value="[See your personalized results!](https://www.pokebattler.com/raids/{pkmn})".format(pkmn=pkmn.replace('-', '_').upper()))
                 await ctx.channel.send(embed=ctrs_embed)
         else:
-            await ctx.channel.send("Meowth! Enter a Pokemon that appears in raids, or wait for this raid egg to hatch!")
+            await ctx.channel.send("Beep Beep! Enter a Pokemon that appears in raids, or wait for this raid egg to hatch!")
     except Exception as error:
         print(error)
 
