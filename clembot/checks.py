@@ -195,6 +195,8 @@ def raidchannel():
     def predicate(ctx):
         if check_raidchannel(ctx):
             return True
+        elif check_raidpartychannel(ctx):
+            return True
         raise errors.RaidChannelCheckFail()
     return commands.check(predicate)
 

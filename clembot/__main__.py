@@ -4811,7 +4811,7 @@ async def counters(ctx, *, entered_pkmn = None):
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["i", "maybe"])
-@checks.activeraidchannel()
+@checks.raidchannel()
 async def interested(ctx, *, count: str = None):
     """Indicate you are interested in the raid.
 
@@ -4839,7 +4839,7 @@ async def interested(ctx, *, count: str = None):
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["c","o"])
-@checks.activeraidchannel()
+@checks.raidchannel()
 async def coming(ctx, *, count: str = None):
     """Indicate you are on the way to a raid.
 
@@ -4878,7 +4878,7 @@ async def coming(ctx, *, count: str = None):
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["h"])
-@checks.activeraidchannel()
+@checks.raidchannel()
 async def here(ctx, *, count: str = None):
     """Indicate you have arrived at the raid.
 
@@ -4917,7 +4917,7 @@ async def here(ctx, *, count: str = None):
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["x"])
-@checks.activeraidchannel()
+@checks.raidchannel()
 async def cancel(ctx):
     """Indicate you are no longer interested in a raid.
 

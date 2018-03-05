@@ -1,4 +1,4 @@
-
+import asyncio
 import discord
 from discord.ext import commands
 from discord.ext.commands.errors import CommandError
@@ -184,15 +184,17 @@ def custom_error_handling(bot, logger):
         elif isinstance(error, ActiveRaidChannelCheckFail):
             guild = ctx.guild
             msg = 'Beep Beep! Please use **!{cmd_name}** in an Active Raid channel. Use **!list** in any '.format(cmd_name=ctx.command.name)
-            city_channels = bot.guild_dict[guild.id]['city_channels']
-            if len(city_channels) > 10:
-                msg += 'Region report channel to see active raids.'
-            else:
-                msg += 'of the following Region channels to see active raids:'
-                for c in city_channels:
-                    channel = discord.utils.get(guild.channels, name=c)
-                    msg += '\n' + channel.mention
-            await ctx.channel.send(msg)
+            msg += 'Region report channel to see active raids.'
+            # city_channels = bot.guild_dict[guild.id]['city_channels']
+            # if len(city_channels) > 10:
+            #     msg += 'of the following Region channels to see active raids:'
+            #
+            # for c in city_channels:
+            #     channel = discord.utils.get(guild.channels, name=c)
+            #     msg += '\n' + channel.mention
+            errormsg = await ctx.channel.send(msg)
+            await asyncio.sleep(10)
+            await errormsg.delete()
             pass
         elif isinstance(error, CityRaidChannelCheckFail):
             guild = ctx.guild

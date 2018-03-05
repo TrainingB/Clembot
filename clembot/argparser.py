@@ -65,6 +65,12 @@ def parse_arguments(text, list_of_options, options_methods={}, options_method_op
                     poke_list.append(arg)
                     response['pokemon'] = poke_list
                     args.remove(arg)
+        elif option == 'subcommand':
+            for arg in list(args):
+                if arg == 'assume':
+                    response['subcommand'] = 'assume'
+                    args.remove(arg)
+                    break
         # identify egg level is specified
         elif option == 'egg':
             for arg in list(args):
@@ -159,6 +165,8 @@ def test():
 def test1():
     parse_test("!raidegg 1 clco 0", ['command', 'egg', 'gym_info', 'timer', 'location'])
 
+    parse_test("!raid assume groudon", ['command', 'subcommand', 'pokemon'])
+
 def main():
     try:
         test1()
@@ -169,4 +177,4 @@ def main():
 
 
 # ---------------uncomment this line to test stand alone-------------------------
-# main()
+main()
