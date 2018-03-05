@@ -3425,20 +3425,15 @@ def get_names_from_channel(message, status, mentions=False):
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == status:
             # user = Clembot.get_user_info(trainer)
+            user = message.channel.guild.get_member(trainer)
             if mentions:
-                user = message.channel.guild.get_member(trainer)
-
-                user_name = user.nick if user.nick else user.name
-
-                name_list.append("**{trainer}**".format(trainer=user_name))
+                # name_list.append("**<@!{trainer}>**".format(trainer=trainer))
+                name_list.append(user.mention)
+                # name_list.append("**<@!" + message.author.id + ">**")
             else:
-                user = message.channel.guild.get_member(trainer)
                 user_name = user.nick if user.nick else user.name
-
                 name_list.append("**{trainer}**".format(trainer=user_name))
-            # name_list.append("**<@!{trainer}>**".format(trainer=trainer))
-            # name_list.append(user.mention)
-            # name_list.append("**<@!" + message.author.id + ">**")
+
     if len(name_list) > 0:
         return ','.join(name_list)
     return None
