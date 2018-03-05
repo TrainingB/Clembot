@@ -617,93 +617,98 @@ async def expiry_check(channel):
 
 
 async def expire_channel(channel):
-    guild = channel.guild
-    alreadyexpired = False
-    # print("Expire_Channel - " + channel.name)
-    logger.info("Expire_Channel - " + channel.name)
-    # If the channel exists, get ready to delete it.
-    # Otherwise, just clean up the dict since someone
-    # else deleted the actual channel at some point.
-
-    channel_exists = Clembot.get_channel(channel.id)
-    if channel_exists is None and Clembot.is_logged_in and not Clembot.is_closed:
-        try:
-            del guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]
-        except KeyError:
-            pass
-        return
-    else:
-        dupechannel = False
-        if guild_dict[guild.id]['raidchannel_dict'][channel.id]['active'] == False:
-            alreadyexpired = True
+    try:
+        guild = channel.guild
+        alreadyexpired = False
+        # print("Expire_Channel - " + channel.name)
+        logger.info("Expire_Channel - " + channel.name)
+        # If the channel exists, get ready to delete it.
+        # Otherwise, just clean up the dict since someone
+        # else deleted the actual channel at some point.
+        channel_exists = Clembot.get_channel(channel.id)
+        channel = channel_exists
+        if (channel_exists == None) and (not Clembot.is_closed()):
+            try:
+                del guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]
+            except KeyError:
+                pass
+            return
         else:
-            guild_dict[guild.id]['raidchannel_dict'][channel.id]['active'] = False
-        logger.info("Expire_Channel - Channel Expired - " + channel.name)
-        try:
-            testvar = guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate']
-        except KeyError:
-            guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = 0
-        if guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] >= 3:
-            dupechannel = True
-            guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = 0
-            guild_dict[guild.id]['raidchannel_dict'][channel.id]['exp'] = fetch_current_time(channel.guild.id)
-            if not alreadyexpired:
-                await channel.send( _("""This channel has been successfully reported as a duplicate and will be deleted in 1 minute. Check the channel list for the other raid channel to coordinate in!
-If this was in error, reset the raid with **!timerset**"""))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
-        elif guild_dict[guild.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
-            if not alreadyexpired:
-                maybe_list = []
-                trainer_dict = copy.deepcopy(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['trainer_dict'])
-                for trainer in trainer_dict.keys():
-                    if trainer_dict[trainer]['status'] == 'maybe':
-                        user = await Clembot.get_user_info(trainer)
-                        maybe_list.append(user.mention)
-                await channel.send( _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**. This channel will be deactivated until I get an update and I'll delete it in 15 minutes if I don't hear anything.""").format(trainer_list=", ".join(maybe_list)))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=15).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
-            expiremsg = _("**This level {level} raid egg has expired!**").format(level=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'])
-        else:
-            if not alreadyexpired:
-                await channel.send( _("""This channel timer has expired! The channel has been deactivated and will be deleted in 5 minutes.
-To reactivate the channel, use **!timerset** to set the timer again."""))
-            delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=5).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
-            expiremsg = _("**This {pokemon} raid has expired!**").format(pokemon=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['pokemon'].capitalize())
-        if delete_time:
-            await asyncio.sleep(delete_time)
-        # If the channel has already been deleted from the dict, someone
-        # else got to it before us, so don't do anything.
-        # Also, if the channel got reactivated, don't do anything either.
+            dupechannel = False
+            if guild_dict[guild.id]['raidchannel_dict'][channel.id]['active'] == False:
+                alreadyexpired = True
+            else:
+                guild_dict[guild.id]['raidchannel_dict'][channel.id]['active'] = False
+            logger.info("Expire_Channel - Channel Expired - " + channel.name)
+            try:
+                testvar = guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate']
+            except KeyError:
+                guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = 0
+            if guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] >= 3:
+                dupechannel = True
+                guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = 0
+                guild_dict[guild.id]['raidchannel_dict'][channel.id]['exp'] = fetch_current_time(channel.guild.id)
+                if not alreadyexpired:
+                    await channel.send( _("""This channel has been successfully reported as a duplicate and will be deleted in 1 minute. Check the channel list for the other raid channel to coordinate in! If this was in error, reset the raid with **!timerset**"""))
+                delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
+            elif guild_dict[guild.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
+                if not alreadyexpired:
+                    maybe_list = []
+                    trainer_dict = copy.deepcopy(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['trainer_dict'])
+                    for trainer in trainer_dict.keys():
+                        if trainer_dict[trainer]['status'] == 'maybe':
+                            user = channel.guild.get_member(trainer)
+                            maybe_list.append(user.mention)
+                    new_name = 'hatched-' + channel.name
+                    await channel.edit(name=new_name)
+                    await channel.send( _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**. This channel will be deactivated until I get an update and I'll delete it in 15 minutes if I don't hear anything.""").format(trainer_list=", ".join(maybe_list)))
+                delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=45).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
+                expiremsg = _("**This level {level} raid egg has expired!**").format(level=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'])
+            else:
+                if (not alreadyexpired):
+                    new_name = 'expired-' + channel.name
+                    await channel.edit(name=new_name)
+                    await channel.send( _("""This channel timer has expired! The channel has been deactivated and will be deleted in 5 minutes.To reactivate the channel, use **!timerset** to set the timer again."""))
+                delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=5).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
+                expiremsg = _("**This {pokemon} raid has expired!**").format(pokemon=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['pokemon'].capitalize())
+            if delete_time:
+                await asyncio.sleep(delete_time)
+            # If the channel has already been deleted from the dict, someone
+            # else got to it before us, so don't do anything.
+            # Also, if the channel got reactivated, don't do anything either.
 
-        try:
-            if guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['active'] == False and Clembot.is_logged_in and not Clembot.is_closed:
-                if dupechannel:
+            try:
+                if (guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['active'] == False) and (not Clembot.is_closed()):
+                    if dupechannel:
+                        try:
+                            report_channel = Clembot.get_channel(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['reportcity'])
+                            reportmsg = await report_channel.get_message( guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['raidreport'])
+                            await reportmsg.delete()
+                        except:
+                            pass
+                    else:
+                        try:
+                            report_channel = Clembot.get_channel(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['reportcity'])
+                            reportmsg = await report_channel.get_message( guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['raidreport'])
+                            await reportmsg.edit(embed=discord.Embed(description=expiremsg, colour=channel.guild.me.colour))
+                        except:
+                            pass
                     try:
-                        report_channel = discord.utils.get(channel.guild.channels, name=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['reportcity'])
-                        reportmsg = await report_channel.get_message( guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['raidreport'])
-                        await reportmsg.delete()
-                    except:
+                        del guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]
+                    except KeyError:
                         pass
-                else:
-                    try:
-                        report_channel = discord.utils.get(channel.guild.channels, name=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['reportcity'])
-                        reportmsg = await report_channel.get_message( guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['raidreport'])
-                        await reportmsg.edit(embed=discord.Embed(description=expiremsg, colour=channel.guild.me.colour))
-                    except:
-                        pass
-                try:
-                    del guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]
-                except KeyError:
-                    pass
-                    # channel doesn't exist anymore in guilddict
-                channel_exists = Clembot.get_channel(channel.id)
-                if channel_exists is None:
-                    return
-                else:
-                    await Clembot.delete_channel(channel_exists)
-                    logger.info("Expire_Channel - Channel Deleted - " + channel.name)
-        except:
-            pass
-
+                        # channel doesn't exist anymore in guilddict
+                    channel_exists = Clembot.get_channel(channel.id)
+                    if channel_exists == None:
+                        return
+                    else:
+                        await channel_exists.delete()
+                        logger.info("Expire_Channel - Channel Deleted - " + channel.name)
+            except Exception as error:
+                print(error)
+                pass
+    except Exception as error:
+        print(error)
 
 
 
@@ -712,14 +717,17 @@ async def channel_cleanup(loop=True):
     while (not Clembot.is_closed()):
         global active_raids
         guilddict_chtemp = copy.deepcopy(guild_dict)
-        logger.info("Channel_Cleanup ------ BEGIN ------")
-
-        # for every guild in save data
+        logger.info('Channel_Cleanup ------ BEGIN ------')
+        # for every server in save data
         for guildid in guilddict_chtemp.keys():
             guild = Clembot.get_guild(guildid)
-            log_str = "Channel_Cleanup - Server: " + guild.name
-            logger.info(log_str + " - BEGIN CHECKING SERVER")
-
+            log_str = 'Channel_Cleanup - Server: ' + str(guildid)
+            log_str = log_str + ' - CHECKING FOR SERVER'
+            if guild == None:
+                logger.info(log_str + ': NOT FOUND')
+                continue
+            logger.info(((log_str + ' (') + guild.name) +
+                        ')  - BEGIN CHECKING SERVER')
             # clear channel lists
             dict_channel_delete = []
             discord_channel_delete = []
@@ -733,136 +741,101 @@ async def channel_cleanup(loop=True):
                         logger.info("Channel_Cleanup - Server: " + guild.name + ": Channel:" + channel.name + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
                 except Exception as error:
                     continue
-            # check every raid channel data for each guild
+
+            # check every raid channel data for each server
             for channelid in guilddict_chtemp[guildid]['raidchannel_dict']:
                 channel = Clembot.get_channel(channelid)
-                if channel is None:
-                    del guild_dict[guildid]['raidchannel_dict'][channelid]
-                    logger.info( "Channel_Cleanup - Server: " + guild.name + ": Channel: {channelId} CLEANED UP DICT - DOESN'T EXIST IN DISCORD".format(channelId=channelid))
-                    continue
-                log_str = "Channel_Cleanup - Server: " + guild.name
-                log_str = log_str + ": Channel:" + channel.name
-                logger.info(log_str + " - CHECKING")
-
-                channelmatch = Clembot.get_channel(channel.id)
-
+                log_str = 'Channel_Cleanup - Server: ' + guild.name
+                log_str = (log_str + ': Channel:') + str(channelid)
+                logger.info(log_str + ' - CHECKING')
+                channelmatch = Clembot.get_channel(channelid)
                 if channelmatch == None:
                     # list channel for deletion from save data
-                    dict_channel_delete.append(channel)
+                    dict_channel_delete.append(channelid)
                     logger.info(log_str + " - DOESN'T EXIST IN DISCORD")
-                # otherwise, if clembot can still see the channel in discord
+                # otherwise, if meowth can still see the channel in discord
                 else:
-                    logger.info(log_str + " - EXISTS IN DISCORD")
+                    logger.info(
+                        ((log_str + ' (') + channel.name) + ') - EXISTS IN DISCORD')
                     # if the channel save data shows it's not an active raid
                     if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['active'] == False:
-
                         if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['type'] == 'egg':
-
-                            # and if it has been expired for longer than 15 minutes already
-                            if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.guild.id) - timedelta(minutes=15):
+                            # and if it has been expired for longer than 45 minutes already
+                            if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < (time.time() - (45 * 60)):
                                 # list the channel to be removed from save data
-                                dict_channel_delete.append(channel)
-
+                                dict_channel_delete.append(channelid)
                                 # and list the channel to be deleted in discord
                                 discord_channel_delete.append(channel)
-
-                                logger.info(log_str + " - 15+ MIN EXPIRY NONACTIVE EGG")
+                                logger.info(
+                                    log_str + ' - 15+ MIN EXPIRY NONACTIVE EGG')
                                 continue
-
-                        else:
-
                             # and if it has been expired for longer than 5 minutes already
-                            if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.guild.id) - timedelta(minutes=5):
+                        elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < (time.time() - (5 * 60)):
                                 # list the channel to be removed from save data
-                                dict_channel_delete.append(channel)
-
+                            dict_channel_delete.append(channelid)
                                 # and list the channel to be deleted in discord
-                                discord_channel_delete.append(channel)
-
-                                logger.info(log_str + " - 5+ MIN EXPIRY NONACTIVE RAID")
-                                continue
-
+                            discord_channel_delete.append(channel)
+                            logger.info(
+                                log_str + ' - 5+ MIN EXPIRY NONACTIVE RAID')
+                            continue
                         event_loop.create_task(expire_channel(channel))
-                        logger.info(log_str + " - = RECENTLY EXPIRED NONACTIVE RAID")
+                        logger.info(
+                            log_str + ' - = RECENTLY EXPIRED NONACTIVE RAID')
                         continue
-
                     # if the channel save data shows it as an active raid still
                     elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['active'] == True:
-
                         # if it's an exraid
                         if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['type'] == 'exraid':
+                            logger.info(log_str + ' - EXRAID')
 
-                            logger.info(log_str + " - EXRAID")
                             continue
-
-                        # and if it has been expired for longer than 5 minutes already
-                        elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] and guilddict_chtemp[guild.id]['raidchannel_dict'][channel.id]['exp'] < fetch_current_time(channel.guild.id) - timedelta(minutes=5):
-
-                            # list the channel to be removed from save data
-                            dict_channel_delete.append(channel)
-
-                            # and list the channel to be deleted in discord
-                            discord_channel_delete.append(channel)
-
-                            logger.info(log_str + " - 5+ MIN EXPIRY ACTIVE")
-                            continue
-
                         # or if the expiry time for the channel has already passed within 5 minutes
-                        elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] and guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] <= fetch_current_time(channel.guild.id):
+                        elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] <= time.time():
                             # list the channel to be sent to the channel expiry function
                             event_loop.create_task(expire_channel(channel))
+                            logger.info(log_str + ' - RECENTLY EXPIRED')
 
-                            logger.info(log_str + " - RECENTLY EXPIRED")
                             continue
 
-                        else:
+                        elif channel not in active_raids:
                             # if channel is still active, make sure it's expiry is being monitored
-                            if channel not in active_raids:
-                                event_loop.create_task(expiry_check(channel))
-                                logger.info(log_str + " - MISSING FROM EXPIRY CHECK")
-                                continue
-
+                            event_loop.create_task(expiry_check(channel))
+                            logger.info(
+                                log_str + ' - MISSING FROM EXPIRY CHECK')
+                            continue
             # for every channel listed to have save data deleted
             for c in dict_channel_delete:
                 try:
                     # attempt to delete the channel from save data
-                    del guild_dict[guildid]['raidchannel_dict'][c.id]
-                    logger.info("Channel_Cleanup - Channel Savedata Cleared - " + c.name)
+                    del guild_dict[guildid]['raidchannel_dict'][c]
+                    logger.info(
+                        'Channel_Cleanup - Channel Savedata Cleared - ' + str(c))
                 except KeyError:
                     pass
-
+            # for every channel listed to have the discord channel deleted
+            for c in discord_channel_delete:
                 try:
-                    # delete channel if it still exists in discord
+                    # delete channel from discord
                     await c.delete()
-                    logger.info("Channel_Cleanup - Channel Deleted - " + c.name)
-                except Exception as error:
-                    await _print(Clembot.owner, "Channel_Cleanup - Channel Deletion Failure - " + c.guild.name + " "  + c.name + " >> " + error)
-                    logger.info("Channel_Cleanup - Channel Deletion Failure - " + c.name)
-
+                    logger.info(
+                        'Channel_Cleanup - Channel Deleted - ' + c.name)
+                except:
+                    logger.info(
+                        'Channel_Cleanup - Channel Deletion Failure - ' + c.name)
                     pass
-
-            # # for every channel listed to have the discord channel deleted
-            # for c in discord_channel_delete:
-            #     try:
-            #         # delete channel from discord
-            #         await c.delete()
-            #         logger.info("Channel_Cleanup - Channel Deleted - " + c.name)
-            #     except Exception as error:
-            #         logger.info("Channel_Cleanup - Channel Deletion Failure - " + c.name)
-            #         await _print(Clembot.owner, "Channel_Cleanup - Channel Deletion Failure -" + c.guild.name + " " + c.name + " >> " + error)
-            #         pass
-
-
-        # save guild_dict changes after cleanup
-        logger.info("Channel_Cleanup - SAVING CHANGES")
+        # save server_dict changes after cleanup
+        logger.info('Channel_Cleanup - SAVING CHANGES')
         try:
             await _save()
         except Exception as err:
-            logger.info("Channel_Cleanup - SAVING FAILED" + err)
-        logger.info("Channel_Cleanup ------ END ------")
-
-        await asyncio.sleep(600)  # 600 default
+            logger.info('Channel_Cleanup - SAVING FAILED' + err)
+        logger.info('Channel_Cleanup ------ END ------')
+        await asyncio.sleep(600)
         continue
+
+
+
+
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.is_owner()
@@ -885,6 +858,9 @@ async def mysetup(ctx):
 @Clembot.command(pass_context=True, hidden=True)
 @checks.is_owner()
 async def cleanup(ctx):
+
+    await ctx.channel.delete()
+
     await channel_cleanup()
 
 
@@ -2824,7 +2800,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-		'reportcity': message.channel.name,
+		'reportcity': message.channel.id,
 		'trainer_dict': {},
 		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
         'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
@@ -3008,7 +2984,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-		'reportcity': message.channel.name,
+		'reportcity': message.channel.id,
 		'trainer_dict': {},
 		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
         'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
@@ -3569,7 +3545,7 @@ async def process_map_link(message, newloc=None):
     oldraidmsgid = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['raidmessage']
     oldreportmsgid = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['raidreport']
 
-    reportcitychannel = discord.utils.get(message.channel.guild.channels, name=reportcityid)
+    reportcitychannel = Clembot.get_channel(reportcityid)
 
     oldraidmsg = await message.channel.get_message(oldraidmsgid)
     oldreportmsg = await reportcitychannel.get_message(oldreportmsgid)
@@ -3697,7 +3673,7 @@ Message **!starting** when the raid is beginning to clear the raid's 'here' list
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel] = {
-        'reportcity': channel.name,
+        'reportcity': channel.id,
         'trainer_dict': {},
         'exp': None,  # No expiry
         'manual_timer': False,
@@ -3767,7 +3743,7 @@ async def _raidparty(message):
     raidmessage = await raid_channel.send( content=raidmsg)
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-        'reportcity': message.channel.name,
+        'reportcity': message.channel.id,
         'trainer_dict': {},
         'exp': None,  # No expiry
         'manual_timer': False,
@@ -3917,7 +3893,7 @@ async def _raidegg(message):
             raidmessage = await raid_channel.send(content=raidmsg, embed=raid_embed)
 
             guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-                'reportcity': message.channel.name,
+                'reportcity': message.channel.id,
                 'trainer_dict': {},
                 'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer),  # One hour from now
                 'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
@@ -3982,7 +3958,7 @@ async def _eggtoraid(entered_raid, channel):
     eggdetails = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]
     egglevel = eggdetails['egglevel']
     reportcity = eggdetails['reportcity']
-    reportcitychannel = discord.utils.get(channel.guild.channels, name=reportcity)
+    reportcitychannel = Clembot.get_channel(reportcity)
     manual_timer = eggdetails['manual_timer']
     trainer_dict = eggdetails['trainer_dict']
     egg_address = eggdetails['address']
@@ -4718,9 +4694,9 @@ async def beep(ctx):
 @Clembot.command()
 @checks.activeraidchannel()
 async def weather(ctx, *, weather):
-    "Sets the weather for the raid. \nUsage: !weather <weather> \nOnly usable in raid channels. \n Acceptable options: none, extreme, clear, rainy, partlycloudy, cloudy, windy, snow, fog"
+    "Sets the weather for the raid. \nUsage: !weather <weather> \nOnly usable in raid channels. \n Acceptable options: none, extreme, clear, rainy, partlycloudy, cloudy, windy, snowy, foggy"
     weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy',
-                    'partlycloudy', 'cloudy', 'windy', 'snow', 'fog']
+                    'partlycloudy', 'cloudy', 'windy', 'snowy', 'foggy']
     if weather.lower() not in weather_list:
         return await ctx.channel.send("Beep Beep! Enter one of the following weather conditions: {}".format(", ".join(weather_list)))
     else:
@@ -4749,7 +4725,7 @@ async def counters(ctx, *, entered_pkmn = None):
             if not weather:
                 weather = "NO_WEATHER"
             else:
-                weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy', 'partlycloudy', 'cloudy', 'windy', 'snow', 'fog']
+                weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy', 'partlycloudy', 'cloudy', 'windy', 'snowy', 'foggy']
                 match_list = ['NO_WEATHER', 'NO_WEATHER', 'CLEAR', 'CLEAR', 'RAINY', 'PARTLY_CLOUDY', 'OVERCAST', 'WINDY', 'SNOW', 'FOG']
                 if not weather.lower() in weather_list:
                     msg = "Please pick a valid weather option."
@@ -5834,7 +5810,7 @@ async def makeitraidparty(ctx):
     message = ctx.message
 
     guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id] = {
-        'reportcity': message.channel.name,
+        'reportcity': message.channel.id,
         'trainer_dict': {},
         'exp': None,  # No expiry
         'manual_timer': False,
@@ -5859,7 +5835,7 @@ async def reset(ctx):
     message = ctx.message
 
     guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id] = {
-        'reportcity': message.channel.name,
+        'reportcity': message.channel.id,
         'trainer_dict': {},
         'exp': None,  # No expiry
         'manual_timer': False,
@@ -6311,7 +6287,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 
 
         guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-		'reportcity': message.channel.name,
+		'reportcity': message.channel.id,
 		'trainer_dict': {},
 		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer),  # One hour from now
 		'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
