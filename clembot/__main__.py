@@ -2698,7 +2698,7 @@ async def _newraid(message):
 
     argument_text = message.clean_content.lower()
     parameters = argparser.parse_arguments(argument_text, raid_SYNTAX_ATTRIBUTE , {'pokemon' : is_pokemon_valid, 'gym_info' : get_gym_by_code} , {'message' : message})
-    print(parameters)
+    logger.info(parameters)
 
     if fromegg and parameters['length'] > 2:
         await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
@@ -2822,7 +2822,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 """).format(pokemon=raid_role, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
-    print(guild_dict[message.guild.id]['raidchannel_dict'])
+
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
 		'reportcity': message.channel.name,
 		'trainer_dict': {},
@@ -3006,7 +3006,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 """).format(pokemon=raid_role, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
-    print(guild_dict[message.guild.id]['raidchannel_dict'])
+
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
 		'reportcity': message.channel.name,
 		'trainer_dict': {},
@@ -3021,7 +3021,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 		'egglevel': '0',
 		'suggested_start': False
 		}
-    print(guild_dict[message.guild.id]['raidchannel_dict'])
+
 
     if channel_role:
         await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
@@ -3825,7 +3825,7 @@ async def raidegg(ctx):
 async def _raidegg(message):
         argument_text = message.clean_content.lower()
         parameters = argparser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE , {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code} , {'message' : message})
-        print(parameters)
+        logger.info(parameters)
 
         if parameters['length'] <= 2:
             await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
