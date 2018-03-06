@@ -4713,7 +4713,7 @@ async def weather(ctx):
         raid_weather = guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id].get('weather', None)
         if raid_weather:
             return await ctx.channel.send("Beep Beep! The current weather is {}!".format(get_weather(ctx.guild, raid_weather)))
-        return await ctx.channel.send("Beep Beep! Please use **!weather <weather> to set weather for the raid. valid weather conditions are : {}".format(", ".join(weather_list)))
+        return await ctx.channel.send("Beep Beep! Please use **!weather <weather>** to set weather for the raid. valid weather conditions are : {}".format(", ".join(weather_list)))
 
 @Clembot.command()
 @checks.activeraidchannel()
