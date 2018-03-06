@@ -3477,38 +3477,38 @@ async def _cancel(message):
 
 @Clembot.event
 async def on_message(message):
-    # print(guild_dict)
-    if message.guild is not None:
-        if 'contest_channel' in guild_dict[message.guild.id]:
-            if message.channel.id in guild_dict[message.guild.id]['contest_channel'] and guild_dict[message.guild.id]['contest_channel'][message.channel.id].get('started', False) == True:
-                await contestEntry(message)
-                return
-
-        raid_status = guild_dict[message.guild.id]['raidchannel_dict'].get(message.channel.id, None)
-        if raid_status is not None:
-            if guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['active']:
-                trainer_dict = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
-                if message.author.id in trainer_dict:
-                    count = trainer_dict[message.author.id]['count']
-                else:
-                    count = 1
-                omw_emoji = parse_emoji(message.guild, config['omw_id'])
-                if message.content.startswith(omw_emoji):
-                    emoji_count = message.content.count(omw_emoji)
-                    await _coming(message, emoji_count)
-                    return
-                here_emoji = parse_emoji(message.guild, config['here_id'])
-                if message.content.startswith(here_emoji):
-                    emoji_count = message.content.count(here_emoji)
-                    await _here(message, emoji_count)
-                    return
-                if "/maps" in message.content:
-                    if message.content.startswith("!update") == False:
-                        await process_map_link(message)
-                        return
-    messagelist = message.content.split(" ")
-    message.content = messagelist.pop(0).lower() + " " + " ".join(messagelist)
     try:
+    # print(guild_dict)
+        if message.guild is not None:
+            if 'contest_channel' in guild_dict[message.guild.id]:
+                if message.channel.id in guild_dict[message.guild.id]['contest_channel'] and guild_dict[message.guild.id]['contest_channel'][message.channel.id].get('started', False) == True:
+                    await contestEntry(message)
+                    return
+
+            raid_status = guild_dict[message.guild.id]['raidchannel_dict'].get(message.channel.id, None)
+            if raid_status is not None:
+                if guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['active']:
+                    trainer_dict = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
+                    if message.author.id in trainer_dict:
+                        count = trainer_dict[message.author.id]['count']
+                    else:
+                        count = 1
+                    omw_emoji = parse_emoji(message.guild, config['omw_id'])
+                    if message.content.startswith(omw_emoji):
+                        emoji_count = message.content.count(omw_emoji)
+                        await _coming(message, emoji_count)
+                        return
+                    here_emoji = parse_emoji(message.guild, config['here_id'])
+                    if message.content.startswith(here_emoji):
+                        emoji_count = message.content.count(here_emoji)
+                        await _here(message, emoji_count)
+                        return
+                    if "/maps" in message.content:
+                        if message.content.startswith("!update") == False:
+                            await process_map_link(message)
+                            return
+        messagelist = message.content.split(" ")
+        message.content = messagelist.pop(0).lower() + " " + " ".join(messagelist)
         await Clembot.process_commands(message)
     except Exception as error:
         print("error while processing message {message} : {error}".format(message=message.content,error=error) )
