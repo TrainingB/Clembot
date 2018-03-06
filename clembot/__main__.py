@@ -4689,7 +4689,7 @@ async def beep(ctx):
 
 
 #         pokebattler integration
-weather_list = ['none', 'extreme', 'clear', 'rainy', 'partlycloudy', 'cloudy', 'windy', 'snowy', 'foggy']
+weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy', 'partlycloudy', 'cloudy', 'windy', 'snowy', 'foggy']
 
 
 @Clembot.command()
@@ -4763,8 +4763,7 @@ async def _counters(ctx, pkmn, user = None, weather = None):
     if not weather:
         weather = "NO_WEATHER"
     else:
-        weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy',
-                        'partlycloudy', 'cloudy', 'windy', 'snow', 'fog']
+
         match_list = ['NO_WEATHER','NO_WEATHER','CLEAR','CLEAR','RAINY',
                         'PARTLY_CLOUDY','OVERCAST','WINDY','SNOW','FOG']
         index = weather_list.index(weather)
