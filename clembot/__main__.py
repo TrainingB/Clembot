@@ -2262,7 +2262,7 @@ async def _reset_register(ctx):
 async def _show_register(ctx):
     notifications = copy.deepcopy(guild_dict[ctx.message.guild.id]['notifications'])
     new_notifications_map = {'notifications': {'roles': [], 'gym_role_map': {}}}
-
+    print(notifications)
     role_map = {}
 
     for role_id in notifications['roles']:
