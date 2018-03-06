@@ -761,7 +761,7 @@ async def channel_cleanup(loop=True):
                     if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['active'] == False:
                         if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['type'] == 'egg':
                             # and if it has been expired for longer than 45 minutes already
-                            if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < (time.time() - (45 * 60)):
+                            if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.guild.id) - timedelta(minutes=45):
                                 # list the channel to be removed from save data
                                 dict_channel_delete.append(channelid)
                                 # and list the channel to be deleted in discord
@@ -770,7 +770,7 @@ async def channel_cleanup(loop=True):
                                     log_str + ' - 15+ MIN EXPIRY NONACTIVE EGG')
                                 continue
                             # and if it has been expired for longer than 5 minutes already
-                        elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < (time.time() - (5 * 60)):
+                        elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.guild.id) - timedelta(minutes=5):
                                 # list the channel to be removed from save data
                             dict_channel_delete.append(channelid)
                                 # and list the channel to be deleted in discord
@@ -790,7 +790,7 @@ async def channel_cleanup(loop=True):
 
                             continue
                         # or if the expiry time for the channel has already passed within 5 minutes
-                        elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] <= time.time():
+                        elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.guild.id):
                             # list the channel to be sent to the channel expiry function
                             event_loop.create_task(expire_channel(channel))
                             logger.info(log_str + ' - RECENTLY EXPIRED')
@@ -858,8 +858,7 @@ async def mysetup(ctx):
 @Clembot.command(pass_context=True, hidden=True)
 @checks.is_owner()
 async def cleanup(ctx):
-
-    await ctx.channel.delete()
+    # await ctx.channel.delete()
 
     await channel_cleanup()
 
@@ -4690,23 +4689,126 @@ async def beep(ctx):
 
 
 #         pokebattler integration
+weather_list = ['none', 'extreme', 'clear', 'rainy', 'partlycloudy', 'cloudy', 'windy', 'snowy', 'foggy']
+
 
 @Clembot.command()
 @checks.activeraidchannel()
-async def weather(ctx, *, weather):
+async def weather(ctx):
     "Sets the weather for the raid. \nUsage: !weather <weather> \nOnly usable in raid channels. \n Acceptable options: none, extreme, clear, rainy, partlycloudy, cloudy, windy, snowy, foggy"
-    weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy',
-                    'partlycloudy', 'cloudy', 'windy', 'snowy', 'foggy']
-    if weather.lower() not in weather_list:
-        return await ctx.channel.send("Beep Beep! Enter one of the following weather conditions: {}".format(", ".join(weather_list)))
+
+    weather_split = ctx.message.clean_content.lower().split()
+
+    if len(weather_split) >= 2:
+        del weather_split[0]
+        weather = weather_split[0]
+
+
+        if weather.lower() not in weather_list:
+            return await ctx.channel.send("Beep Beep! valid weather conditions are : {}".format(", ".join(weather_list)))
+        else:
+            guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]['weather'] = weather.lower()
+            return await ctx.channel.send("Beep Beep! Weather set to {}!".format(get_weather(ctx.guild, weather)))
     else:
-        guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]['weather'] = weather.lower()
-        return await ctx.channel.send("Beep Beep! Weather set to {}!".format(get_weather(ctx.guild,weather)))
+        raid_weather = guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id].get('weather', None)
+        if raid_weather:
+            await ctx.channel.send("Beep Beep! The current weather is {}!".format(get_weather(ctx.guild, raid_weather)))
+        return await ctx.channel.send("Beep Beep! Please use **!weather <weather> to set weather for the raid. valid weather conditions are : {}".format(", ".join(weather_list)))
+
+@Clembot.command()
+@checks.activeraidchannel()
+async def counters(ctx, *, args = None):
+    """Simulate a Raid battle with Pokebattler.
+
+    Usage: !counters [pokemon] [weather] [user]
+    See !help weather for acceptable values for weather.
+    If [user] is a valid Pokebattler user id, Meowth will simulate the Raid with that user's Pokebox.
+    Only usable in raid channels. Uses current boss and weather by default.
+    """
+    channel = ctx.channel
+    guild = channel.guild
+    if args:
+        args_split = args.split()
+        for arg in args_split:
+            if arg.isdigit():
+                user = arg
+                break
+        else:
+            user = None
+        rgx = '[^a-zA-Z0-9]'
+        pkmn = next((str(p) for p in get_raidlist() if not str(p).isdigit() and re.sub(rgx, '', str(p)) in re.sub(rgx, '', args.lower())), None)
+        if not pkmn:
+            pkmn = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('pokemon', None)
+        weather = next((w for w in weather_list if re.sub(rgx, '', w) in re.sub(rgx, '', args.lower())), None)
+    else:
+        pkmn = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('pokemon', None)
+        weather = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('weather', None)
+        user = None
+    if not pkmn:
+        await ctx.channel.send("Beep Beep! Enter a Pokemon that appears in raids, or wait for this raid egg to hatch!")
+        return
+    await _counters(ctx, pkmn, user, weather)
+
+
+async def _counters(ctx, pkmn, user = None, weather = None):
+    img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/master/images/pkmn/{0}_.png?cache=2'.format(str(get_number(pkmn)).zfill(3))
+    level = get_level(pkmn) if get_level(pkmn).isdigit() else "5"
+    url = "https://fight.pokebattler.com/raids/defenders/{pkmn}/levels/RAID_LEVEL_{level}/attackers/".format(pkmn=pkmn.replace('-','_').upper(),level=level)
+    if user:
+        url += "users/{user}/".format(user=user)
+        userstr = "user #{user}'s".format(user=user)
+    else:
+        url += "levels/30/"
+        userstr = "Level 30"
+    if not weather:
+        weather = "NO_WEATHER"
+    else:
+        weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy',
+                        'partlycloudy', 'cloudy', 'windy', 'snow', 'fog']
+        match_list = ['NO_WEATHER','NO_WEATHER','CLEAR','CLEAR','RAINY',
+                        'PARTLY_CLOUDY','OVERCAST','WINDY','SNOW','FOG']
+        index = weather_list.index(weather)
+        weather = match_list[index]
+    url += "strategies/CINEMATIC_ATTACK_WHEN_POSSIBLE/DEFENSE_RANDOM_MC?sort=OVERALL&"
+    url += "weatherCondition={weather}&dodgeStrategy=DODGE_REACTION_TIME&aggregation=AVERAGE".format(weather=weather)
+    async with ctx.typing():
+        async with aiohttp.ClientSession() as sess:
+            async with sess.get(url) as resp:
+                data = await resp.json()
+
+        title_url = url.replace('https://fight', 'https://www')
+        colour = ctx.guild.me.colour
+        hyperlink_icon = 'https://i.imgur.com/fn9E5nb.png'
+        pbtlr_icon = 'https://www.pokebattler.com/favicon-32x32.png'
+        data = data['attackers'][0]
+        raid_cp = data['cp']
+        atk_levels = '30'
+        ctrs = data['randomMove']['defenders'][-6:]
+        index = 1
+        def clean(txt):
+            return txt.replace('_', ' ').title()
+        title = '{pkmn} | {weather}'.format(pkmn=pkmn.title(),weather=clean(weather))
+        stats_msg = "**CP:** {raid_cp}\n".format(raid_cp=raid_cp)
+        stats_msg += "**Weather:** {weather}\n".format(weather=clean(weather))
+        stats_msg += "**Attacker Level:** {atk_levels}".format(atk_levels=atk_levels)
+        ctrs_embed = discord.Embed(colour=colour)
+        ctrs_embed.set_author(name=title,url=title_url,icon_url=hyperlink_icon)
+        ctrs_embed.set_thumbnail(url=img_url)
+        ctrs_embed.set_footer(text='Results courtesy of Pokebattler', icon_url=pbtlr_icon)
+        for ctr in reversed(ctrs):
+            ctr_name = clean(ctr['pokemonId'])
+            moveset = ctr['byMove'][-1]
+            moves = "{move1} | {move2}".format(move1=clean(moveset['move1'])[:-5], move2=clean(moveset['move2']))
+            name = "#{index} - {ctr_name}".format(index=index, ctr_name=ctr_name)
+            ctrs_embed.add_field(name=name,value=moves)
+            index += 1
+        ctrs_embed.add_field(name="Results with {userstr} attackers".format(userstr=userstr), value="[See your personalized results!](https://www.pokebattler.com/raids/{pkmn})".format(pkmn=pkmn.replace('-','_').upper()))
+        await ctx.channel.send(embed=ctrs_embed)
 
 
 @Clembot.command()
 @checks.activeraidchannel()
-async def counters(ctx, *, entered_pkmn = None):
+async def countersold(ctx, *, entered_pkmn = None):
     """Simulate a Raid battle with Pokebattler.
 
     Usage: !counters
