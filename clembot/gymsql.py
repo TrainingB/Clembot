@@ -160,12 +160,14 @@ def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
         if cursor == None:
             connect()
 
-        statement = "select json from gym_master where city_state_key = '{city_state_key}' and gym_code_key like '{gym_code_key}%' order by gym_code_key ".format(city_state_key=city_state_key, gym_code_key=gym_code_key)
+        statement = "select * from gym_master where city_state_key = ? and gym_code_key like ? order by gym_code_key "
 
         # print(statement)
-        cursor.execute(statement)
+
+        cursor.execute(statement, (city_state_key, gym_code_key+"%", ))
 
         all_rows = cursor.fetchall()
+        col_names = [cn[0] for cn in cursor.description]
 
         gym_list = []
 
@@ -173,109 +175,156 @@ def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
             return None
 
         for row in all_rows:
-            gym_list.append(json.loads(row[0]))
+            gym_list.append(convert_row_to_dict(row, col_names))
 
         return gym_list
     except Exception as error:
         print(error)
 
-    return None
+    return []
 
 def get_gym_by_code(city_state_key, gym_code_key):
     try:
         print("get_gym_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
 
-        global cursor
-        if cursor == None:
-            connect()
+        return find_gym(city_state_key, gym_code_key)
 
-        statement = "select json from gym_master where city_state_key = ? and gym_code_key = ? "
-
-        # print(statement)
-        cursor.execute(statement, (city_state_key,gym_code_key.upper(),))
-
-        all_rows = cursor.fetchall()
-
-        gym_list = []
-
-        if len(all_rows) < 1:
-            return None
-
-        for row in all_rows:
-            gym_list.append(json.loads(row[0]))
-
-        return gym_list[0]
     except Exception as error:
         print(error)
 
     return None
 
 
-def update_gym(gym_code_key, field_name, field_value):
+def convert_row_to_dict(row, col_names)-> {}:
+
+    gym_info_dict = {}
+    for i in range(0, len(col_names) - 1):
+        gym_info_dict[col_names[i]] = row[i]
+
+    return gym_info_dict
+
+def find_gym(city_state_key, gym_code_key):
+    try:
+        print("find_gym({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
+
+        global cursor
+        if cursor == None:
+            connect()
+
+        cursor.execute("select * from gym_master where gym_code_key = ? and city_state_key = ? ", (gym_code_key, city_state_key,))
+
+        all_rows = cursor.fetchall()
+
+        col_names = [cn[0] for cn in cursor.description]
+
+        gym_dict = {}
+
+        if len(all_rows) > 0:
+            gym_dict = convert_row_to_dict(all_rows[0], col_names)
+
+        return gym_dict
+    except Exception as error:
+        print(error)
+
+    return None
+
+
+def update_gym_info(gym_info):
+    print(gym_info)
+
+    try:
+        global cursor
+        if cursor == None:
+            connect()
+        parameter_list = []
+        update_statement = "update gym_master set "
+        for key, value in gym_info.items():
+            print(key)
+            print(value)
+            update_statement = update_statement + " {key} = ? ,".format(key=key)
+            parameter_list.append(value)
+
+        update_statement = update_statement[:-1]
+        update_statement = update_statement + " where gym_code_key = ? and city_state_key = ? "
+
+        parameter_list.append(gym_info['gym_code_key'])
+        parameter_list.append(gym_info['city_state_key'])
+
+        print(update_statement)
+        print(parameter_list)
+
+
+        cursor.execute(update_statement, parameter_list)
+        connection.commit()
+    except Exception as error:
+        print(error)
+
+
+def update_gym(city_state_key, gym_code_key, field_name, field_value):
     print("update_gym({gym_code_key} [ {field_name} = {field_value} ] )".format(gym_code_key=gym_code_key, field_name=field_name, field_value=field_value))
     try:
         global cursor
         if cursor == None:
             connect()
 
-        statement = "update gym_master set {field_name} = ? where gym_code_key = ? ".format(field_name=field_name)
+        statement = "update gym_master set {field_name} = ? where gym_code_key = ? and city_state_key = ? ".format(field_name=field_name)
         # print(statement)
 
-        cursor.execute(statement, (field_value,gym_code_key,))
-        connection.commit()
-
-        if field_name == 'GYM_CODE_KEY':
-            update_json(field_value)
-        else :
-            update_json(gym_code_key)
-
-    except Exception as error:
-        print(error)
-
-
-def update_json(gym_code_key):
-    print("update_json({gym_code_key})".format(gym_code_key=gym_code_key))
-    try:
-        global cursor
-        if cursor == None:
-            connect()
-
-        cursor.execute("select * from gym_master where gym_code_key like '{gym_code_key}%' ".format(gym_code_key=gym_code_key.upper()))
-
-        col_names = [cn[0] for cn in cursor.description]
-
-        all_rows = cursor.fetchall()
-
-        row = all_rows[0]
-
-        text = "{" \
-            "\"" + col_names[0] + "\":\"" + row[0] + "\"," \
-            "\"" + col_names[1] + "\":\"" + row[1] + "\"," \
-            "\"" + col_names[2] + "\":\"" + row[2] + "\"," \
-            "\"" + col_names[3] + "\":\"" + row[3] + "\"," \
-            "\"" + col_names[4] + "\":\"" + row[4] + "\"," \
-            "\"" + col_names[5] + "\":\"" + row[5] + "\"," \
-            "\"" + col_names[6] + "\":\"" + row[6] + "\"," \
-            "\"" + col_names[7] + "\":\"" + row[7] + "\"," \
-            "\"" + col_names[8] + "\":\"" + row[8] + "\"," \
-            "\"" + col_names[9] + "\":\"" + row[9] + "\"," \
-            "\"" + col_names[10] + "\":\"" + row[10] + "\"," \
-            "\"" + col_names[11] + "\":\"" + row[11] + "\"," \
-            "\"" + col_names[12] + "\":\"" + row[12] + "\"," \
-            "\"" + col_names[13] + "\":\"" + row[13] + "\"" \
-            "}"
-
-        statement = "UPDATE gym_master set json='{json}' where gym_code_key='{gym_code_key}'".format(json=text, gym_code_key=gym_code_key)
-
-        # print(statement)
-
-        cursor.execute(statement)
+        cursor.execute(statement, (field_value,gym_code_key,city_state_key))
         connection.commit()
 
     except Exception as error:
         print(error)
 
-    return
+
+# def update_json(city_state_key, gym_code_key):
+#     print("update_json({city_state_key} , {gym_code_key})".format(city_state_key=city_state_key,gym_code_key=gym_code_key))
+#     try:
+#         global cursor
+#         if cursor == None:
+#             connect()
+#
+#         statement = "UPDATE gym_master set JSON = '{' || ' \"region_code_key\":"' ||region_code_key || '",' ||' \"city_state_key\":"' ||city_state_key || '",' ||' \"gym_code_key\":"' ||gym_code_key || '",' ||' \"original_gym_name\":"' ||original_gym_name || '",' ||' \"gym_name\":"' ||gym_name || '",' ||' \"latitude\":"' ||latitude || '",' ||' \"longitude\":"' ||longitude || '",' ||' \"gym_location_city\":"' ||gym_location_city || '",' ||' \"gym_location_state\":"' ||gym_location_state || '",' ||' \"gmap_url\":"' ||gmap_url || '",' ||' \"gym_image\":"' ||gym_image || '"}'  where city_state_key=? AND gym_code_key=? "
+#
+#         print(statement)
+#
+#         # statement = "select * from gym_master where gym_code_key = '{gym_code_key}' and city_state_key = ? ".format(gym_code_key=gym_code_key.upper())
+#         # cursor.execute(statement, (city_state_key, gym_code_key))
+#         #
+#         # col_names = [cn[0] for cn in cursor.description]
+#         #
+#         # all_rows = cursor.fetchall()
+#         #
+#         # row = all_rows[0]
+#         #
+#         # text = "{" \
+#         #     "\"" + col_names[0] + "\":\"" + row[0] + "\"," \
+#         #     "\"" + col_names[1] + "\":\"" + row[1] + "\"," \
+#         #     "\"" + col_names[2] + "\":\"" + row[2] + "\"," \
+#         #     "\"" + col_names[3] + "\":\"" + row[3] + "\"," \
+#         #     "\"" + col_names[4] + "\":\"" + row[4] + "\"," \
+#         #     "\"" + col_names[5] + "\":\"" + row[5] + "\"," \
+#         #     "\"" + col_names[6] + "\":\"" + row[6] + "\"," \
+#         #     "\"" + col_names[7] + "\":\"" + row[7] + "\"," \
+#         #     "\"" + col_names[8] + "\":\"" + row[8] + "\"," \
+#         #     "\"" + col_names[9] + "\":\"" + row[9] + "\"," \
+#         #     "\"" + col_names[10] + "\":\"" + row[10] + "\"," \
+#         #     "\"" + col_names[11] + "\":\"" + row[11] + "\"," \
+#         #     "\"" + col_names[12] + "\":\"" + row[12] + "\"," \
+#         #     "\"" + col_names[13] + "\":\"" + row[13] + "\"" \
+#         #     "}"
+#         #
+#         # statement = "UPDATE gym_master set json=? where gym_code_key = ? and city_state_key = ? ".format(json=text)
+#
+#         # print(statement)
+#
+#         cursor.execute(statement, (gym_code_key, city_state_key,))
+#         connection.commit()
+#
+#     except Exception as error:
+#         print(error)
+#
+#     return
 
 
 def convert_into_gym_info(gym_info):
@@ -366,8 +415,8 @@ def main():
 
 def gyms_test():
     set_db_name(SQLITE_DB)
-    print(get_gym_list_by_code('NORTHHILLSCA', 'BIJI'))
-    print(convert_into_gym_info(get_gym_list_by_code('NORTHHILLSCA', 'BIJI')[0]))
+    # print(get_gym_list_by_code('NORTHHILLSCA', 'BIJI'))
+    # print(convert_into_gym_info(get_gym_list_by_code('NORTHHILLSCA', 'BIJI')[0]))
 
 def configuration_test():
     configuration = {}
@@ -395,9 +444,9 @@ def print_list(dict_list):
 def gyms_lookup_test():
 
     set_db_name(SQLITE_DB)
-    print_list(get_gym_list_by_code('SPRINGFIELDIL', 'RIPA'))
-
-    print(get_gym_by_code('SPRINGFIELDIL', 'RIPA'))
+    # print_list(get_gym_list_by_code('SPRINGFIELDIL', 'RIPA'))
+    #
+    # print(get_gym_by_code('SPRINGFIELDIL', 'RIPA'))
 
 
 
@@ -428,3 +477,26 @@ def gyms_lookup_test():
 #
 # rows = get_gym_list_by_code("NORTHHILLSCA", "BIJI")
 # print(rows[0]['GYM_CODE_KEY'])
+
+#
+# print(find_gym('SPRINGFIELDIL','CEILPU'))
+#
+# update_json('SPRINGFIELDIL','CEILPU')
+
+
+# print(get_gym_list_by_code('BURBANKCA' , 'POROFO'))
+
+
+def test_update(text):
+
+    print(find_gym('BURBANKCA', 'GRMA'))
+
+    gym_info = json.loads(text)
+
+
+    update_gym_info(gym_info)
+
+    print(find_gym('BURBANKCA', 'GRMA'))
+
+
+# test_update('{"city_state_key": "BURBANKCA","gmap_url": "https://www.google.com/maps?q=34.164256,-118.292803","gym_code_key": "GRMA","gym_image": "https://lh4.ggpht.com/HPzAb_J2iuzAsmXue0B9mBpKwjo-g5zUWIbB_4v75WJC6oEo0MOD0RnaIlZyDaZAFM1xkefEx5ek4G4bk3w","gym_location_city": "BURBANK","gym_location_state": "CA","gym_name": "Griffith Manor Park (Ex-eligible)","latitude": "34.164256","longitude": "-118.292803","original_gym_name": "Griffith Manor Park","region_code_key": "BAG","word_1": "GR","word_2": "MA","word_3": "PA"}')

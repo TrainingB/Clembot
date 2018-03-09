@@ -1881,7 +1881,7 @@ async def analyze(ctx, *, count: str = None):
 
     map_users = {}
     try:
-        async for message in Clembot.logs_from(channel, limit=limit):
+        async for message in channel.history(limit=limit):
             if len(message.attachments) > 0:
                 map_users.update({message.author.mention: map_users.get(message.author.mention, 0) + 1})
     except Exception as error:
@@ -2260,7 +2260,10 @@ async def _reset_register(ctx):
 @Clembot.command(pass_context=True, aliases=["show-register"])
 @commands.has_permissions(manage_guild=True)
 async def _show_register(ctx):
-    notifications = copy.deepcopy(guild_dict[ctx.message.guild.id]['notifications'])
+
+    add_notifications_guild_dict(ctx.guild.id)
+
+    notifications = copy.deepcopy(guild_dict[ctx.guild.id]['notifications'])
     new_notifications_map = {'notifications': {'roles': [], 'gym_role_map': {}}}
     print(notifications)
     role_map = {}
@@ -2276,6 +2279,46 @@ async def _show_register(ctx):
         new_notifications_map['notifications']['gym_role_map'][gym_code] = role_name
 
     await ctx.message.channel.send( content=json.dumps(new_notifications_map, indent=4, sort_keys=True))
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["find-gym"])
+@commands.has_permissions(manage_guild=True)
+async def find_gym(ctx):
+    await _find_gym(ctx.message)
+
+
+async def _find_gym(message):
+    try :
+        message = message
+
+        args = message.content
+        args_split = args.split(" ")
+        del args_split[0]
+
+        gym_code = args_split[0].upper()
+
+        if 0 < len(args_split) < 2 :
+            city = read_channel_city(message)
+            gym_dict = gymsql.find_gym(city,args_split[0])
+            if len(gym_dict) == 0:
+                return await message.channel.send(content="Beep Beep...! I couldn't find a match for {gym_code} in {city_code}".format(gym_code=gym_code, city_code=city))
+
+            embed_title = _("**Gym Name**: {gymcode} [{citycode}]!").format(gymcode=gym_dict['gym_name'],citycode=city)
+            embed_desription = json.dumps(gym_dict, indent=4, sort_keys=True)
+
+            raid_embed = discord.Embed(title=embed_title, description=embed_desription)
+
+            embed_map_image_url = fetch_gmap_image_link(gym_dict['latitude'] + "," + gym_dict['longitude'])
+            raid_embed.set_image(url=embed_map_image_url)
+
+            raid_embed.set_thumbnail(url=gym_dict['gym_image'])
+            roster_message = "here are the gym details! "
+
+            return await message.channel.send(content=_("Beep Beep! {member} {message}".format(member=message.author.mention, message=roster_message)), embed=raid_embed)
+        else:
+            await message.channel.send(content="Beep Beep...! provide gym-code for lookup")
+    except Exception as error:
+        print(error)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["register-role"])
@@ -4429,29 +4472,32 @@ def read_channel_city(message):
 
 @Clembot.command(pass_context=True, hidden=True)
 async def gym(ctx):
-    args = ctx.message.content
-    args_split = args.split(" ")
-    del args_split[0]
+    try:
+        args = ctx.message.content
+        args_split = args.split(" ")
+        del args_split[0]
 
-    gym_code = args_split[0].upper()
+        gym_code = args_split[0].upper()
 
-    if gym_code:
+        if gym_code:
 
-        gym_info = await _get_gym_info(ctx.message, gym_code)
-        if gym_info:
-            await _update_channel_with_link(ctx.message, gym_info['gmap_url'])
-        else:
-            gym_info = await _get_gym_info_old(ctx.message, gym_code)
+            gym_info = await _get_gym_info(ctx.message, gym_code)
             if gym_info:
-                await _update_channel_with_link(ctx.message, gym_info['gmap_link'])
+                await _update_channel_with_link(ctx.message, gym_info['gmap_url'])
+                await _change_channel_name(ctx.message, gym_info)
+            # else:
+            #     gym_info = await _get_gym_info_old(ctx.message, gym_code)
+            #     if gym_info:
+            #         await _update_channel_with_link(ctx.message, gym_info['gmap_link'])
 
-        if gym_info:
-            await _change_channel_name(ctx.message, gym_info)
 
-    else:
-        await ctx.message.channel.send( content="Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
-        return
 
+        else:
+            await ctx.message.channel.send( content="Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
+            return
+    except Exception as error:
+        print(error)
+        logger.info(error)
 
 async def _get_gym_info_old(message, gym_code):
     gym_info = gymutil.get_gym_info(gym_code, city_state=get_city_list(message))
@@ -6138,7 +6184,7 @@ async def _get_gym_info_list(message, gym_code):
 
     if len(gym_info_list) == 0:
         await message.channel.send( content="Beep Beep...Hmmm, that's a gym-code I am not aware of! Type `**!gyms** with a letter to see all gyms starting from that letter!")
-        return None
+        return []
 
     return gym_info_list
 
@@ -6150,11 +6196,11 @@ async def _get_gym_info(message, gym_code):
 
     gym_info_list = gymsql.get_gym_list_by_code(city_state_key=city, gym_code_key=gym_code)
 
-    if len(gym_info_list) == 0:
-        await message.channel.send( content="Beep Beep...Hmmm, that's a gym-code I am not aware of! Type `**!gyms** with a letter to see all gyms starting from that letter!")
+    if gym_info_list==None or len(gym_info_list) == 0:
+        await message.channel.send( content="Beep Beep...Hmmm, that's a gym-code I am not aware of! Type **!gyms** with a letter to see all gyms starting from that letter!")
         return None
     if len(gym_info_list) > 1:
-        await message.channel.send( content="Beep Beep...Hmmm I found multiple gyms from this gym-code, please be more specific!")
+        await message.channel.send( content="Beep Beep...Hmmm I found multiple gyms from this gym-code, try **!gyms {gym_code}** to see the list of gyms!".format(gym_code=gym_code))
         return None
 
     gym_info = gym_info_list[0]
@@ -6173,23 +6219,52 @@ async def reloadconfig(ctx):
         await ctx.message.channel.send( content=_("Beep Beep! Error : {error}").format(error=str(error)))
     return
 
-@Clembot.command(pass_context=True, hidden=True,aliases=["udpate-gym"])
-@checks.is_owner()
+@Clembot.command(pass_context=True, hidden=True,aliases=["restore-gym"])
+@commands.has_permissions(manage_guild=True)
+async def _restore_gym(ctx):
+    try:
+        message = ctx.message
+        message_text = message.content.replace("!restore-gym ","")
+
+        gym_info = json.loads(message_text)
+
+        gymsql.update_gym_info(gym_info)
+
+        await ctx.message.channel.send("Beep Beep! Gym has been updated successfully.")
+    except Exception as error:
+        logger.error(error)
+        await ctx.message.channel.send("Beep Beep! Error in gym update.")
+
+@Clembot.command(pass_context=True, hidden=True,aliases=["update-gym"])
+@commands.has_permissions(manage_guild=True)
 async def _update_gym(ctx):
-    args = ctx.message.clean_content.lower().split()
-    del args[0]
+    try :
+        args = ctx.message.clean_content.split()
+        del args[0]
 
-    if len(args) < 2:
-        await ctx.message.channel.send(content=_("Beep Beep! Please provide information as !update-gym gym-code field-name value"))
+        if len(args) < 3:
+            await ctx.message.channel.send(content=_("Beep Beep! Please provide information as !update-gym gym-code field-name value"))
 
-    gymsql.update_gym(args[0], args[1], " ".join(args[2:]))
+        gymsql.update_gym(read_channel_city(ctx.message), args[0], args[1], " ".join(args[2:]))
+
+        gym_dict = gymsql.find_gym(read_channel_city(ctx.message), args[0])
+
+        if gym_dict:
+            await ctx.message.channel.send(content=json.dumps(gym_dict, indent=4, sort_keys=True))
+        else:
+            await ctx.message.channel.send("No Gym Found!")
+
+        return
+    except Exception as error:
+        logger.info("Error : " + error)
+
 
 @Clembot.command(pass_context=True, hidden=True,aliases=["get-gym"])
-@checks.is_owner()
+@commands.has_permissions(manage_guild=True)
 async def _get_gym(ctx):
 
     try:
-        args = ctx.message.clean_content.lower().split()
+        args = ctx.message.clean_content.split()
         del args[0]
 
         if len(args) < 1:

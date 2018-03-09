@@ -134,6 +134,8 @@ def parse_test(text, format, options_method={}):
     response = parse_arguments(text, format, options_method)
     print("{text} = {response}\n".format(text=text, response=response))
 
+    return response
+
     # print(response.get('others',None))
 
 def test():
@@ -169,12 +171,16 @@ def test1():
 
 def main():
     try:
-        test1()
+        test2()
         print("main() finished")
     except Exception as error:
         print(error)
     return
 
+
+def test2():
+    parameters = parse_test("!raidegg 5 gewa43 38", ['command', 'egg', 'gym_info', 'timer', 'location'])
+    print(" ".join(str(x) for x in parameters.get('others')))
 
 # ---------------uncomment this line to test stand alone-------------------------
 #main()
