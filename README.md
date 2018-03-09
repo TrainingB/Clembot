@@ -1,6 +1,6 @@
 # Clembot
 
-Clembot is mostly a forked branch of Meowth - A Discord helper bot for Pokemon Go communities.
+Clembot is mostly a forked branch of [Meowth](https://github.com/FoglyOgly/Meowth) - A Discord helper bot for Pokemon Go communities.
 
 Clembot Features:
 
