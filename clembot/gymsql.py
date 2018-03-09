@@ -164,7 +164,7 @@ def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
 
         # print(statement)
 
-        cursor.execute(statement, (city_state_key, gym_code_key+"%", ))
+        cursor.execute(statement, (city_state_key.upper(), gym_code_key.upper()+"%", ))
 
         all_rows = cursor.fetchall()
         col_names = [cn[0] for cn in cursor.description]
@@ -205,13 +205,13 @@ def convert_row_to_dict(row, col_names)-> {}:
 
 def find_gym(city_state_key, gym_code_key):
     try:
-        print("find_gym({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
+        print("find_gym({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key.upper(), city_state_key=city_state_key.upper()))
 
         global cursor
         if cursor == None:
             connect()
 
-        cursor.execute("select * from gym_master where gym_code_key = ? and city_state_key = ? ", (gym_code_key, city_state_key,))
+        cursor.execute("select * from gym_master where gym_code_key = ? and city_state_key = ? ", (gym_code_key.upper(), city_state_key.upper(),))
 
         all_rows = cursor.fetchall()
 
@@ -261,7 +261,7 @@ def update_gym_info(gym_info):
 
 
 def update_gym(city_state_key, gym_code_key, field_name, field_value):
-    print("update_gym({gym_code_key} [ {field_name} = {field_value} ] )".format(gym_code_key=gym_code_key, field_name=field_name, field_value=field_value))
+    print("update_gym({gym_code_key} [ {field_name} = {field_value} ] )".format(gym_code_key=gym_code_key.upper(), field_name=field_name, field_value=field_value))
     try:
         global cursor
         if cursor == None:
@@ -270,7 +270,7 @@ def update_gym(city_state_key, gym_code_key, field_name, field_value):
         statement = "update gym_master set {field_name} = ? where gym_code_key = ? and city_state_key = ? ".format(field_name=field_name)
         # print(statement)
 
-        cursor.execute(statement, (field_value,gym_code_key,city_state_key))
+        cursor.execute(statement, (field_value,gym_code_key.upper(),city_state_key.upper()))
         connection.commit()
 
     except Exception as error:
@@ -410,7 +410,6 @@ def save_guild_configuration(guild_id, configuration, channel_id=None ) -> {}:
     return None
 
 def main():
-
     gyms_lookup_test()
 
 def gyms_test():
