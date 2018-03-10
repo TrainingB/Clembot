@@ -6195,7 +6195,7 @@ async def _get_gym_info(message, gym_code):
         city = gymsql.read_guild_city(guild_id=message.guild.id)
 
     gym_info = gymsql.get_gym_by_code(city_state_key=city, gym_code_key=gym_code)
-
+    print("_get_gym_info() : {gym_info}".format(gym_info=gym_info))
     if gym_info:
         await _generate_gym_embed(message, gym_info)
         return gym_info
