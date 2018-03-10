@@ -6194,20 +6194,15 @@ async def _get_gym_info(message, gym_code):
     if city == None:
         city = gymsql.read_guild_city(guild_id=message.guild.id)
 
-    gym_info_list = gymsql.get_gym_list_by_code(city_state_key=city, gym_code_key=gym_code)
+    gym_info = gymsql.get_gym_by_code(city_state_key=city, gym_code_key=gym_code)
 
-    if gym_info_list==None or len(gym_info_list) == 0:
-        await message.channel.send( content="Beep Beep...Hmmm, that's a gym-code I am not aware of! Type **!gyms** with a letter to see all gyms starting from that letter!")
-        return None
-    if len(gym_info_list) > 1:
-        await message.channel.send( content="Beep Beep...Hmmm I found multiple gyms from this gym-code, try **!gyms {gym_code}** to see the list of gyms!".format(gym_code=gym_code))
-        return None
+    if gym_info:
+        await _generate_gym_embed(message, gym_info)
+        return gym_info
 
-    gym_info = gym_info_list[0]
+    await message.channel.send( content="Beep Beep...Hmmm, I couldn't find an exact match for this gym-code in {city}! Type **!gyms {gym_code}** to see list all gyms starting from gym-code".format(city=city,gym_code=gym_code))
+    return None
 
-    await _generate_gym_embed(message, gym_info)
-
-    return gym_info
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.is_owner()
