@@ -5102,7 +5102,11 @@ async def list(ctx):
                 egg_dict = {}
                 exraid_list = []
                 for r in rc_d:
-                    if rc_d[r]['reportcity'] == cty and rc_d[r]['active'] and discord.utils.get(guild.channels, id=r):
+                    reportcity = Clembot.get_channel(rc_d[r]['reportcity'])
+                    if not reportcity:
+                        continue
+
+                    if reportcity.name == cty and rc_d[r]['active'] and discord.utils.get(guild.text_channels, id=r):
                         exp = rc_d[r]['exp']
                         type = rc_d[r]['type']
                         level = rc_d[r]['egglevel']
