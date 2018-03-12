@@ -5717,6 +5717,7 @@ async def raidover(ctx):
 
             clean_channel = await ask_confirmation(ctx.message, "Are you sure to delete the channel?", "The channel will be deleted shortly.", "No changes done!", "Request Timed out!")
             if clean_channel:
+                await asyncio.sleep(30)
                 await ctx.message.channel.delete()
 
         else:
