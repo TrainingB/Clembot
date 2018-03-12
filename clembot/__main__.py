@@ -2062,7 +2062,7 @@ async def unwant(ctx):
             if role not in ctx.message.author.roles:
                 await message.add_reaction('✅')
             else:
-                await Clembot.remove_roles(message.author, role)
+                await message.author.remove_roles(role)
                 unwant_number = pkmn_info['pokemon_list'].index(entered_unwant) + 1
                 await message.add_reaction('✅')
 
@@ -2083,16 +2083,19 @@ async def all(ctx):
     guild = message.guild
     channel = message.channel
     author = message.author
-    await Clembot.send_typing(channel)
+    await channel.trigger_typing()
     count = 0
     roles = author.roles
     remove_roles = []
     for role in roles:
         if role.name in pkmn_info['pokemon_list']:
             remove_roles.append(role)
+            await message.author.remove_roles(role)
             count += 1
         continue
-    await Clembot.remove_roles(author, *remove_roles)
+
+    await author.remove_roles(*remove_roles)
+
     if count == 0:
         await channel.send( content=_("{0}, you have no pokemon in your want list.").format(author.mention, count))
         return
