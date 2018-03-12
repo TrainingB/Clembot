@@ -3798,7 +3798,8 @@ async def _raidparty(message):
         'egglevel': '0',
         'suggested_start': False,
         'roster': [],
-        'roster_index': None
+        'roster_index': None,
+        'started_by' : message.author.id
     }
 
 
@@ -5708,6 +5709,23 @@ async def update(ctx):
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidpartychannel()
+async def raidover(ctx):
+
+    try:
+        started_by = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['started_by']
+        if ctx.message.author.id == started_by:
+
+            clean_channel = await ask_confirmation(ctx.message, "Are you sure to delete the channel?", "The channel will be deleted shortly.", "No changes done!", "Request Timed out!")
+            if clean_channel:
+                await ctx.message.channel.delete()
+
+        else:
+            await ctx.message.channel.send(_("Beep Beep! Only raid reporter can clean up the channel!"))
+    except Exception as error:
+        print(error)
+
+@Clembot.command(pass_context=True, hidden=True)
+@checks.raidpartychannel()
 async def add(ctx):
     try:
         roster = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
@@ -5972,7 +5990,8 @@ async def makeitraidparty(ctx):
         'egglevel': '0',
         'suggested_start': False,
         'roster': [],
-        'roster_index': None
+        'roster_index': None,
+        'started_by' : message.author.id
     }
 
     await message.channel.send( content=_("Beep Beep! It's a raid party channel now!"))
