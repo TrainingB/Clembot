@@ -5725,6 +5725,28 @@ async def raidover(ctx):
     except Exception as error:
         print(error)
 
+
+@Clembot.command(pass_context=True, hidden=True)
+@checks.raidpartychannel()
+async def pathshare(ctx):
+    try:
+
+        args = ctx.message.clean_content
+        args_split = args.split()
+        del args_split[0]
+
+        pathshare_url = args_split[0]
+
+        guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['pathshare_url'] = pathshare_url
+
+        await ctx.message.channel.send(_("Beep Beep! Pathshare URL has been set to {url}!".format(url=pathshare_url)))
+    except Exception as error:
+        print(error)
+
+
+
+
+
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidpartychannel()
 async def add(ctx):
@@ -6031,11 +6053,7 @@ async def where(ctx):
     try:
         roster = guild_dict[ctx.message.channel.guild.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
 
-        if len(roster) < 1:
-            await ctx.message.channel.send( content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
-            return
-
-        args = ctx.message.clean_content[len("!remove"):]
+        args = ctx.message.clean_content[len("!where"):]
         args_split = args.split()
 
         location_number = 0
@@ -6043,7 +6061,16 @@ async def where(ctx):
             if args_split[0].isdigit():
                 location_number = int(args_split[0])
         else:
-            await ctx.message.channel.send( content=_("Beep Beep! Give more details! Usage: `!where <location #>`"))
+            pathshare_url = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id].get('pathshare_url', None)
+            raidcreator = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id].get('started_by')
+            if pathshare_url == None:
+                await ctx.message.channel.send( content=_("Beep Beep! Give more details! Usage: `!where <location #>`"))
+            else:
+                await ctx.message.channel.send(content=_("Beep Beep! <@!{raidcreator}>'s live location can be accessed at : {pathshare}".format(raidcreator=raidcreator, pathshare=pathshare_url)))
+            return
+
+        if len(roster) < 1:
+            await ctx.message.channel.send( content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
             return
 
         for roster_loc_at in roster:
