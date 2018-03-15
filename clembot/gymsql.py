@@ -228,8 +228,7 @@ def find_gym(city_state_key, gym_code_key):
 
     return None
 
-
-def update_gym_info(gym_info):
+def update_gym_info(gym_info, gym_code=None):
     print(gym_info)
 
     try:
@@ -247,7 +246,11 @@ def update_gym_info(gym_info):
         update_statement = update_statement[:-1]
         update_statement = update_statement + " where gym_code_key = ? and city_state_key = ? "
 
-        parameter_list.append(gym_info['gym_code_key'])
+
+        if gym_code:
+            parameter_list.append(gym_code)
+        else:
+            parameter_list.append(gym_info['gym_code_key'])
         parameter_list.append(gym_info['city_state_key'])
 
         print(update_statement)
@@ -258,6 +261,55 @@ def update_gym_info(gym_info):
         connection.commit()
     except Exception as error:
         print(error)
+
+
+
+def insert_gym_info(gym_info):
+    print(gym_info)
+
+    try:
+        global cursor
+        if cursor == None:
+            connect()
+        parameter_list = []
+        insert_statement = "insert into gym_master ("
+        for key, value in gym_info.items():
+            insert_statement = insert_statement + " {key} ,".format(key=key)
+            parameter_list.append(value)
+            print(value)
+
+        insert_statement = insert_statement[:-1]
+        insert_statement = insert_statement + ") values ("
+
+        for key, value in gym_info.items():
+            insert_statement = insert_statement + " ? ,".format(key=key)
+
+        insert_statement = insert_statement[:-1]
+        insert_statement = insert_statement  + " ) "
+
+        print(insert_statement )
+        print(parameter_list)
+
+        cursor.execute(insert_statement, parameter_list)
+        connection.commit()
+    except Exception as error:
+        print(error)
+
+
+def delete_gym_info(city_state_key, gym_code_key):
+
+    try:
+        global cursor
+        if cursor == None:
+            connect()
+
+        cursor.execute("delete from gym_master where gym_code_key = ? and city_state_key = ? ", (gym_code_key.upper(), city_state_key.upper(),))
+        connection.commit()
+    except Exception as error:
+        print(error)
+
+
+
 
 
 def update_gym(city_state_key, gym_code_key, field_name, field_value):
@@ -492,10 +544,11 @@ def test_update(text):
 
     gym_info = json.loads(text)
 
+    gym_info['gym_code_key'] = 'NEWNEW'
 
-    update_gym_info(gym_info)
+    # insert_gym_info(gym_info)
 
-    print(find_gym('BURBANKCA', 'GRMA'))
+    print(find_gym('BURBANKCA', 'NEWNEW'))
 
 
 # test_update('{"city_state_key": "BURBANKCA","gmap_url": "https://www.google.com/maps?q=34.164256,-118.292803","gym_code_key": "GRMA","gym_image": "https://lh4.ggpht.com/HPzAb_J2iuzAsmXue0B9mBpKwjo-g5zUWIbB_4v75WJC6oEo0MOD0RnaIlZyDaZAFM1xkefEx5ek4G4bk3w","gym_location_city": "BURBANK","gym_location_state": "CA","gym_name": "Griffith Manor Park (Ex-eligible)","latitude": "34.164256","longitude": "-118.292803","original_gym_name": "Griffith Manor Park","region_code_key": "BAG","word_1": "GR","word_2": "MA","word_3": "PA"}')

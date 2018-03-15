@@ -6284,6 +6284,54 @@ async def _restore_gym(ctx):
         logger.error(error)
         await ctx.message.channel.send("Beep Beep! Error in gym update.")
 
+@Clembot.command(pass_context=True, hidden=True,aliases=["add-gym"])
+@commands.has_permissions(manage_guild=True)
+async def _add_gym(ctx):
+    try:
+        message = ctx.message
+        message_text = message.content.replace("!add-gym ","")
+
+        gym_info = json.loads(message_text)
+        city = read_channel_city(message)
+        gym_dict = gymsql.find_gym(city, gym_info['gym_code_key'])
+
+        if gym_dict:
+            return await ctx.message.channel.send("Beep Beep! The gym already exists with this code.")
+
+
+        gymsql.insert_gym_info(gym_info)
+
+        await ctx.message.channel.send("Beep Beep! Gym has been added successfully.")
+    except Exception as error:
+        logger.error(error)
+        await ctx.message.channel.send("Beep Beep! Error in gym update.")
+
+
+@Clembot.command(pass_context=True, hidden=True,aliases=["remove-gym"])
+@commands.has_permissions(manage_guild=True)
+async def _remove_gym(ctx):
+    try:
+        message = ctx.message
+        args = ctx.message.content
+        args_split = args.split(" ")
+        del args_split[0]
+
+        gym_code = args_split[0].upper()
+
+        if 0 < len(args_split) < 2:
+            city = read_channel_city(ctx.message)
+            gym_dict = gymsql.find_gym(city, args_split[0])
+            if len(gym_dict) == 0:
+                return await message.channel.send(content="Beep Beep...! I couldn't find a match for {gym_code} in {city_code}".format(gym_code=gym_code, city_code=city))
+
+            gymsql.delete_gym_info(city, args_split[0])
+            return await message.channel.send(content="Beep Beep...! The gym has been removed successfully.")
+        else:
+            await message.channel.send(content="Beep Beep...! provide gym-code for lookup")
+    except Exception as error:
+        print(error)
+
+
 @Clembot.command(pass_context=True, hidden=True,aliases=["update-gym"])
 @commands.has_permissions(manage_guild=True)
 async def _update_gym(ctx):
