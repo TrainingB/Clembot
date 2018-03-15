@@ -2314,7 +2314,8 @@ async def _find_gym(message):
             embed_map_image_url = fetch_gmap_image_link(gym_dict['latitude'] + "," + gym_dict['longitude'])
             raid_embed.set_image(url=embed_map_image_url)
 
-            raid_embed.set_thumbnail(url=gym_dict['gym_image'])
+            if gym_dict['gym_image']:
+                raid_embed.set_thumbnail(url=gym_dict['gym_image'])
             roster_message = "here are the gym details! "
 
             return await message.channel.send(content=_("Beep Beep! {member} {message}".format(member=message.author.mention, message=roster_message)), embed=raid_embed)
@@ -6222,7 +6223,8 @@ async def _generate_gym_embed(message, gym_info):
     embed_map_image_url = fetch_gmap_image_link(gym_info['latitude'] + "," + gym_info['longitude'])
     raid_embed.set_image(url=embed_map_image_url)
 
-    raid_embed.set_thumbnail(url=gym_info['gym_image'])
+    if gym_info['gym_image']:
+        raid_embed.set_thumbnail(url=gym_info['gym_image'])
     roster_message = "here are the gym details! "
 
     await message.channel.send( content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention, roster_message=roster_message), embed=raid_embed)
