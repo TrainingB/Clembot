@@ -46,7 +46,7 @@ import pytz
 from pytz import timezone
 import jsonpickle
 import argparser
-
+import bingo_generator
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = "-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6"
@@ -2362,6 +2362,56 @@ registers a role and a gym
     add_notifications_guild_dict(message.guild.id)
     guild_dict[guild.id]['notifications']['roles'].append(role.id)
     await channel.send( content=_("Beep Beep! {role_name} has been registered for notifications. Please use `!register-gym role-name gym-code` to register the gym under a role!").format(role_name=role.mention))
+
+    return
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["deregister-gym"])
+@commands.has_permissions(manage_guild=True)
+async def _deregister_gym(ctx):
+    """
+registers a role and a gym
+    """
+    message = ctx.message
+    guild = message.guild
+    channel = message.channel
+    args = message.clean_content.lower().split()
+    del args[0]
+
+    add_notifications_guild_dict(message.guild.id)
+
+    role_name = args[0]
+    del args[0]
+
+    role = discord.utils.get(guild.roles, name=role_name)
+    # Create role if it doesn't exist yet
+    if role is None:
+        await channel.send( content=_("Beep Beep! I couldn't find the role **{role_name}**. Please use `!register-role role-name` to create/register the role!".format(role_name=role_name)))
+        return
+
+    if role.id not in guild_dict[guild.id]['notifications']['roles']:
+        await channel.send( content=_("Beep Beep! The role {role_name} is not registered for notifications. Please use `!register-role role-name` to create/register the role!"))
+        return
+
+    if len(args) == 0 or len(args) > 1:
+        await channel.send( content=_("Beep Beep! Please provide a gym-code to register. `!register role-name gym-code`"))
+        return
+
+    gym_code = args[0].upper()
+    gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
+
+    if gym_info == None:
+        await channel.send( content=_("Beep Beep! Hmmm... I could not find this gym code!"))
+        return
+
+    # {'notifications': {'roles': [], 'gym_role_map': {}}}
+    gym_role_map = {gym_code: role.id}
+    try:
+        del guild_dict[message.guild.id]['notifications']['gym_role_map'][gym_code]
+    except Exception:
+        pass
+    # guild_dict[message.guild.id]['notifications']['gym_role_map'].update(gym_role_map)
+
+    await channel.send( content=_("Beep Beep! {gym_code} will not send out a notification for {role}!").format(gym_code=gym_code.upper(), role=role.mention))
 
     return
 
@@ -5742,6 +5792,7 @@ async def pathshare(ctx):
         pathshare_url = args_split[0]
 
         guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['pathshare_url'] = pathshare_url
+        guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['pathshare_user'] = ctx.message.author.id
 
         await ctx.message.channel.send(_("Beep Beep! Pathshare URL has been set to {url}!".format(url=pathshare_url)))
     except Exception as error:
@@ -6066,11 +6117,11 @@ async def where(ctx):
                 location_number = int(args_split[0])
         else:
             pathshare_url = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id].get('pathshare_url', None)
-            raidcreator = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id].get('started_by')
+            pathshare_user = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id].get('pathshare_user')
             if pathshare_url == None:
                 await ctx.message.channel.send( content=_("Beep Beep! Give more details! Usage: `!where <location #>`"))
             else:
-                await ctx.message.channel.send(content=_("Beep Beep! <@!{raidcreator}>'s live location can be accessed at : {pathshare}".format(raidcreator=raidcreator, pathshare=pathshare_url)))
+                await ctx.message.channel.send(content=_("Beep Beep! <@!{raidcreator}>'s live location can be accessed at : {pathshare}".format(raidcreator=pathshare_user, pathshare=pathshare_url)))
             return
 
         if len(roster) < 1:
@@ -6375,6 +6426,27 @@ async def _get_gym(ctx):
         print(error)
 
 
+@Clembot.command(pass_context=True, hidden=True,aliases=["get-card"])
+async def _get_card(ctx):
+
+    try:
+        args = ctx.message.clean_content.split()
+        bingo_card = bingo_generator.generate_card()
+        response = bingo_generator.print_card_as_text(bingo_card)
+
+        embed_msg = ""
+
+        embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
+
+        embed.add_field(name="**For**", value="{user}".format(user=ctx.message.author.mention), inline=True)
+
+        embed.add_field(name="**Card**", value="{card}".format(card=response), inline=True)
+
+        await ctx.message.channel.send(embed=embed)
+
+
+    except Exception as error:
+        print(error)
 
 
 
