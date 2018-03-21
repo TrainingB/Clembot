@@ -6461,6 +6461,8 @@ bingo = WowBingo()
 @Clembot.command(pass_context=True, hidden=True,aliases=["bingo"])
 async def bingo_handler(ctx):
     try:
+        print("bingo_handler() called")
+
         message = ctx.message
 
         existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id)
@@ -6490,7 +6492,7 @@ async def bingo_handler(ctx):
 
         await ctx.message.channel.send(embed=embed)
 
-        if existing_bingo_card_record == None:
+        if not existing_bingo_card_record:
             gymsql.save_bingo_card(ctx.message.guild.id, ctx.message.author.id, bingo_card, file_url, str(timestamp))
             os.remove(file_path)
 
