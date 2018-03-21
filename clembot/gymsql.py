@@ -195,6 +195,15 @@ def get_gym_by_code(city_state_key, gym_code_key):
     return None
 
 
+def convert_all_row_to_dict(row, col_names)-> {}:
+
+    gym_info_dict = {}
+    for i in range(0, len(col_names)):
+        gym_info_dict[col_names[i]] = row[i]
+
+    return gym_info_dict
+
+
 def convert_row_to_dict(row, col_names)-> {}:
 
     gym_info_dict = {}
@@ -501,7 +510,78 @@ def gyms_lookup_test():
 
 
 
-# main()
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Bulbasaur Bingo Save
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#
+# create table guild_user_bingo_card (
+# id integer primary key,
+# guild_id integer,
+# user_id integer,
+# bingo_card text,
+# bingo_card_url text,
+# generated_at text
+# );
+
+def find_bingo_card(guild_id, user_id):
+
+    try:
+        print("find_bingo_card({0} , {1})".format(guild_id, user_id))
+
+        global cursor
+        if cursor == None:
+            connect()
+
+        cursor.execute("select * from guild_user_bingo_card where guild_id = ? and user_id = ? order by id desc", (guild_id, user_id,))
+
+        all_rows = cursor.fetchall()
+
+        col_names = [cn[0] for cn in cursor.description]
+
+        bingo_card_dict = {}
+
+        if len(all_rows) > 0:
+            bingo_card_dict = convert_all_row_to_dict(all_rows[0], col_names)
+
+        return bingo_card_dict
+    except Exception as error:
+        print(error)
+
+    return None
+
+def save_bingo_card(guild_id, user_id, bingo_card, bingo_card_url, generated_at):
+    print("save_bingo_card ( {0} {1} )".format(guild_id,user_id))
+    try:
+        global cursor
+        if cursor == None:
+            connect()
+        parameter_list = []
+
+        bingo_card_text = json.dumps(bingo_card)
+
+        cursor.execute("update guild_user_bingo_card set bingo_card = ? , bingo_card_url = ?, generated_at = ? where guild_id = ? and user_id = ?", (bingo_card_text, bingo_card_url, generated_at, guild_id, user_id, ))
+
+        insert_statement = "insert into guild_user_bingo_card (guild_id, user_id, bingo_card, bingo_card_url, generated_at ) SELECT  ? , ? , ? ,? , ? where (select Changes() = 0) "
+
+        cursor.execute(insert_statement, (guild_id, user_id, bingo_card_text, bingo_card_url, generated_at,))
+        connection.commit()
+    except Exception as error:
+        print(error)
+
+
+    return
+
+
+
+
+
+
+
+
+
+
+#
 
 # print(get_gym_by_code('BURBANKCA','B'))
 #
@@ -551,4 +631,25 @@ def test_update(text):
     print(find_gym('BURBANKCA', 'NEWNEW'))
 
 
+
+def test_bingo_card():
+
+    print(find_bingo_card(393545294337277970,289657500167438336))
+
+    bingo_card = find_bingo_card(393545294337277970,289657500167438336)
+
+    if bingo_card:
+        bingo_card_dict = json.loads(bingo_card['bingo_card'])
+
+        print(bingo_card['bingo_card'])
+
+        print(bingo_card_dict['2'])
+
 # test_update('{"city_state_key": "BURBANKCA","gmap_url": "https://www.google.com/maps?q=34.164256,-118.292803","gym_code_key": "GRMA","gym_image": "https://lh4.ggpht.com/HPzAb_J2iuzAsmXue0B9mBpKwjo-g5zUWIbB_4v75WJC6oEo0MOD0RnaIlZyDaZAFM1xkefEx5ek4G4bk3w","gym_location_city": "BURBANK","gym_location_state": "CA","gym_name": "Griffith Manor Park (Ex-eligible)","latitude": "34.164256","longitude": "-118.292803","original_gym_name": "Griffith Manor Park","region_code_key": "BAG","word_1": "GR","word_2": "MA","word_3": "PA"}')
+
+
+def main():
+    gyms_lookup_test()
+    test_bingo_card()
+
+main()

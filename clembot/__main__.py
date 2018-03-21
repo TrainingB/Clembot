@@ -47,6 +47,8 @@ from pytz import timezone
 import jsonpickle
 import argparser
 import bingo_generator
+from WowBingo import WowBingo
+
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = "-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6"
@@ -6429,24 +6431,94 @@ async def _get_gym(ctx):
 @Clembot.command(pass_context=True, hidden=True,aliases=["get-card"])
 async def _get_card(ctx):
 
+
+
     try:
+        message = ctx.message
+        timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
+
         args = ctx.message.clean_content.split()
         bingo_card = bingo_generator.generate_card()
         response = bingo_generator.print_card_as_text(bingo_card)
 
-        embed_msg = ""
+        embed_msg = "**!Bulbasaur Bingo!**"
 
         embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
 
-        embed.add_field(name="**For**", value="{user}".format(user=ctx.message.author.mention), inline=True)
+        embed.add_field(name="**For**", value="{user} at {timestamp}".format(user=ctx.message.author.mention, timestamp=timestamp), inline=True)
 
         embed.add_field(name="**Card**", value="{card}".format(card=response), inline=True)
 
+        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=ctx.message.author.name, timestamp=timestamp))
         await ctx.message.channel.send(embed=embed)
 
 
     except Exception as error:
         print(error)
+
+bingo = WowBingo()
+
+@Clembot.command(pass_context=True, hidden=True,aliases=["bingo"])
+async def bingo_handler(ctx):
+    try:
+        message = ctx.message
+
+        existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id)
+
+        if existing_bingo_card_record:
+            bingo_card = json.loads(existing_bingo_card_record['bingo_card'])
+            timestamp = existing_bingo_card_record['generated_at']
+            file_url = existing_bingo_card_record['bingo_card_url']
+        else:
+            bingo_card = bingo_generator.generate_card()
+            timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
+            file_path = bingo.generate_board(user_name=message.author.name, bingo_card=bingo_card)
+            repo_channel = await get_repository_channel(message)
+
+            file_url_message = await repo_channel.send(file=discord.File(file_path), content="Generated for : {user} at {timestamp}".format(user=ctx.message.author.mention, timestamp=timestamp))
+            file_url = file_url_message.attachments[0].url
+
+
+        msg = 'Beep Beep! {0.author.mention} here is your Bingo Card; please take a screenshot for future use!'.format(message)
+
+        embed_msg = "**!Bulbasaur Bingo!**"
+        embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
+        embed.set_image(url=file_url)
+        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=ctx.message.author.name, timestamp=timestamp))
+
+        await message.channel.send(msg)
+
+        await ctx.message.channel.send(embed=embed)
+
+        if existing_bingo_card_record == None:
+            gymsql.save_bingo_card(ctx.message.guild.id, ctx.message.author.id, bingo_card, file_url, str(timestamp))
+            os.remove(file_path)
+
+
+    except Exception as error:
+        print(error)
+    return
+
+
+
+async def get_repository_channel(message):
+    bingo_card_repo_channel = None
+
+
+
+    if 'bingo_card_repo' in guild_dict[message.guild.id]:
+        bingo_card_repo_channel_id = guild_dict[message.guild.id]['bingo_card_repo']
+        if bingo_card_repo_channel_id:
+            bingo_card_repo_channel = Clembot.get_channel(bingo_card_repo_channel_id)
+
+    if bingo_card_repo_channel == None:
+        bingo_card_repo_category = get_category(message.channel, None)
+        bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(message.channel.overwrites), category=bingo_card_repo_category)
+
+    bingo_card_repo = {'bingo_card_repo': bingo_card_repo_channel.id}
+    guild_dict[message.guild.id].update(bingo_card_repo)
+
+    return bingo_card_repo_channel
 
 
 
