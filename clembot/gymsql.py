@@ -652,4 +652,4 @@ def main():
     gyms_lookup_test()
     test_bingo_card()
 
-main()
+# main()

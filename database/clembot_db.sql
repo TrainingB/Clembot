@@ -31,11 +31,11 @@ egg_timer INT,
 raid_timer INT );
 
 
-create table guild_user_bingo_card {
+create table guild_user_bingo_card (
 id integer primary key,
 guild_id integer,
 user_id integer,
 bingo_card text,
 bingo_card_url text,
 generated_at text
-}
+);
