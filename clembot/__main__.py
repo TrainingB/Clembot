@@ -94,6 +94,7 @@ except OSError:
 
 guild_dict = Clembot.guild_dict
 
+bingo_template = {}
 config = {}
 pkmn_info = {}
 type_chart = {}
@@ -164,7 +165,9 @@ def load_config():
 
     gymsql.set_db_name(SQLITE_DB)
     gymutil.load_gyms()
-
+    bingo_template[347397406033182721] = "bingo_template_bur.png"
+    bingo_template[329013844427014145] = "bingo_template_qcy.png"
+    bingo_template[341367173266276353] = "bingo_template_spg.png"
 
 load_config()
 
@@ -6458,6 +6461,36 @@ async def _get_card(ctx):
 
 bingo = WowBingo()
 
+@Clembot.command(pass_context=True, hidden=True,aliases=["bingo-win"])
+async def _bingo_win(ctx):
+    try:
+        print("_bingo_win called")
+
+        message = ctx.message
+        timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
+        existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id)
+
+        if existing_bingo_card_record:
+            raid_embed = discord.Embed(title=_("**Bulbasaur Bingo Shoutout!**"), description="", colour=discord.Colour.dark_gold())
+
+            raid_embed.add_field(name="**Member:**", value=_("**{member}** believes that the following Bingo card is complete as of **{timestamp}**.").format(member=message.author.name, timestamp=timestamp), inline=True)
+            raid_embed.set_image(url=existing_bingo_card_record['bingo_card_url'])
+            raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=message.author, format="jpg")))
+
+            msg = 'Beep Beep! {0.author.mention} one of the moderators/admin will contact you for verification!'.format(message)
+            await message.channel.send(content=msg)
+            await message.channel.send(embed=raid_embed)
+
+        else:
+            await message.channel.send("Beep Beep! {member} you will need to generate a bingo card first!")
+
+    except Exception as error:
+        print(error)
+    return
+
+
+
+
 @Clembot.command(pass_context=True, hidden=True,aliases=["bingo"])
 async def bingo_handler(ctx):
     try:
@@ -6474,12 +6507,11 @@ async def bingo_handler(ctx):
         else:
             bingo_card = bingo_generator.generate_card()
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-            file_path = bingo.generate_board(user_name=message.author.name, bingo_card=bingo_card)
+            file_path = bingo.generate_board(user_name=message.author.name, bingo_card=bingo_card, template_file=bingo_template.get(message.guild.id,"bingo_template.png"))
             repo_channel = await get_repository_channel(message)
 
             file_url_message = await repo_channel.send(file=discord.File(file_path), content="Generated for : {user} at {timestamp}".format(user=ctx.message.author.mention, timestamp=timestamp))
             file_url = file_url_message.attachments[0].url
-
 
         msg = 'Beep Beep! {0.author.mention} here is your Bingo Card; please take a screenshot for future use!'.format(message)
 
@@ -6500,7 +6532,6 @@ async def bingo_handler(ctx):
     except Exception as error:
         print(error)
     return
-
 
 
 async def get_repository_channel(message):
