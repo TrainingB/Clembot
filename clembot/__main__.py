@@ -2009,15 +2009,16 @@ async def want(ctx):
     want_split = message.clean_content.lower().split()
     del want_split[0]
     entered_want = " ".join(want_split)
-    if entered_want not in pkmn_info['raid_list']:
-        if entered_want not in pkmn_info['pokemon_list']:
-            await channel.send( spellcheck(entered_want))
-        else:
-            await channel.send( _("Beep Beep! {member} only raid bosses are allowed to be notified!").format(member=ctx.message.author.mention))
-        return
+
     role = discord.utils.get(guild.roles, name=entered_want)
     # Create role if it doesn't exist yet
     if role is None:
+        if entered_want not in pkmn_info['raid_list']:
+            if entered_want not in pkmn_info['pokemon_list']:
+                await channel.send(spellcheck(entered_want))
+            else:
+                await channel.send(_("Beep Beep! {member} only specific pokemon are allowed to be notified! Please contact an admin if you want {entered_want} to be included.").format(member=ctx.message.author.mention, entered_want=entered_want))
+            return
         role = await guild.create_role(name=entered_want, hoist=False, mentionable=True)
         await asyncio.sleep(0.5)
 
@@ -2033,6 +2034,8 @@ async def want(ctx):
         want_embed = discord.Embed(colour=guild.me.colour)
         want_embed.set_thumbnail(url=want_img_url)
         await channel.send( content=_("Beep Beep! Got it! {member} wants {pokemon}").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()), embed=want_embed)
+
+
 
 
 @Clembot.group(pass_context=True, hidden=True)
