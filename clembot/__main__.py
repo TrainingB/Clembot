@@ -2058,11 +2058,12 @@ async def unwant(ctx):
         del unwant_split[0]
         entered_unwant = " ".join(unwant_split)
         role = discord.utils.get(guild.roles, name=entered_unwant)
-        if entered_unwant not in pkmn_info['raid_list']:
-            if entered_unwant not in pkmn_info['pokemon_list']:
-                await channel.send( spellcheck(entered_unwant))
-            else:
-                await channel.send( _("Beep Beep! {member} only raid bosses are allowed to be notified!").format(member=ctx.message.author.mention))
+        if role is None:
+            await channel.send(_("Beep Beep! {member} unwant works on only specific pokemon! Please contact an admin if you want {entered_want} to be included.").format(member=ctx.message.author.mention, entered_want=entered_unwant))
+            return
+
+        if entered_unwant not in pkmn_info['pokemon_list']:
+            await channel.send(spellcheck(entered_unwant))
             return
         else:
             # If user is not already wanting the Pokemon,
@@ -2073,6 +2074,7 @@ async def unwant(ctx):
                 await message.author.remove_roles(role)
                 unwant_number = pkmn_info['pokemon_list'].index(entered_unwant) + 1
                 await message.add_reaction('✅')
+
 
 
 @unwant.command(pass_context=True, hidden=True)
