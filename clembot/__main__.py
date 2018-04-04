@@ -2301,11 +2301,18 @@ async def find_gym(ctx):
 
 
 async def _find_gym(message):
+
+    command_option = "-all"
+    is_option_all = False
     try :
         message = message
 
         args = message.content
-        args_split = args.split(" ")
+        args_split = args.split()
+        if args_split.__contains__(command_option):
+            args_split.remove(command_option)
+            is_option_all = True
+
         del args_split[0]
 
         gym_code = args_split[0].upper()
@@ -2316,10 +2323,11 @@ async def _find_gym(message):
             if len(gym_dict) == 0:
                 return await message.channel.send(content="Beep Beep...! I couldn't find a match for {gym_code} in {city_code}".format(gym_code=gym_code, city_code=city))
 
-            if len(args_split) == 1:
-                output_gym_dict = { your_key: gym_dict[your_key] for your_key in ['gym_code_key','gym_name','original_gym_name','city_state_key'] }
-            else:
+            if is_option_all:
                 output_gym_dict = gym_dict
+            else:
+                output_gym_dict = {your_key: gym_dict[your_key] for your_key in ['gym_code_key', 'gym_name', 'original_gym_name', 'city_state_key']}
+
 
             embed_title = _("**Gym Name**: {gymcode} [{citycode}]!").format(gymcode=gym_dict['gym_name'],citycode=city)
             embed_desription = json.dumps(output_gym_dict, indent=4, sort_keys=True)
