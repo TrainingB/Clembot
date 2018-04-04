@@ -2310,14 +2310,19 @@ async def _find_gym(message):
 
         gym_code = args_split[0].upper()
 
-        if 0 < len(args_split) < 2 :
+        if 0 < len(args_split) < 3 :
             city = read_channel_city(message)
             gym_dict = gymsql.find_gym(city,args_split[0])
             if len(gym_dict) == 0:
                 return await message.channel.send(content="Beep Beep...! I couldn't find a match for {gym_code} in {city_code}".format(gym_code=gym_code, city_code=city))
 
+            if len(args_split) == 1:
+                output_gym_dict = { your_key: gym_dict[your_key] for your_key in ['gym_code_key','gym_name','original_gym_name','city_state_key'] }
+            else:
+                output_gym_dict = gym_dict
+
             embed_title = _("**Gym Name**: {gymcode} [{citycode}]!").format(gymcode=gym_dict['gym_name'],citycode=city)
-            embed_desription = json.dumps(gym_dict, indent=4, sort_keys=True)
+            embed_desription = json.dumps(output_gym_dict, indent=4, sort_keys=True)
 
             raid_embed = discord.Embed(title=embed_title, description=embed_desription)
 
