@@ -738,7 +738,7 @@ async def channel_cleanup(loop=True):
             discord_channel_delete = []
 
             add_contest_to_guild_dict(guildid)
-            for channelid in guilddict_chtemp[guildid]['contest_channel']:
+            for channelid in guilddict_chtemp[guildid].get('contest_channel',[]):
                 try:
                     channel = Clembot.get_channel(channelid)
                     if channel is None:
@@ -4899,6 +4899,18 @@ beep_notifications = ("""
 
 """)
 
+beep_bingo = ("""
+{member} here are the commands for bingo. 
+
+`!bingo-card` - to generate bingo-card for the contest
+`!bingo` - to shout-out bingo when you think you have all boxes covered.
+""")
+
+beep_nest = ("""
+{member} here is the commands for nests reporting. 
+
+`!nest pokemon name-of-location url` - to report a nest at location and google url
+""")
 
 # ---------------------------------------------------------------------------------------
 
@@ -4938,6 +4950,10 @@ async def beep(ctx):
             await ctx.message.channel.send( content=beep_gym.format(member=ctx.message.author.mention))
         elif args_split[0] == 'notification':
             await ctx.message.channel.send( content=beep_notifications.format(member=ctx.message.author.mention))
+        elif args_split[0] == 'bingo':
+            await ctx.message.channel.send( content=beep_bingo.format(member=ctx.message.author.mention))
+        elif args_split[0] == 'nest':
+            await ctx.message.channel.send( content=beep_nest.format(member=ctx.message.author.mention))
 
 
 
@@ -6615,13 +6631,14 @@ async def _bingo_win(ctx):
         message = ctx.message
         print("_bingo_win called")
 
+        event_title_map = gymsql.find_clembot_config("bingo-event-title")
         event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
 
         timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
         existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id, event_pokemon)
 
         if existing_bingo_card_record:
-            raid_embed = discord.Embed(title=_("**{0} Shoutout!**".format(event_pokemon)), description="", colour=discord.Colour.dark_gold())
+            raid_embed = discord.Embed(title=_("**{0} Shoutout!**".format(event_title_map.get(event_pokemon,"BingO"))), description="", colour=discord.Colour.dark_gold())
 
             raid_embed.add_field(name="**Member:**", value=_("**{member}** believes the following Bingo card is completed as of **{timestamp}**.").format(member=message.author.name, timestamp=timestamp), inline=True)
             raid_embed.set_image(url=existing_bingo_card_record['bingo_card_url'])
