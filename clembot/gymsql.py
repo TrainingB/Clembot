@@ -524,16 +524,16 @@ def gyms_lookup_test():
 # generated_at text
 # );
 
-def find_bingo_card(guild_id, user_id):
+def find_bingo_card(guild_id, user_id, event):
 
     try:
-        print("find_bingo_card({0} , {1})".format(guild_id, user_id))
+        print("find_bingo_card({0}, {1}, {2})".format(guild_id, user_id, event))
 
         global cursor
         if cursor == None:
             connect()
 
-        cursor.execute("select * from guild_user_bingo_card where guild_id = ? and user_id = ? order by id desc", (guild_id, user_id,))
+        cursor.execute("select * from guild_user_event_bingo_card where guild_id = ? and user_id = ? and event = ? order by id desc", (guild_id, user_id, event, ))
 
         all_rows = cursor.fetchall()
 
@@ -550,8 +550,8 @@ def find_bingo_card(guild_id, user_id):
 
     return None
 
-def save_bingo_card(guild_id, user_id, bingo_card, bingo_card_url, generated_at):
-    print("save_bingo_card ( {0} {1} )".format(guild_id,user_id))
+def save_bingo_card(guild_id, user_id, event, bingo_card, bingo_card_url, generated_at):
+    print("save_bingo_card ({0}, {1}, {2})".format(guild_id,user_id,event))
     try:
         global cursor
         if cursor == None:
@@ -560,11 +560,11 @@ def save_bingo_card(guild_id, user_id, bingo_card, bingo_card_url, generated_at)
 
         bingo_card_text = json.dumps(bingo_card)
 
-        cursor.execute("update guild_user_bingo_card set bingo_card = ? , bingo_card_url = ?, generated_at = ? where guild_id = ? and user_id = ?", (bingo_card_text, bingo_card_url, generated_at, guild_id, user_id, ))
+        cursor.execute("update guild_user_event_bingo_card set bingo_card = ? , bingo_card_url = ?, generated_at = ? where guild_id = ? and user_id = ? and event = ?", (bingo_card_text, bingo_card_url, generated_at, guild_id, user_id, event,))
 
-        insert_statement = "insert into guild_user_bingo_card (guild_id, user_id, bingo_card, bingo_card_url, generated_at ) SELECT  ? , ? , ? ,? , ? where (select Changes() = 0) "
+        insert_statement = "insert into guild_user_event_bingo_card (guild_id, user_id, event, bingo_card, bingo_card_url, generated_at ) SELECT  ? , ? , ?, ? ,? , ? where (select Changes() = 0) "
 
-        cursor.execute(insert_statement, (guild_id, user_id, bingo_card_text, bingo_card_url, generated_at,))
+        cursor.execute(insert_statement, (guild_id, user_id, event, bingo_card_text, bingo_card_url, generated_at,))
         connection.commit()
     except Exception as error:
         print(error)
@@ -573,10 +573,55 @@ def save_bingo_card(guild_id, user_id, bingo_card, bingo_card_url, generated_at)
     return
 
 
+def find_clembot_config(config_key):
+    print("find_clembot_config ({0})".format(config_key))
+
+    try:
+
+        global cursor
+        if cursor == None:
+            connect()
+
+        cursor.execute("select config_value from clembot_config where config_key = ? order by id desc", (config_key, ))
+
+        all_rows = cursor.fetchall()
+
+        col_names = [cn[0] for cn in cursor.description]
+
+        if len(all_rows) > 0:
+
+            try :
+                value = json.loads(all_rows[0][0])
+            except Exception as error:
+                value = all_rows[0][0]
+                pass
+
+            return value
+
+    except Exception as error:
+        print(error)
+
+    return None
 
 
+def save_clembot_config(config_key, config_value):
+    print("save_clembot_config ({0}, {1})".format(config_key, config_value))
+    try:
+        global cursor
+        if cursor == None:
+            connect()
+        parameter_list = []
 
+        cursor.execute("update clembot_config set config_value = ? where config_key = ? ", (config_value, config_key, ))
 
+        insert_statement = "insert into clembot_config (config_key, config_value ) SELECT  ? , ? where (select Changes() = 0) "
+
+        cursor.execute(insert_statement, (config_key, config_value,))
+        connection.commit()
+    except Exception as error:
+        print(error)
+
+    return
 
 
 
@@ -648,8 +693,27 @@ def test_bingo_card():
 # test_update('{"city_state_key": "BURBANKCA","gmap_url": "https://www.google.com/maps?q=34.164256,-118.292803","gym_code_key": "GRMA","gym_image": "https://lh4.ggpht.com/HPzAb_J2iuzAsmXue0B9mBpKwjo-g5zUWIbB_4v75WJC6oEo0MOD0RnaIlZyDaZAFM1xkefEx5ek4G4bk3w","gym_location_city": "BURBANK","gym_location_state": "CA","gym_name": "Griffith Manor Park (Ex-eligible)","latitude": "34.164256","longitude": "-118.292803","original_gym_name": "Griffith Manor Park","region_code_key": "BAG","word_1": "GR","word_2": "MA","word_3": "PA"}')
 
 
-def main():
-    gyms_lookup_test()
-    test_bingo_card()
+def test_config():
+    # byte_array = json.dumps(["bulbasaur","mareep"])
+    #
+    # save_clembot_config("bingo-event", byte_array)
+    # save_clembot_config("test-key","test-value")
+    #
+    # print(find_clembot_config("bingo-event"))
+    # print(find_clembot_config("test-key"))
+    #
+    # byte_array = find_clembot_config("bingo-event")
+    #
+    # print(byte_array)
+    # print(byte_array[0])
 
-# main()
+    map = find_clembot_config("bingo-event-title")
+    print(map)
+    print(map['mareep'])
+
+
+def main():
+    set_db_name(SQLITE_DB)
+    test_config()
+
+#main()

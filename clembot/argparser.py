@@ -1,7 +1,7 @@
 import time_util
 
 def pokemon_validator_mock(text):
-    if text in ['kyogre','groudon','rayquaza']:
+    if text in ['kyogre','groudon','rayquaza','magikarp']:
         return True
     return False;
 
@@ -50,6 +50,7 @@ def parse_arguments(text, list_of_options, options_methods={}, options_method_op
     pokemon_method = options_methods.get('pokemon', pokemon_validator_mock)
     gym_lookup_method = options_methods.get('gym_info', gym_validator_mock)
     eta_method = options_methods.get('eta', eta_validator_mock)
+    link_method = options_method_optional_parameters.get('link',extract_link_from_text)
 
     gym_lookup_message = options_method_optional_parameters.get('message',None)
 
@@ -121,6 +122,12 @@ def parse_arguments(text, list_of_options, options_methods={}, options_method_op
                 if eta:
                     response['eta'] = eta
                     args.remove(arg)
+        elif option == 'link':
+            for arg in list(args):
+                link = link_method(arg)
+                if link:
+                    response['link'] = link
+                    args.remove(arg)
     # all remaining arguments in others
     for arg in list(args):
         other_list = response.get('others', [])
@@ -169,6 +176,22 @@ def test1():
 
     parse_test("!raid assume groudon", ['command', 'subcommand', 'pokemon'])
 
+
+def extract_link_from_text(text):
+    newloc = None
+    mapsindex = text.find("/maps")
+    newlocindex = text.rfind("http", 0, mapsindex)
+
+    if newlocindex == -1:
+        return newloc
+    newlocend = text.find(" ", newlocindex)
+    if newlocend == -1:
+        newloc = text[newlocindex:]
+    else:
+        newloc = text[newlocindex:newlocend + 1]
+
+    return newloc
+
 def main():
     try:
         test2()
@@ -179,8 +202,10 @@ def main():
 
 
 def test2():
-    parameters = parse_test("!raidegg 5 gewa43 38", ['command', 'egg', 'gym_info', 'timer', 'location'])
+    parameters = parse_test("!raidegg 5 gewa43 38", ['command', 'egg', 'gym_info', 'timer', 'location'],{'pokemon' : pokemon_validator_mock, 'link' : extract_link_from_text })
     print(" ".join(str(x) for x in parameters.get('others')))
+
+    parse_test("!nest Squirtle Tonga Park ( some city ) https://goo.gl/maps/suEo9zDBCCP2", ['command','pokemon','link'])
 
 # ---------------uncomment this line to test stand alone-------------------------
 #main()

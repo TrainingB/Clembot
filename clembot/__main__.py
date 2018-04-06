@@ -792,8 +792,9 @@ async def channel_cleanup(loop=True):
                         # if it's an exraid
                         if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['type'] == 'exraid':
                             logger.info(log_str + ' - EXRAID')
-
                             continue
+                        if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['type'] == 'raidparty':
+                            logger.info(log_str + ' - RAID PARTY')
                         # or if the expiry time for the channel has already passed within 5 minutes
                         elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.guild.id):
                             # list the channel to be sent to the channel expiry function
@@ -1143,6 +1144,61 @@ async def _set(ctx):
         for page in pages:
             await bot.send_message(ctx.message.channel, page)
 
+@_set.command(pass_context=True, hidden=True, aliases=["config"])
+@checks.is_owner()
+async def _set_config(ctx):
+    try:
+        message = ctx.message
+        args = ctx.message.content
+        args_split = args.split()
+        del args_split[0]
+
+        if len(args_split) == 3:
+            key = args_split[1]
+            value = args_split[2]
+            gymsql.save_clembot_config(key,value)
+
+        content = "Beep Beep! **{0}** has been set as **{1}**.".format(key, gymsql.find_clembot_config(key))
+
+        await ctx.message.channel.send(content)
+    except Exception as error:
+        print(error)
+
+
+@_set.command(pass_context=True, hidden=True, aliases=["bingo-event"])
+@checks.is_owner()
+async def _set_bingo_event(ctx):
+    try:
+        message = ctx.message
+        args = ctx.message.content
+        args_split = args.split(" ")
+        del args_split[0]
+
+        new_configuration={"bingo-event":None}
+
+        if len(args_split) == 2:
+            key = args_split[0]
+            value = args_split[1]
+            allowed_pokemon = gymsql.find_clembot_config("bingo-event-pokemon")
+            if allowed_pokemon:
+                if value in allowed_pokemon:
+                    new_configuration[key] = value
+                else:
+                    return await message.channel.send("Beep Beep! **{0}** is not an eligible for **{1}**. Eligible options are : **{2}**.".format(value, "bingo-event" , allowed_pokemon))
+            else :
+                return await message.channel.send("Beep Beep! **bingo-event-pokemon** is not defined.")
+
+        configuration = _update_guild_config(message.guild.id, new_configuration)
+
+        message = ctx.message
+        content = "Beep Beep! The bingo-event is set to **{0}**.".format(_get_guild_config_for(message.guild.id, "bingo-event"))
+
+        await ctx.message.channel.send(content)
+    except Exception as error:
+        print(error)
+
+
+
 
 @_set.command(pass_context=True, hidden=True)
 @commands.has_permissions(manage_guild=True)
@@ -1168,6 +1224,20 @@ async def _get(ctx):
         for page in pages:
             await bot.send_message(ctx.message.channel, page)
 
+
+
+
+
+@_get.command(pass_context=True, hidden=True, aliases=["bingo-event"])
+@commands.has_permissions(manage_guild=True)
+async def _get_bingo_event(ctx):
+    try:
+        message = ctx.message
+        content = "Beep Beep! The bingo-event is set to **{0}**.".format(_get_guild_config_for(message.guild.id, "bingo-event"))
+
+        await ctx.message.channel.send(content)
+    except Exception as error:
+        print(error)
 
 @_get.command(pass_context=True, hidden=True)
 @commands.has_permissions(manage_guild=True)
@@ -2755,13 +2825,15 @@ def is_egg_level_valid(text):
     return False
 
 def is_pokemon_valid(entered_raid):
-    if entered_raid in pkmn_info['pokemon_list']:
+    if entered_raid.lower() in pkmn_info['pokemon_list']:
         return True
     return False
 
 raidegg_SYNTAX_ATTRIBUTE = ['command', 'egg', 'gym_info', 'timer', 'location']
 
 raid_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'timer', 'location']
+
+nest_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'link']
 
 
 @checks.cityeggchannel()
@@ -4293,7 +4365,33 @@ async def set_channel_config(ctx):
         await ctx.message.channel.send( content="Beep Beep! I couldn't set the configuration successfully.")
 
 
+def _update_guild_config(guild_id, new_configuration):
+    configuration = gymsql.read_guild_configuration(guild_id)
 
+    if configuration:
+        configuration.update(new_configuration)
+    else:
+        configuration = new_configuration
+
+    configuration = gymsql.save_guild_configuration(guild_id=guild_id, configuration=configuration)
+
+    return configuration
+
+
+def _get_guild_config_for(guild_id, config_key):
+    configuration = gymsql.read_guild_configuration(guild_id)
+    if configuration:
+        return configuration.get(config_key,None)
+    return None
+
+
+def _get_bingo_event_pokemon(guild_id, config_key):
+    bingo_event_pokemon = _get_guild_config_for(guild_id,config_key)
+    if bingo_event_pokemon:
+        return bingo_event_pokemon
+
+    bingo_event_pokemon = gymsql.find_clembot_config(config_key)
+    return bingo_event_pokemon
 
 async def _get_guild_config(message):
     content = "Beep Beep! No guild configuration found!"
@@ -4302,7 +4400,7 @@ async def _get_guild_config(message):
     if configuration:
         content = "Beep Beep! Server Configuration : \n{configuration}".format(configuration=configuration)
 
-    await message.channel.send( content=content)
+    await message.channel.send(content=content)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["get-guild-config"])
@@ -4546,6 +4644,37 @@ def read_channel_city(message):
     if city:
         return city
     return None
+
+@Clembot.command(pass_context=True, hidden=True)
+async def nest(ctx):
+    try:
+        message=ctx.message
+        argument_text = message.clean_content
+        parameters = argparser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid})
+
+        pokemon = parameters.get('pokemon')[0].lower()
+        link = parameters.get('link')
+        location_name = " ".join(parameters.get('others'))
+        raid_number = pkmn_info['pokemon_list'].index(pokemon) + 1
+        raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
+
+
+        embed_desription = _("**Pokemon :** {pokemon}\n**Nest Reported at :** {location}\n").format(pokemon=pokemon.capitalize(), location=location_name)
+
+        nest_embed = discord.Embed(title=_("Beep Beep! Click here for the directions to {location}!".format(location=location_name)), description=embed_desription, url=link, colour=discord.Colour.gold())
+        nest_embed.set_thumbnail(url=raid_img_url)
+        nest_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
+        await message.channel.send(embed=nest_embed)
+
+    except Exception as error:
+        logger.info("{0} while processing message : ",format(error, ctx.message))
+        print("{0} while processing message : ",format(error, ctx.message))
+        error_msg = await ctx.channel.send(_("Beep Beep! Please use following format : **!nest pokemon location-name google-maps-url**"))
+        await asyncio.sleep(10)
+        await error_msg.delete()
+
+    await asyncio.sleep(15)
+    await ctx.message.delete()
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -6452,17 +6581,18 @@ async def _get_gym(ctx):
 @Clembot.command(pass_context=True, hidden=True,aliases=["get-card"])
 async def _get_card(ctx):
 
-
-
     try:
         message = ctx.message
+
+        event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
+        event_title_map = gymsql.find_clembot_config("bingo-event-title")
         timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
 
         args = ctx.message.clean_content.split()
         bingo_card = bingo_generator.generate_card()
         response = bingo_generator.print_card_as_text(bingo_card)
 
-        embed_msg = "**!Bulbasaur Bingo!**"
+        embed_msg = "**!{0}!**".format(event_title_map[event_pokemon])
 
         embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
 
@@ -6479,19 +6609,21 @@ async def _get_card(ctx):
 
 bingo = WowBingo()
 
-@Clembot.command(pass_context=True, hidden=True,aliases=["bingo-win"])
+@Clembot.command(pass_context=True, hidden=True,aliases=["bingo"])
 async def _bingo_win(ctx):
     try:
+        message = ctx.message
         print("_bingo_win called")
 
-        message = ctx.message
+        event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
+
         timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-        existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id)
+        existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id, event_pokemon)
 
         if existing_bingo_card_record:
-            raid_embed = discord.Embed(title=_("**Bulbasaur Bingo Shoutout!**"), description="", colour=discord.Colour.dark_gold())
+            raid_embed = discord.Embed(title=_("**{0} Shoutout!**".format(event_pokemon)), description="", colour=discord.Colour.dark_gold())
 
-            raid_embed.add_field(name="**Member:**", value=_("**{member}** believes that the following Bingo card is complete as of **{timestamp}**.").format(member=message.author.name, timestamp=timestamp), inline=True)
+            raid_embed.add_field(name="**Member:**", value=_("**{member}** believes the following Bingo card is completed as of **{timestamp}**.").format(member=message.author.name, timestamp=timestamp), inline=True)
             raid_embed.set_image(url=existing_bingo_card_record['bingo_card_url'])
             raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=message.author, format="jpg")))
 
@@ -6500,32 +6632,36 @@ async def _bingo_win(ctx):
             await message.channel.send(embed=raid_embed)
 
         else:
-            await message.channel.send("Beep Beep! {member} you will need to generate a bingo card first!")
+            await message.channel.send("Beep Beep! {0} you will need to generate a bingo card first!".format(message.author.mention))
 
     except Exception as error:
         print(error)
     return
 
 
-
-
-@Clembot.command(pass_context=True, hidden=True,aliases=["bingo"])
-async def bingo_handler(ctx):
+@Clembot.command(pass_context=True, hidden=True, aliases=["bingo-card"])
+async def _bingo_card(ctx):
     try:
-        print("bingo_handler() called")
-
+        print("_bingo_card() called")
         message = ctx.message
 
-        existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id)
+
+        event_title_map = gymsql.find_clembot_config("bingo-event-title")
+
+        event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
+        if event_pokemon == None:
+            return await message.channel.send("Beep Beep! The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**")
+
+        existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id, event_pokemon)
 
         if existing_bingo_card_record:
             bingo_card = json.loads(existing_bingo_card_record['bingo_card'])
             timestamp = existing_bingo_card_record['generated_at']
             file_url = existing_bingo_card_record['bingo_card_url']
         else:
-            bingo_card = bingo_generator.generate_card()
+            bingo_card = bingo_generator.generate_card(event_pokemon)
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-            file_path = bingo.generate_board(user_name=message.author.name, bingo_card=bingo_card, template_file=bingo_template.get(message.guild.id,"bingo_template.png"))
+            file_path = bingo.generate_board(user_name=message.author.name, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
             repo_channel = await get_repository_channel(message)
 
             file_url_message = await repo_channel.send(file=discord.File(file_path), content="Generated for : {user} at {timestamp}".format(user=ctx.message.author.mention, timestamp=timestamp))
@@ -6533,7 +6669,7 @@ async def bingo_handler(ctx):
 
         msg = 'Beep Beep! {0.author.mention} here is your Bingo Card; please take a screenshot for future use!'.format(message)
 
-        embed_msg = "**!Bulbasaur Bingo!**"
+        embed_msg = "**!{0}!**".format(event_title_map.get(event_pokemon,"BingO"))
         embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
         embed.set_image(url=file_url)
         embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=ctx.message.author.name, timestamp=timestamp))
@@ -6543,7 +6679,7 @@ async def bingo_handler(ctx):
         await ctx.message.channel.send(embed=embed)
 
         if not existing_bingo_card_record:
-            gymsql.save_bingo_card(ctx.message.guild.id, ctx.message.author.id, bingo_card, file_url, str(timestamp))
+            gymsql.save_bingo_card(ctx.message.guild.id, ctx.message.author.id, event_pokemon, bingo_card, file_url, str(timestamp))
             os.remove(file_path)
 
 

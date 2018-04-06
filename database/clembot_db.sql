@@ -39,3 +39,24 @@ bingo_card text,
 bingo_card_url text,
 generated_at text
 );
+
+
+---------------- VERSION 5
+
+create table guild_user_event_bingo_card (
+id integer primary key,
+guild_id integer,
+user_id integer,
+event text,
+bingo_card text,
+bingo_card_url text,
+generated_at text
+);
+
+
+create table clembot_config (
+id integer primary key,
+config_key text,
+config_value text
+);
+

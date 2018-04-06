@@ -15,7 +15,15 @@ def parse_test(text, format, options_method={}):
 
 def test():
 
-    parse_test("!add kyogre clco 2:45pm", ['command', 'pokemon', 'gym_code', 'eta'], {'pokemon' : find_pokemon, 'eta' : time_util.convert_into_time})
+    parameter ="!find-gym -all MESC".split()
+    print(parameter)
+
+
+    if (parameter.__contains__("-all")):
+        parameter.remove("-all")
+        print(parameter)
+
+    # parse_test("!add kyogre clco 2:45pm", ['command', 'pokemon', 'gym_code', 'eta'], {'pokemon' : find_pokemon, 'eta' : time_util.convert_into_time})
 
 
     # parse_test("!raidegg 5 clco 2", ['command', 'egg', 'gym_code', 'timer', 'location'])
