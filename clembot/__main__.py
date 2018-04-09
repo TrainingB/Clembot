@@ -2364,6 +2364,21 @@ async def _show_register(ctx):
     await ctx.message.channel.send( content=json.dumps(new_notifications_map, indent=4, sort_keys=True))
 
 
+
+def _get_subscription_roles(guild):
+
+    add_notifications_guild_dict(guild.id)
+
+    notifications = copy.deepcopy(guild_dict[guild.id]['notifications'])
+    role_list = []
+
+    for role_id in notifications['roles']:
+        role = discord.utils.get(guild.roles, id=role_id)
+        role_list.append(role.name)
+
+    return role_list
+
+
 @Clembot.command(pass_context=True, hidden=True, aliases=["find-gym"])
 @commands.has_permissions(manage_guild=True)
 async def find_gym(ctx):
@@ -2576,35 +2591,43 @@ def get_gym_info_wrapper(message, gym_code):
     return None
 
 
+
 @Clembot.command(pass_context=True, hidden=True, aliases=["subscribe"])
 async def _subscribe(ctx):
-    """Behind the scenes, Clembot tracks user !wants by
-    creating a guild role for the Pokemon species, and
-    assigning it to the user."""
-    message = ctx.message
-    guild = message.guild
-    channel = message.channel
-    args = message.clean_content.lower().split()
-    del args[0]
+    try:
+        """Behind the scenes, Clembot tracks user !wants by
+        creating a guild role for the Pokemon species, and
+        assigning it to the user."""
+        message = ctx.message
+        guild = message.guild
+        channel = message.channel
+        args = message.clean_content.lower().split()
+        del args[0]
 
-    if len(args) > 1:
-        await channel.send( _("Beep Beep! {member} Please provide the role-name. Usage '!subscribe role-name`").format(member=ctx.message.author.mention))
-        return
-    role_name = args[0]
+        if len(args) < 1:
 
-    role = discord.utils.get(guild.roles, name=role_name)
+            help_embed = get_help_embed("Subscribe to roles for notifications.", "!subscribe role", "Available Roles: ", _get_subscription_roles(ctx.message.guild), message)
+            await message.channel.send(embed=help_embed)
 
-    if role is None:
-        await channel.send( content=_("Beep Beep! {member}, Hmmm... I can not find the {role}!").format(role=role_name))
-        return
+            return
 
-    if _is_role_registered(guild.id, role.id) == False:
-        await channel.send( content=_("Beep Beep! {member}, {role} has not been registered for notifications. Please ask an admin to use `!register-role`!").format(member=ctx.message.author.mention, role=role_name))
-        return
+        role_name = args[0]
 
-    await ctx.message.author.add_roles(role)
-    await channel.send( content=_("Beep Beep! {member}, You have successfully subscribed for {role}!".format(role=role_name, member=ctx.message.author.mention)))
+        role = discord.utils.get(guild.roles, name=role_name)
 
+        if role is None:
+            raise Exception(_("Beep Beep! {member}, Hmmm... I can not find the {role}!").format(role=role_name))
+
+        if _is_role_registered(guild.id, role.id) == False:
+            raise Exception(_("Beep Beep! {member}, {role} has not been registered for notifications. Please ask an admin to use `!register-role`!").format(member=ctx.message.author.name, role=role_name))
+
+        await ctx.message.author.add_roles(role)
+        await _send_message(channel, _("Beep Beep! **{member}**, You have successfully subscribed for **{role}**.".format(role=role_name, member=ctx.message.author.name)))
+    except Exception as error:
+        print(error)
+        logger.info(error)
+
+        await _send_error_message(error, channel)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["unsubscribe"])
 async def _unsubscribe(ctx):
@@ -2615,34 +2638,40 @@ async def _unsubscribe(ctx):
 
     """Behind the scenes, Clembot removes the user from
     the guild role for the Pokemon species."""
-    message = ctx.message
-    guild = message.guild
-    channel = message.channel
 
-    args = message.clean_content.lower().split()
-    del args[0]
+    try:
+        message = ctx.message
+        guild = message.guild
+        channel = message.channel
 
-    if len(args) > 1:
-        await channel.send( _("Beep Beep! {member} Please provide the role-name. Usage '!unsubscribe role-name`").format(member=ctx.message.author.mention))
-        return
-    role_name = args[0]
+        args = message.clean_content.lower().split()
+        del args[0]
 
-    role = discord.utils.get(guild.roles, name=role_name)
+        if len(args) > 1:
+            await _send_error_message(channel, _("Beep Beep! **{member}**, Please provide the role-name. Usage `!unsubscribe role-name`").format(member=ctx.message.author.name))
+            return
+        role_name = args[0]
 
-    if role is None:
-        await channel.send( content=_("Beep Beep! {member}, Hmmm... I can not find the {role}!").format(role=role_name))
-        return
+        role = discord.utils.get(guild.roles, name=role_name)
 
-    if _is_role_registered(guild.id, role.id) == False:
-        await channel.send( content=_("Beep Beep! {member}, {role} has not been registered for notifications. Only registered roles can be subscribed/unsubscribed!").format(member=ctx.message.author.mention, role=role_name))
-        return
+        if role is None:
+            await _send_error_message(channel, _("Beep Beep! **{member}**, No role found with name **{role}**!").format(member=ctx.message.author.name, role=role_name))
+            return
 
-    if role not in ctx.message.author.roles:
-        await ctx.message.add_reaction( '✅')
-    else:
-        await Clembot.remove_roles(message.author, role)
-        await message.add_reaction('✅')
+        if _is_role_registered(guild.id, role.id) == False:
+            await _send_error_message(channel, _("Beep Beep! **{member}**, **{role}** has not been registered for notifications.").format(member=ctx.message.author.name, role=role_name))
+            return
 
+        if role not in ctx.message.author.roles:
+            await _send_message(channel, _("Beep Beep! **{member}**, Your subscribtion for **{role}** has been removed!".format(role=role_name, member=ctx.message.author.name)))
+        else:
+            await message.author.remove_roles(role)
+            await _send_message(channel, _("Beep Beep! **{member}**, Your subscribtion for **{role}** has been removed!".format(role=role_name, member=ctx.message.author.name)))
+    except Exception as error:
+        print(error)
+        logger.info(error)
+
+        await _send_error_message(error, channel)
 
 # ---------------------------- Raid Notification Module --------------------------------------
 
@@ -3602,7 +3631,7 @@ def get_names_from_channel(message, status, mentions=False):
                 name_list.append("**{trainer}**".format(trainer=user_name))
 
     if len(name_list) > 0:
-        return ','.join(name_list)
+        return ', '.join(name_list)
     return None
 
 
@@ -4604,7 +4633,7 @@ async def _gyms(message):
     gym_code = args_split[0].upper()
 
     if len(gym_code) < 1:
-        await message.channel.send( content="Beep Beep... I need at-least one character for lookup!")
+        await _send_error_message(message.channel, "Beep Beep... **{member}** I need at-least one character for lookup!".format(member=message.author.name))
         return
 
     city = read_channel_city(message)
@@ -4614,27 +4643,27 @@ async def _gyms(message):
         list_of_gyms = await _get_gym_info_list(message, gym_code)
 
         if len(list_of_gyms) < 1:
-            await message.channel.send( content="Beep Beep... I could not find any gym starting with {gym_code} for {city}!".format(city=city, gym_code=gym_code))
+            await _send_error_message(message.channel, "Beep Beep... **{member}** I could not find any gym starting with **{gym_code}** for **{city}**!".format(member=message.author.name, city=city, gym_code=gym_code))
             return
 
-        gym_message_output = "Beep Beep! Found following gyms for [{city}] :\n".format(city=city)
+        gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format(member=message.author.name, city=city)
 
         for gym_info in list_of_gyms:
-            new_gym_info = "{:6}\t- {gym_name}\n".format(gym_info.get('gym_code_key'), gym_name=gym_info.get('gym_name'))
+            new_gym_info = "**{gym_code}** - {gym_name}\n".format(gym_code=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
 
             if len(gym_message_output) + len(new_gym_info) > 1990:
-                await message.channel.send( content=gym_message_output)
+                await message.channel.send(content=gym_message_output)
                 gym_message_output = ""
 
             gym_message_output += new_gym_info
 
         if gym_message_output:
-            await message.channel.send( content=gym_message_output)
+            await _send_message(message.channel, gym_message_output)
         else:
-            await message.channel.send( content="Beep Beep...Hmmm, no matches found for {gym_code} in {city}!".format(gym_code=gym_code, city=city))
+            await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.name,gym_code=gym_code, city=city))
     except Exception as error:
         print(error)
-        await message.channel.send( content="Beep Beep...Hmmm, no matches found for {gym_code} in {city}!".format(gym_code=gym_code, city=city))
+        await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.name,gym_code=gym_code, city=city))
 
 
 def read_channel_city(message):
@@ -4645,31 +4674,82 @@ def read_channel_city(message):
         return city
     return None
 
+def get_help_embed(description, usage, available_value_title, available_values, mode="message"):
+
+    if mode == "message":
+        color = discord.Colour.green()
+    else:
+        color = discord.Colour.red()
+
+    help_embed = discord.Embed( description="**{0}**".format(description), colour=color)
+
+    help_embed.add_field(name="**Usage :**", value = "**{0}**".format(usage))
+    help_embed.add_field(name="**{0} :**".format(available_value_title), value=_("**{0}**".format(", ".join(available_values))), inline=False)
+
+    return help_embed
+
+
+async def _send_error_message(channel, description):
+
+    color = discord.Colour.red()
+    error_embed = discord.Embed(description="{0}".format(description), colour=color)
+    return await channel.send(embed=error_embed)
+
+
+
+
+async def _send_message(channel, description):
+    try:
+        color = discord.Colour.green()
+        message_embed = discord.Embed(description="{0}".format(description), colour=color)
+
+        return await channel.send(embed=message_embed)
+    except Exception as error:
+        print(error)
+
+
+
 @Clembot.command(pass_context=True, hidden=True)
 async def nest(ctx):
     try:
+
+        ctx.message.delete()
+
         message=ctx.message
         argument_text = message.clean_content
         parameters = argparser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid})
 
-        pokemon = parameters.get('pokemon')[0].lower()
-        link = parameters.get('link')
-        location_name = " ".join(parameters.get('others'))
-        raid_number = pkmn_info['pokemon_list'].index(pokemon) + 1
-        raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
+        if parameters.get('length') == 1:
+            raise Exception ("**{0}**, The correct usage is **!nest pokmeon location-name link-to-location**".format(message.author.name))
 
+
+        pokemon = parameters.get('pokemon', [None])[0]
+        if pokemon == None:
+            raise Exception("**{0}**, Did you spell the pokemon right?".format(message.author.name))
+
+        link = parameters.get('link', None)
+        location_name = " ".join(parameters.get('others'))
+        if link:
+            embed_title = _("Beep Beep! Click here for the directions to {location}!".format(location=location_name))
+        else:
+            embed_title = _("Beep Beep! A nest has been reported!")
+
+
+        raid_number = pkmn_info['pokemon_list'].index(pokemon.lower()) + 1
+        raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
 
         embed_desription = _("**Pokemon :** {pokemon}\n**Nest Reported at :** {location}\n").format(pokemon=pokemon.capitalize(), location=location_name)
 
-        nest_embed = discord.Embed(title=_("Beep Beep! Click here for the directions to {location}!".format(location=location_name)), description=embed_desription, url=link, colour=discord.Colour.gold())
+        nest_embed = discord.Embed(title=embed_title, description=embed_desription, url=link, colour=discord.Colour.gold())
         nest_embed.set_thumbnail(url=raid_img_url)
         nest_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
         await message.channel.send(embed=nest_embed)
 
     except Exception as error:
-        logger.info("{0} while processing message : ",format(error, ctx.message))
-        print("{0} while processing message : ",format(error, ctx.message))
-        error_msg = await ctx.channel.send(_("Beep Beep! Please use following format : **!nest pokemon location-name google-maps-url**"))
+        logger.info("{0} while processing message :{1}".format(error, ctx.message.clean_content))
+        print("{0} while processing message : {1}".format(error, ctx.message.clean_content))
+
+        error_msg = await ctx.channel.send(embed=_send_error_message(error, None))
         await asyncio.sleep(10)
         await error_msg.delete()
 
@@ -4700,7 +4780,7 @@ async def gym(ctx):
 
 
         else:
-            await ctx.message.channel.send( content="Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
+            await _send_error_message(ctx.message.channel, "Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
             return
     except Exception as error:
         print(error)
@@ -6475,7 +6555,7 @@ async def _get_gym_info(message, gym_code):
         await _generate_gym_embed(message, gym_info)
         return gym_info
 
-    await message.channel.send( content="Beep Beep...Hmmm, I couldn't find an exact match for this gym-code in {city}! Type **!gyms {gym_code}** to see list all gyms starting from gym-code".format(city=city,gym_code=gym_code))
+    await _send_error_message(message.channel, "Beep Beep... **{member}** No gyms found with **{gym_code}** in **{city}**. Please use **!gyms** to see the list of gyms.".format(member=message.author.name, city=city,gym_code=gym_code))
     return None
 
 
@@ -6662,7 +6742,6 @@ async def _bingo_card(ctx):
         print("_bingo_card() called")
         message = ctx.message
 
-
         event_title_map = gymsql.find_clembot_config("bingo-event-title")
 
         event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
@@ -6687,7 +6766,7 @@ async def _bingo_card(ctx):
         msg = 'Beep Beep! {0.author.mention} here is your Bingo Card; please take a screenshot for future use!'.format(message)
 
         embed_msg = "**!{0}!**".format(event_title_map.get(event_pokemon,"BingO"))
-        embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
+        embed = discord.Embed(title=embed_msg,colour=discord.Colour.gold())
         embed.set_image(url=file_url)
         embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=ctx.message.author.name, timestamp=timestamp))
 
