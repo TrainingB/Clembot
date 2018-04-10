@@ -2403,7 +2403,7 @@ async def _find_gym(message):
         gym_code = args_split[0].upper()
 
         if 0 < len(args_split) < 3 :
-            city = read_channel_city(message)
+            city = _read_channel_city(message)
             gym_dict = gymsql.find_gym(city,args_split[0])
             if len(gym_dict) == 0:
                 return await message.channel.send(content="Beep Beep...! I couldn't find a match for {gym_code} in {city_code}".format(gym_code=gym_code, city_code=city))
@@ -2576,7 +2576,7 @@ def get_gym_by_code(gym_code, message):
 
 def get_gym_info_wrapper(message, gym_code):
 
-    city_state = read_channel_city(message)
+    city_state = _read_channel_city(message)
     gym_info_new_format = gymsql.get_gym_by_code(gym_code_key=gym_code, city_state_key=city_state)
 
     if gym_info_new_format:
@@ -6600,7 +6600,7 @@ async def _add_gym(ctx):
         message_text = message.content.replace("!add-gym ","")
 
         gym_info = json.loads(message_text)
-        city = read_channel_city(message)
+        city = _read_channel_city(message)
         gym_dict = gymsql.find_gym(city, gym_info['gym_code_key'])
 
         if gym_dict:
@@ -6627,7 +6627,7 @@ async def _remove_gym(ctx):
         gym_code = args_split[0].upper()
 
         if 0 < len(args_split) < 2:
-            city = read_channel_city(ctx.message)
+            city = _read_channel_city(ctx.message)
             gym_dict = gymsql.find_gym(city, args_split[0])
             if len(gym_dict) == 0:
                 return await message.channel.send(content="Beep Beep...! I couldn't find a match for {gym_code} in {city_code}".format(gym_code=gym_code, city_code=city))
@@ -6674,7 +6674,7 @@ async def _get_gym(ctx):
 
         if len(args) < 1:
             await ctx.message.channel.send(content=_("Beep Beep! Please provide information as !get-gym gym-code"))
-        city_state = read_channel_city(ctx.message)
+        city_state = _read_channel_city(ctx.message)
         response = gymsql.get_gym_by_code(city_state, args[0])
         await ctx.message.channel.send( content=json.dumps(response, indent=4, sort_keys=True))
     except Exception as error:
