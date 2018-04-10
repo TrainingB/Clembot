@@ -4636,7 +4636,7 @@ async def _gyms(message):
         await _send_error_message(message.channel, "Beep Beep... **{member}** I need at-least one character for lookup!".format(member=message.author.name))
         return
 
-    city = read_channel_city(message)
+    city = _read_channel_city(message)
     gym_message_output = ""
     try:
 
@@ -4666,10 +4666,16 @@ async def _gyms(message):
         await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.name,gym_code=gym_code, city=city))
 
 
-def read_channel_city(message):
+def _read_channel_city(message):
     city = gymsql.read_channel_city(guild_id=message.guild.id, channel_id=message.channel.id)
     if city == None:
-        city = gymsql.read_guild_city(guild_id=message.guild.id)
+        try:
+            parent_city_id = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id].get('reportcity', 0)
+            city = gymsql.read_channel_city(guild_id=message.guild.id, channel_id=parent_city_id)
+        except Exception:
+            pass
+        if city == None:
+            city = gymsql.read_guild_city(guild_id=message.guild.id)
     if city:
         return city
     return None
@@ -6529,11 +6535,13 @@ async def _generate_gym_embed(message, gym_info):
     await message.channel.send( content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention, roster_message=roster_message), embed=raid_embed)
 
 
+
+
+
+
 async def _get_gym_info_list(message, gym_code):
     print("_get_gym_info_list")
-    city = gymsql.read_channel_city(guild_id=message.guild.id, channel_id=message.channel.id)
-    if city == None:
-        city = gymsql.read_guild_city(guild_id=message.guild.id)
+    city = _read_channel_city(message)
 
     gym_info_list = gymsql.get_gym_list_by_code(city_state_key=city, gym_code_key=gym_code)
 
@@ -6545,9 +6553,8 @@ async def _get_gym_info_list(message, gym_code):
 
 
 async def _get_gym_info(message, gym_code):
-    city = gymsql.read_channel_city(guild_id=message.guild.id, channel_id=message.channel.id)
-    if city == None:
-        city = gymsql.read_guild_city(guild_id=message.guild.id)
+
+    city = _read_channel_city(message)
 
     gym_info = gymsql.get_gym_by_code(city_state_key=city, gym_code_key=gym_code)
     print("_get_gym_info() : {gym_info}".format(gym_info=gym_info))
