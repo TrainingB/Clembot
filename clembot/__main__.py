@@ -32,7 +32,7 @@ import checks
 import hastebin
 from operator import itemgetter
 from errors import custom_error_handling
-
+import dateparser
 # --B--
 # ---- dependencies
 import gymutil
@@ -6741,14 +6741,19 @@ async def _bingo_card(ctx):
     try:
         print("_bingo_card() called")
         message = ctx.message
+        author = ctx.message.author
+
+        if len(ctx.message.mentions) > 0:
+            author = ctx.message.mentions[0]
+
 
         event_title_map = gymsql.find_clembot_config("bingo-event-title")
 
         event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
         if event_pokemon == None:
-            return await message.channel.send("Beep Beep! The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**")
+            return await _send_error_message(message.channel, "Beep Beep! **{member}** The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**".format(ctx.message.author.name))
 
-        existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, ctx.message.author.id, event_pokemon)
+        existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, author.id, event_pokemon)
 
         if existing_bingo_card_record:
             bingo_card = json.loads(existing_bingo_card_record['bingo_card'])
@@ -6757,10 +6762,10 @@ async def _bingo_card(ctx):
         else:
             bingo_card = bingo_generator.generate_card(event_pokemon)
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-            file_path = bingo.generate_board(user_name=message.author.name, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
+            file_path = bingo.generate_board(user_name=author.name, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
             repo_channel = await get_repository_channel(message)
 
-            file_url_message = await repo_channel.send(file=discord.File(file_path), content="Generated for : {user} at {timestamp}".format(user=ctx.message.author.mention, timestamp=timestamp))
+            file_url_message = await repo_channel.send(file=discord.File(file_path), content="Generated for : {user} at {timestamp}".format(user=author.mention, timestamp=timestamp))
             file_url = file_url_message.attachments[0].url
 
         msg = 'Beep Beep! {0.author.mention} here is your Bingo Card; please take a screenshot for future use!'.format(message)
@@ -6768,14 +6773,14 @@ async def _bingo_card(ctx):
         embed_msg = "**!{0}!**".format(event_title_map.get(event_pokemon,"BingO"))
         embed = discord.Embed(title=embed_msg,colour=discord.Colour.gold())
         embed.set_image(url=file_url)
-        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=ctx.message.author.name, timestamp=timestamp))
+        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=author.name, timestamp=timestamp))
 
         await message.channel.send(msg)
 
         await ctx.message.channel.send(embed=embed)
 
         if not existing_bingo_card_record:
-            gymsql.save_bingo_card(ctx.message.guild.id, ctx.message.author.id, event_pokemon, bingo_card, file_url, str(timestamp))
+            gymsql.save_bingo_card(ctx.message.guild.id, author.id, event_pokemon, bingo_card, file_url, str(timestamp))
             os.remove(file_path)
 
 
@@ -6802,6 +6807,81 @@ async def get_repository_channel(message):
     guild_dict[message.guild.id].update(bingo_card_repo)
 
     return bingo_card_repo_channel
+
+@Clembot.command()
+async def silphcard(ctx, user: str = None):
+    try:
+        if not user:
+            user = guild_dict[ctx.guild.id].get('trainers',{}).get(ctx.author.id,{}).get('silphid', None)
+        else:
+            if ctx.message.mentions:
+                user = guild_dict[ctx.guild.id].get('trainers', {}).get(ctx.message.mentions[0].id,{}).get('silphid', None)
+        if not user:
+            await _send_error_message(ctx.channel,_(f'Beep Beep! **{ctx.message.author.name}** you did not provide a known Silph Road Traveler!'))
+            return
+        else:
+            url = 'https://sil.ph/{user}.json'.format(user=user)
+            async with ctx.typing():
+                async with aiohttp.ClientSession() as sess:
+                    async with sess.get(url) as resp:
+                        data = await resp.json()
+            if data.get('error', None):
+                await _send_error_message(ctx.channel,_(f"Beep Beep! **{user}**  does not have a public Travelers Card!"))
+                return
+            embed = _get_silph(ctx,data)
+            await ctx.send(embed=embed)
+    except Exception as error:
+        print(error)
+
+
+def _get_silph(ctx,data):
+    hyperlink_icon = "https://i.imgur.com/fn9E5nb.png"
+    silph_icon = "https://assets.thesilphroad.com/img/snoo_sr_icon.png"
+    card_id = data['data']['card_id']
+    home_region = data['data']['home_region']
+    pokedex_count = data['data']['pokedex_count']
+    raid_average = data['data']['raid_average']
+    team = data['data']['team']
+    playstyle = data['data']['playstyle']
+    modified = data['data']['modified']
+    modified_datetime = dateparser.parse(modified, settings={'TIMEZONE': 'UTC'})
+    local_datetime = modified_datetime + datetime.timedelta(hours=guild_dict[ctx.guild.id]['offset'])
+    local_date = local_datetime.date().isoformat()
+    goal = data['data']['goal']
+    trainer_level = data['data']['trainer_level']
+    nest_migrations = data['data']['nest_migrations']
+    title = data['data']['title']
+    avatar = data['data']['avatar']
+    ign = data['data']['in_game_username']
+    joined = data['data']['joined']
+    joined_datetime = datetime.datetime.strptime(joined, "%Y-%m-%d %H:%M:%S")
+    local_joined = joined_datetime + datetime.timedelta(hours=guild_dict[ctx.guild.id]['offset'])
+    joined_date = local_joined.date().isoformat()
+    badge_count = len(data['data']['badges'])
+    checkins = len(data['data']['checkins'])
+    handshakes = data['data']['handshakes']
+    socials = data['data']['socials']
+    disuser = ''
+    for social in socials:
+        if social['vendor'] == "Discord":
+            disuser = social['username']
+            break
+        else:
+            continue
+    if not disuser:
+        disstring = ":grey_question: **Discord Not Provided**"
+    else:
+        disstring = ":ballot_box_with_check: **Connected to Discord:**"
+
+    embed = discord.Embed(title="Playstyle", colour=discord.Colour(0xe8c13c), description=f"{playstyle}, working on {goal.lower()}.\nActive around {home_region}.\n\n{disstring} {disuser}")
+
+    embed.set_thumbnail(url=avatar)
+    embed.set_author(name=f"{title} {ign} - Level {trainer_level} {team}", url=f"https://sil.ph/{ign.lower()}", icon_url=hyperlink_icon)
+    embed.set_footer(text=f"Silph Road Travelers Card - ID{card_id} - Updated {local_date}", icon_url=silph_icon)
+
+    embed.add_field(name="__Silph Stats__", value=f"**Joined:** {joined_date}\n**Badges:** {badge_count}\n**Check-ins:** {checkins}\n**Handshakes:** {handshakes}\n**Migrations:** {nest_migrations}", inline=True)
+    embed.add_field(name="__Game Stats__", value=f"**Name:** {ign}\n**Team:** {team}\n**Level:** {trainer_level}\n**Pokedex:** {pokedex_count}\n**Raids:** {raid_average}/week", inline=True)
+    return embed
 
 
 
