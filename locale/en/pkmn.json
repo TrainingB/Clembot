@@ -3,6 +3,9 @@
 
 "//": "Below is a dict of raid bosses. These become part of the raid report message.",
 "raid_list": [
+    "bulbasaur",
+    "charmander",
+    "squirtle",
     "magikarp",
     "wailmer",
     "swablu",
@@ -10,6 +13,8 @@
     "sableye",
     "shuppet",
     "duskull",
+    "venomoth",
+    "muk",
     "mawile",
     "exeggutor",
     "scyther",
@@ -30,6 +35,7 @@
     "charizard",
     "machamp",
     "houndoom",
+    "lapras",
     "tyranitar",
     "piloswine",
     "aggron",
