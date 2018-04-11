@@ -3929,7 +3929,7 @@ async def _raidparty(message):
     args_split = args.split(" ")
     del args_split[0]
     if len(args_split) < 1:
-        await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!raidparty <channel-name>**"))
+        await _send_error_message(message.channel, _("Beep Beep! Give more details when reporting! Usage: **!raidparty <channel-name>**"))
         return
     raid_details = " ".join(args_split)
     raid_details = raid_details.strip()
@@ -3939,7 +3939,10 @@ async def _raidparty(message):
         prefix = region_prefix + "-"
     else:
         prefix = ""
-    raid_channel_name = prefix + "raid-party-" + sanitize_channel_name(raid_details)
+    if len(raid_details) == 0 :
+        raid_channel_name = prefix + "raid-party"
+    else:
+        raid_channel_name = prefix + sanitize_channel_name(raid_details)
     raid_channel_overwrites = message.channel.overwrites
     # clembot_overwrite = (Clembot.user, discord.PermissionOverwrite(send_messages=True))
     #
@@ -3951,7 +3954,7 @@ async def _raidparty(message):
     except Exception as error:
         print(error)
 
-    raidreport = await message.channel.send( content=_("Beep Beep! A raid party is being organized by {member}! You can coordinate in {raid_channel}").format(member=message.author.mention, raid_channel=raid_channel.mention))
+    raidreport = await _send_message(message.channel, _("Beep Beep! A **raid-party** has been reported by **{member}**! Coordinate in {raid_channel}").format(member=message.author.name, raid_channel=raid_channel.mention))
     await asyncio.sleep(1)  # Wait for the channel to be created.
 
     raidmsg = _("""Beep Beep! A raid-party is happening and {member} will be organizing it here in {raid_channel}! Coordinate here!
@@ -4489,7 +4492,7 @@ async def _set_guild_city(ctx):
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["set-city"])
-@checks.guildowner_or_permissions(manage_guild=True)
+@checks.guildowner_or_permissions(manage_channel=True)
 async def _set_city(ctx):
     args = ctx.message.content
     args_split = args.split(" ")
@@ -4652,7 +4655,7 @@ async def _gyms(message):
             new_gym_info = "**{gym_code}** - {gym_name}\n".format(gym_code=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
 
             if len(gym_message_output) + len(new_gym_info) > 1990:
-                await message.channel.send(content=gym_message_output)
+                await _send_message(message.channel, gym_message_output)
                 gym_message_output = ""
 
             gym_message_output += new_gym_info
@@ -4701,9 +4704,6 @@ async def _send_error_message(channel, description):
     error_embed = discord.Embed(description="{0}".format(description), colour=color)
     return await channel.send(embed=error_embed)
 
-
-
-
 async def _send_message(channel, description):
     try:
         color = discord.Colour.green()
@@ -4713,7 +4713,19 @@ async def _send_message(channel, description):
     except Exception as error:
         print(error)
 
+def get_beep_embed(title, description, usage=None, available_value_title=None, available_values=None, footer=None, mode="message"):
 
+    if mode == "message":
+        color = discord.Colour.green()
+    else:
+        color = discord.Colour.red()
+
+    help_embed = discord.Embed( title = title, description=f"{description}", colour=color)
+
+    # help_embed.add_field(name="**Usage :**", value = "**{0}**".format(usage))
+    # help_embed.add_field(name="**{0} :**".format(available_value_title), value=_("**{0}**".format(", ".join(available_values))), inline=False)
+    help_embed.set_footer(text=footer)
+    return help_embed
 
 @Clembot.command(pass_context=True, hidden=True)
 async def nest(ctx):
@@ -4872,29 +4884,53 @@ def check_raidparty_channel(channel_id):
 
 # ---------------------------------------------------------------------------------------
 
-beepmsg = _("""
-{member} **!beep** can be used with following options:
-`!beep report` - to see commands to report raid or raidegg.
-`!beep raid` - for raid specific commands.
-`!beep gym` - for gym code related commands.
-`!beep notification` - for notification related commands.
+beepmsg = _("""**{member}, !beep** can be used with following options:
+
+**!beep report** - to see commands to report raid or raidegg.
+**!beep raid** - for raid specific commands.
+**!beep gym** - for gym code related commands.
+**!beep notification** - for notification related commands.
+
 """)
 
-beep_report = _("""
-{member} here is how you can report a raid/raidegg ( the <> will be replaced with actual value):
-** **
-`!raid <pokemon> <location or gym-code>` to report a raid channel.
-Example:
-`!raid kyogre somewhere-in-my-city` or 
-`!raid magikarp ABCD` - where ABCD is the gym code.
-** **
-`!raidegg <level> <loc or gym-code>` to report an egg.
-Example:
-`!raidegg 3 right-here`
-`!raidegg 2 ABCD` - where ABCD is the gym code.
-** **
-Also, see `!beep gym` for gym-code commands!
+beep_report = _(
+"""**{member}** to report raids, eggs or wild pokemon use following commands:
+
+**!raid <pokemon> <place or gym-code> [timer]** - to create a channel for pokemon raid at place with timer remaining.
+
+**!raidegg <level> <place or gym-code> [timer]** - to create a channel for specified level egg at place with timer remaining.
+
+**!raidparty <raid-party-channel-name>** - to create a channel for raid party where multiple raids are done by a group back to back. 
+
+**!wild <pokemon> <place>** - to report a wild sighting of a pokemon
+
+Also, see **!beep gym** for gym-code commands!
 """)
+
+beep_raid_status = _("""
+**{member}** to update your status, choose from the following commands:
+
+**!interested** or **!i** - to mark your status as **interested** for the raid
+**!coming** or **!c** - to mark your status as **coming** for the raid
+**!here** or **!h** - to mark your status as **here** for the raid
+**!cancel** or **!x** - to **cancel** your status 
+
+If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
+Example: **!coming 5** or **!c 5**
+
+**!list** or **!l** - lists status of all members for the raid.
+
+**!timer** - shows the expiry time for the raid.
+**!timerset <minutes>** - set the expiry time for the raid.
+
+**!start HH:MM AM/PM** - to **suggest** a start time.
+**!starting** - to clear the **here** list.
+
+**!raid <pokemon>** - to update egg channel into an open raid.
+**!raid assume <pokemon>** - to have the egg channel auto-update into an open raid.
+
+""")
+
 
 beep_raid = _("""
 {member} to update your status, choose from the following commands:
@@ -4922,10 +4958,11 @@ Example: `!coming 5` or `!c 5`
 `!starting` when the raid is beginning to clear the raid's 'here' list.""")
 
 beep_raidparty = ("""
-{member} here are the commands to work with raid party. 
+**{member}** here are the commands to work with raid party. 
 
-`!roster` prints the current roster
-`!where <location #>` will tell directions for location #
+**!roster** - to print the current roster
+**!where** - to see the pathshare path ( if applicable )
+**!where <location #>** will tell directions for location #
 `!current` will tell you current location of the raid party
 `!next` will tell you where the raid party is headed next.
 ** ** 
@@ -4939,63 +4976,61 @@ or alternatively use the shortcuts
 Also, see `!beep raidowner` for Raid Party management commands!
 """)
 
-beep_raidowner = ("""
-{member} here are the commands to organize raid party:
+beep_raidowner = ("""**{member}** here are the commands to organize raid party:
 
-`!raidparty <channel name>` creates a raid party channel
-`!add <pokemon or egg> <gym-code or gym name or location>` adds a location into the roster
-*Alternatively you can always paste a link and add a location into roster!*
+**!raidparty <channel name>** creates a raid party channel
+**!add <pokemon or egg> <gym-code or gym name or location> [eta]** adds a location into the roster
 
-`!move` moves raid party to the next location in roster
+**!move** moves raid party to the next location in roster
 
-`!update <location#> <gym-code>` updates the gym code for location #
-`!update <location#> <pokemon>` updates the pokemon for location #
-`!update <location#> <link>` updates the link for location #
-`!remove <location#>` removes specified location from roster
-`!reset` cleans up the roster
-** **
-Also, see `!beep raidparty` for commands which raid party participants can use!
+**!update <location#> <gym-code>** - to update the gym code for location #
+**!update <location#> <pokemon>** - to update the pokemon for location #
+**!update <location#> <eta>** - to updates the eta for location #
+**!remove <location#>** - to remove specified location from roster
+**!reset** - to clean up the roster
+
+**!raidover** - deletes the raid party channel.
+
+Also, see **!beep raidparty** for commands which raid party participants can use!
 """)
 
 beep_gym = ("""
-{member} you can use following commands for gym lookup. 
+**{member}** you can use following commands for gym lookup. 
 
-`!gym <gym-code>` brings up the google maps location of the gym.
+**!gym <gym-code>** brings up the google maps location of the gym.
 
-Note : **gym-code** is **first two letters** of **first two words** of gym name with some exceptions
+Note : **gym-code** is **first two letters** of **first two or three words** of gym name with some exceptions
 
-`!gymlookup <code>` looks up all gyms starting with code. 
-** **
- Example:
-`!gymlookup A` will bring up all gym code and gym names starting with A
-`!gymlookup BU` will bring up all gym code and gym names starting with BU
+**!gyms <code>** looks up all gyms starting with code. 
+
+**__Example:__**
+**!gyms A** will bring up all gym code and gym names starting with **A**
+**!gyms BU** will bring up all gym code and gym names starting with **BU**
 """)
 
-beep_notifications = ("""
-{member} here are the commands for notifications. 
+beep_notifications = ("""**{member}** here are the commands for notifications. 
 
-**Admin Only**
-`!register-role role-name` registers a role for raid-notifications
-`!register-gym role-name gym-code` associates a gym-code with raid-notifications role
-`!reset-register` removes all raid-notifications roles
+**__Subscription__**
+**!subscribe role-name** assigns you the role for raid-notifications
+**!unsubscribe role-name** removes the role for raid-notifications
 
-**Subscription**
-`!subscribe role-name` assigns you the role for raid-notifications
-`!unsubscribe role-name` removes the role for raid-notifications
+**__Admin Only__**
+**!register-role role-name** registers a role for raid-notifications
+**!register-gym role-name gym-code** associates a gym-code with raid-notifications role
 
+**!show-register** to show the current register
+**!reset-register** removes all raid-notifications roles
 """)
 
-beep_bingo = ("""
-{member} here are the commands for bingo. 
+beep_bingo = ("""**{member}** here are the commands for bingo. 
 
-`!bingo-card` - to generate bingo-card for the contest
-`!bingo` - to shout-out bingo when you think you have all boxes covered.
+**!bingo-card** - to generate bingo-card for the contest
+**!bingo** - to shout-out bingo when you think you have all boxes covered.
 """)
 
-beep_nest = ("""
-{member} here is the commands for nests reporting. 
+beep_nest = ("""**{member}** here is the commands for nests reporting. 
 
-`!nest pokemon name-of-location url` - to report a nest at location and google url
+**!nest <pokemon> <name-of-location> <url>** - to report a nest at location and google url
 """)
 
 # ---------------------------------------------------------------------------------------
@@ -5018,30 +5053,33 @@ async def dump(ctx):
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["b","help"])
 async def beep(ctx):
-    args = ctx.message.clean_content[len("!beep"):]
-    args_split = args.split()
+    try:
+        footer = "Tip: < > denotes required and [ ] denotes optional arguments."
 
-    if len(args_split) == 0:
-        await ctx.message.channel.send( content=beepmsg.format(member=ctx.message.author.mention))
-    else:
-        if args_split[0] == 'report':
-            await ctx.message.channel.send( content=beep_report.format(member=ctx.message.author.mention))
-        elif args_split[0] == 'raid':
-            await ctx.message.channel.send( content=beep_raid.format(member=ctx.message.author.mention))
-        elif args_split[0] == 'raidparty':
-            await ctx.message.channel.send( content=beep_raidparty.format(member=ctx.message.author.mention))
-        elif args_split[0] == 'raidowner':
-            await ctx.message.channel.send( content=beep_raidowner.format(member=ctx.message.author.mention))
-        elif args_split[0] == 'gym':
-            await ctx.message.channel.send( content=beep_gym.format(member=ctx.message.author.mention))
-        elif args_split[0] == 'notification':
-            await ctx.message.channel.send( content=beep_notifications.format(member=ctx.message.author.mention))
-        elif args_split[0] == 'bingo':
-            await ctx.message.channel.send( content=beep_bingo.format(member=ctx.message.author.mention))
-        elif args_split[0] == 'nest':
-            await ctx.message.channel.send( content=beep_nest.format(member=ctx.message.author.mention))
+        args = ctx.message.clean_content[len("!beep"):]
+        args_split = args.split()
 
-
+        if len(args_split) == 0:
+            await ctx.message.channel.send(embed=get_beep_embed(title="Help - Commands", description=beepmsg.format(member=ctx.message.author.name), footer=footer))
+        else:
+            if args_split[0] == 'report':
+                await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Reporting", description = beep_report.format(member=ctx.message.author.name), footer=footer))
+            elif args_split[0] == 'raidparty':
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Party (Status)", description=beep_raidparty.format(member=ctx.message.author.name), footer=footer))
+            elif args_split[0] == 'raidowner':
+                await ctx.message.channel.send( embed= get_beep_embed(title="Help - Raid Party (Organizer)", description=beep_raidowner.format(member=ctx.message.author.name), footer=footer))
+            elif args_split[0] == 'gym':
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Gym Code", description=beep_gym.format(member=ctx.message.author.name), footer=footer))
+            elif args_split[0] == 'notification':
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Notifications", description=beep_notifications.format(member=ctx.message.author.name), footer=footer))
+            elif args_split[0] == 'bingo':
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Bingo", description=beep_bingo.format(member=ctx.message.author.name), footer=footer))
+            elif args_split[0] == 'nest':
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Nest", description=beep_nest.format(member=ctx.message.author.name), footer=footer))
+            elif args_split[0] == 'raid' or args_split[0] == 'status' :
+                await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Status Management", description = beep_raid_status.format(member=ctx.message.author.name), footer=footer))
+    except Exception as error:
+        print(error)
 
 #         pokebattler integration
 weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy', 'partlycloudy', 'cloudy', 'windy', 'snowy', 'foggy']
@@ -6020,16 +6058,27 @@ async def update(ctx):
 async def raidover(ctx):
 
     try:
-        started_by = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['started_by']
+        channel = ctx.message.channel
+        message = ctx.message
+        started_by = guild_dict[message.guild.id]['raidchannel_dict'][channel.id]['started_by']
+
         if ctx.message.author.id == started_by:
 
             clean_channel = await ask_confirmation(ctx.message, "Are you sure to delete the channel?", "The channel will be deleted shortly.", "No changes done!", "Request Timed out!")
             if clean_channel:
                 await asyncio.sleep(30)
+                try:
+                    report_channel = Clembot.get_channel(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['reportcity'])
+                    reportmsg = await report_channel.get_message(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['raidreport'])
+                    expiremsg = _("**This raidparty is over!**")
+                    await reportmsg.edit(embed=discord.Embed(description=expiremsg, colour=channel.guild.me.colour))
+                except Exception as error:
+                    pass
                 await ctx.message.channel.delete()
 
+
         else:
-            await ctx.message.channel.send(_("Beep Beep! Only raid reporter can clean up the channel!"))
+            await _send_error_message(channel, _("Beep Beep! Only raid reporter can clean up the channel!"))
     except Exception as error:
         print(error)
 
