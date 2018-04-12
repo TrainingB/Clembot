@@ -516,18 +516,24 @@ def do_template(message, author, guild):
 
 
 
-async def ask(message, destination, user_id, *, react_list=['✅', '❎']):
+async def ask(message, destination, user_list=None, *, react_list=['✅', '❎']):
+    if user_list and type(user_list) != __builtins__.list:
+        user_list = [user_list]
     def check(reaction, user):
-        return (user.id == user_id) and (reaction.message.id == message.id) and (reaction.emoji in react_list)
+        if user_list and type(user_list) is __builtins__.list:
+            return (user.id in user_list) and (reaction.message.id == message.id) and (reaction.emoji in react_list)
+        elif not user_list:
+            return (user.id != message.guild.me.id) and (reaction.message.id == message.id) and (reaction.emoji in react_list)
     for r in react_list:
         await asyncio.sleep(0.25)
         await message.add_reaction(r)
     try:
         reaction, user = await Clembot.wait_for('reaction_add', check=check, timeout=60)
-        return reaction.emoji
-    except Exception as error:
-        print (error)
+        return reaction, user
+    except asyncio.TimeoutError:
+        await message.clear_reactions()
         return
+
 
 async def letter_case(iterable, find, *, limits=None):
     servercase_list = []
@@ -1163,6 +1169,7 @@ async def _set_config(ctx):
         await ctx.message.channel.send(content)
     except Exception as error:
         print(error)
+
 
 
 @_set.command(pass_context=True, hidden=True, aliases=["bingo-event"])
@@ -2053,7 +2060,7 @@ async def sprite(ctx):
 async def cleanroles(ctx):
     cleancount = 0
     for role in ctx.guild.roles:
-        if role.members == [] and role.name in pkmn_info['raid_list']:
+        if role.members == [] and role.name in get_raidlist():
             await role.delete()
             cleancount += 1
     await ctx.message.channel.send("Removed {cleancount} empty roles".format(cleancount=cleancount))
@@ -2083,7 +2090,7 @@ async def want(ctx):
     role = discord.utils.get(guild.roles, name=entered_want)
     # Create role if it doesn't exist yet
     if role is None:
-        if entered_want not in pkmn_info['raid_list']:
+        if entered_want not in get_raidlist():
             if entered_want not in pkmn_info['pokemon_list']:
                 await channel.send(spellcheck(entered_want))
             else:
@@ -2964,7 +2971,7 @@ async def _newraid(message):
     if entered_raid not in pkmn_info['pokemon_list']:
         await message.channel.send(spellcheck(entered_raid))
         return
-    if entered_raid not in pkmn_info['raid_list'] and entered_raid in pkmn_info['pokemon_list']:
+    if entered_raid not in get_raidlist() and entered_raid in pkmn_info['pokemon_list']:
         await message.channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
         return
 
@@ -3133,7 +3140,7 @@ async def _raid(message):
     if entered_raid not in pkmn_info['pokemon_list']:
         await message.channel.send( spellcheck(entered_raid))
         return
-    if entered_raid not in pkmn_info['raid_list'] and entered_raid in pkmn_info['pokemon_list']:
+    if entered_raid not in get_raidlist() and entered_raid in pkmn_info['pokemon_list']:
         await message.channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
         return
 
@@ -4157,7 +4164,7 @@ async def _eggassume(args, raid_channel):
         await raid_channel.send( spellcheck(entered_raid))
         return
     else:
-        if entered_raid not in pkmn_info['raid_list']:
+        if entered_raid not in get_raidlist():
             await raid_channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
             return
         else:
@@ -4205,7 +4212,7 @@ async def _eggtoraid(entered_raid, channel):
         await channel.send( spellcheck(entered_raid))
         return
     else:
-        if entered_raid not in pkmn_info['raid_list']:
+        if entered_raid not in get_raidlist():
             await channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
             return
         else:
@@ -6123,7 +6130,7 @@ async def add(ctx):
             if roster_loc_mon not in pkmn_info['pokemon_list']:
                 await ctx.message.channel.send( spellcheck(roster_loc_mon))
                 return
-            if roster_loc_mon not in pkmn_info['raid_list'] and roster_loc_mon in pkmn_info['pokemon_list']:
+            if roster_loc_mon not in get_raidlist() and roster_loc_mon in pkmn_info['pokemon_list']:
                 await ctx.message.channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=roster_loc_mon.capitalize()))
                 return
         del args_split[0]
@@ -6940,7 +6947,72 @@ def _get_silph(ctx,data):
     return embed
 
 
+@Clembot.command(pass_context=True, hidden=True, aliases=["pokedex"])
+@checks.is_owner()
+async def _pokedex(ctx, pokemon=None):
+    if pokemon:
+        return await _send_message(ctx.channel, get_number(pokemon.lower()))
+    else:
+        return await _send_error_message(ctx.channel, "!pokedex <pokemon>")
 
+@Clembot.command(pass_context=True, hidden=True, aliases=["raid-boss"])
+@checks.is_owner()
+async def raid_boss(ctx, level=None, *, newlist=None):
+    try:
+        'Edits or displays raid_info.json\n\n    Usage: !raid_json [level] [list]'
+        msg = ''
+        if (not level) and (not newlist):
+            for level in raid_info['raid_eggs']:
+                msg += _('\n**Level {level} raid list:** `{raidlist}` \n').format(level=level, raidlist=raid_info['raid_eggs'][level]['pokemon'])
+                for pkmn in raid_info['raid_eggs'][level]['pokemon']:
+                    msg += '**{name}** ({number})'.format(name=get_name(pkmn), number=pkmn)
+                    msg += ' '
+                msg += '\n'
+            return await _send_message(ctx.channel, msg)
+        elif level.isdigit() and (not newlist):
+            msg += _('**Level {level} raid list:** `{raidlist}` \n').format(level=level, raidlist=raid_info['raid_eggs'][level]['pokemon'])
+            for pkmn in raid_info['raid_eggs'][level]['pokemon']:
+                msg += '**{name}** ({number})'.format(name=get_name(pkmn), number=pkmn)
+                msg += ' '
+            msg += '\n'
+            return await _send_message(ctx.channel, msg)
+        elif level.isdigit() and newlist:
+            newlist = newlist.strip('[]').replace(' ', '').split(',')
+            intlist = [int(x) for x in newlist]
+            msg += _('I will replace this:\n')
+            msg += _('**Level {level} raid list:** `{raidlist}` \n').format(level=level, raidlist=raid_info['raid_eggs'][level]['pokemon'])
+            for pkmn in raid_info['raid_eggs'][level]['pokemon']:
+                msg += '**{name}** ({number})'.format(name=get_name(pkmn), number=pkmn)
+                msg += ' '
+            msg += _('\n\nWith this:\n')
+            msg += _('**Level {level} raid list:** `{raidlist}` \n').format(level=level, raidlist=('[' + ', '.join(newlist)) + ']')
+            for pkmn in newlist:
+                msg += '**{name}** ({number})'.format(name=get_name(pkmn), number=pkmn)
+                msg += ' '
+            msg += _('\n\nContinue?')
+            question = await _send_message(ctx.channel, msg)
+            try:
+                timeout = False
+                res, reactuser = await ask(question, ctx.channel, ctx.author.id)
+            except TypeError:
+                timeout = True
+            if timeout or res.emoji == '❎':
+                await question.clear_reactions()
+                return
+            elif res.emoji == '✅':
+                with open(os.path.join('data', 'raid_info.json'), 'r') as fd:
+                    data = json.load(fd)
+                tmp = data['raid_eggs'][level]['pokemon']
+                data['raid_eggs'][level]['pokemon'] = intlist
+                with open(os.path.join('data', 'raid_info.json'), 'w') as fd:
+                    json.dump(data, fd, indent=2, separators=(', ', ': '))
+                load_config()
+                await question.clear_reactions()
+                await question.add_reaction('☑')
+            else:
+                return
+    except Exception as error:
+        print(error)
 
 try:
     event_loop.run_until_complete(Clembot.start(config['bot_token']))
