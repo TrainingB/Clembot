@@ -2300,9 +2300,10 @@ async def _wild(message):
             wild = discord.utils.get(message.guild.roles, name=entered_wild)
 
             if wild is None:
-                roletest = ""
+                title_or_mention = "**{0}**".format(entered_wild.capitalize())
             else:
-                roletest = _("{pokemon} - ").format(pokemon=wild.mention)
+                title_or_mention = "**{0}**".format(wild.mention)
+
             # if wild is None:
             #     wild = await guild.create_role(name=entered_wild, hoist=False, mentionable=True)
             #     await asyncio.sleep(0.5)
@@ -2323,8 +2324,7 @@ async def _wild(message):
             else:
                 wild_embed.set_footer(text=_('Reported by @{author} - {timestamp}').format(author=message.author.display_name, timestamp=timestamp), icon_url=message.author.default_avatar_url)
             wild_embed.set_thumbnail(url=wild_img_url)
-            wildreportmsg = await message.channel.send(embed=wild_embed)
-            # content=_("{roletest}Beep Beep! Wild {pokemon} reported by {member}! Details: {location_details}").format(roletest=roletest, pokemon=entered_wild.title(), member=message.author.mention, location_details=wild_details)
+            wildreportmsg = await message.channel.send(content=_("Beep Beep! Wild {pokemon} reported by {member}! Details: {location_details}").format(pokemon=title_or_mention, member=message.author.mention, location_details=wild_details) , embed=wild_embed)
 
             await asyncio.sleep(0.25)
             await wildreportmsg.add_reaction('🏎')
@@ -3431,8 +3431,9 @@ async def research(ctx, *, args = None):
         timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset']))
         to_midnight = 24*60*60 - ((timestamp-timestamp.replace(hour=0, minute=0, second=0, microsecond=0)).seconds)
         error = False
+        research_id = '%04x' % randrange(16 ** 4)
         research_embed = discord.Embed(colour=discord.Colour.gold()).set_thumbnail(url='https://raw.githubusercontent.com/TrainingB/Clembot/v1-rewrite/images/field-research.png?cache=0')
-        research_embed.set_footer(text=_('Reported by @{author} - {timestamp}').format(author=author.display_name, timestamp=timestamp.strftime(_('%I:%M %p (%H:%M)'))), icon_url=author.avatar_url_as(format=None, static_format='jpg', size=32))
+        research_embed.set_footer(text=_('Reported by @{author} - {timestamp} | {research_id}').format(author=author.display_name, timestamp=timestamp.strftime(_('%I:%M %p (%H:%M)')), research_id=research_id), icon_url=author.avatar_url_as(format=None, static_format='jpg', size=32))
         while True:
             if args:
                 research_split = message.clean_content.replace("!research ","").split(", ")
@@ -3455,7 +3456,7 @@ async def research(ctx, *, args = None):
                 if not pokestopmsg:
                     error = _("took too long to respond")
                     break
-                elif pokestopmsg.clean_content.lower() == "cancel":
+                elif pokestopmsg.clean_content.lower().strip()  == 'cancel':
                     error = _("cancelled the report")
                     break
                 elif pokestopmsg:
@@ -3472,7 +3473,7 @@ async def research(ctx, *, args = None):
                 if not questmsg:
                     error = _("took too long to respond")
                     break
-                elif questmsg.clean_content.lower() == "cancel":
+                elif questmsg.clean_content.lower().strip() == 'cancel':
                     error = _("cancelled the report")
                     break
                 elif questmsg:
@@ -3489,7 +3490,7 @@ async def research(ctx, *, args = None):
                 if not rewardmsg:
                     error = _("took too long to respond")
                     break
-                elif rewardmsg.clean_content.lower() == "cancel":
+                elif rewardmsg.clean_content.lower().strip() == 'cancel':
                     error = _("cancelled the report")
                     break
                 elif rewardmsg:
@@ -3512,6 +3513,7 @@ async def research(ctx, *, args = None):
             confirmation = await channel.send(embed=research_embed)
             research_dict = copy.deepcopy(guild_dict[guild.id].get('questreport_dict',{}))
             research_dict[confirmation.id] = {
+                'research_id' : research_id,
                 'exp':time.time() + to_midnight,
                 'expedit':"delete",
                 'reportmessage':message.id,
@@ -5203,7 +5205,10 @@ beepmsg = _("""**{member}, !beep** can be used with following options:
 **!beep notification** - for notification related commands.
 
 **!beep raidparty** - for raidparty related commands
-**!beep raidowner** - for raidparty 
+**!beep raidowner** - for raidparty organizres
+
+**!beep research** - for research quest reporting commands.
+**!beep nest** - for nest reporting commands.
 
 """)
 
@@ -5347,6 +5352,19 @@ beep_nest = ("""**{member}** here is the commands for nests reporting.
 **!nest <pokemon> <name-of-location> <url>** - to report a nest at location and google url
 """)
 
+
+beep_research = ("""**{member}** here are the commands for reporting quests. 
+
+**!research** - to report a research, *Clembot asks for further inputs*
+**!research <pokestop> , <quest>, <reward>** - to report a research quest
+
+**!list research** - to see the list of reported research quests in the channel
+
+**!remove-research <research-id>** - to delete a research quest.
+
+**Note:** researchs are cleaned up automatically at midnight.
+""")
+
 # ---------------------------------------------------------------------------------------
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -5390,6 +5408,8 @@ async def beep(ctx):
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Bingo", description=beep_bingo.format(member=ctx.message.author.name), footer=footer))
             elif args_split[0] == 'nest':
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Nest", description=beep_nest.format(member=ctx.message.author.name), footer=footer))
+            elif args_split[0] == 'research':
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Nest", description=beep_research.format(member=ctx.message.author.name), footer=footer))
             elif args_split[0] == 'raid' or args_split[0] == 'status' :
                 await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Status Management", description = beep_raid_status.format(member=ctx.message.author.name), footer=footer))
     except Exception as error:
@@ -5923,8 +5943,9 @@ async def _researchlist(ctx):
             try:
                 questreportmsg = await ctx.message.channel.get_message(questid)
                 questauthor = ctx.channel.guild.get_member(research_dict[questid]['reportauthor'])
+                research_id = research_dict[questid]['research_id']
                 questmsg += _('\n🔰')
-                questmsg += _("**Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title(), author=questauthor.display_name))
+                questmsg += _("**[{research_id}]** - **Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(research_id=research_id,location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title(), author=questauthor.display_name))
             except discord.errors.NotFound:
                 pass
     if questmsg:
@@ -5932,6 +5953,25 @@ async def _researchlist(ctx):
     else:
         listmsg = _(" There are no reported research reports. Report one with **!research**")
     return listmsg
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["remove-research"])
+async def _remove_research(ctx, research_id=None):
+    if research_id is None:
+        return await _send_error_message(ctx.channel, "Please provide the 4 char code for the research quest!")
+    research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict', {}))
+    questmsg = ""
+    for questid in research_dict:
+        if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
+            try:
+                quest_research_id = research_dict[questid]['research_id']
+                if quest_research_id == research_id:
+                    del research_dict[questid]
+                    guild_dict[ctx.guild.id]['questreport_dict'] = research_dict
+                    return await _send_message(ctx.channel, "**{0}** Research # **{1}** has been removed.".format(ctx.message.author.display_name,research_id))
+                    break
+            except discord.errors.NotFound:
+                pass
+    return await _send_error_message(ctx.channel, "**{0}** No Research found with **{1}** .".format(ctx.message.author.display_name, research_id))
 
 
 async def _generate_list_embed(message):
@@ -6580,9 +6620,9 @@ async def reindex_roster(roster):
     return roster
 
 
-@Clembot.command(pass_context=True, hidden=True)
+@Clembot.command(pass_context=True, hidden=True, aliases=["remove"])
 @checks.raidpartychannel()
-async def remove(ctx):
+async def _remove(ctx):
     roster = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
 
     if len(roster) < 1:
