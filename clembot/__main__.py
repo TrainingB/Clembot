@@ -5740,8 +5740,6 @@ async def starting(ctx):
 
 
 @Clembot.group(pass_context=True, hidden=True, aliases=["lists, list"])
-@checks.cityraidchannel()
-@checks.raidset()
 async def list(ctx):
     """Lists all raid info for the current channel.
 
