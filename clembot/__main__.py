@@ -8,12 +8,13 @@ import pickle
 import json
 import time
 import datetime
-import aiohttp
 from os import name
 
 from dateutil.relativedelta import relativedelta
 from dateutil import tz
 import copy
+import functools
+import textwrap
 from time import strftime
 
 from discord.colour import Colour
@@ -27,12 +28,17 @@ from PIL import ImageFilter
 from PIL import ImageEnhance
 import pytesseract
 import requests
+import aiohttp
 from io import BytesIO
 import checks
 import hastebin
 from operator import itemgetter
 from errors import custom_error_handling
 import dateparser
+import textwrap
+import io
+import traceback
+from contextlib import redirect_stdout
 # --B--
 # ---- dependencies
 import gymutil
@@ -51,8 +57,7 @@ from WowBingo import WowBingo
 
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
-xtraconfig = "-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6"
-
+xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
 if os.name == 'nt':
     tesseract_config = tessdata_dir_config + xtraconfig
 else:
@@ -187,6 +192,19 @@ Helper functions
 
 
 # --B--
+@Clembot.command(pass_context=True, hidden=True, aliases= ["remove-channel"])
+@checks.is_owner()
+async def remove_channel(ctx, channel_id):
+
+    try :
+        if channel_id:
+            stuck_channel = Clembot.get_channel(channel_id)
+            stuck_channel.delete()
+            await _send_message(ctx.channel, "Channel deleted successfully.")
+        else:
+            await _send_error_message(ctx.channel, "Channel doesn't exists.")
+    except Exception as error:
+        await _send_error_message(ctx.channel, "Channel doesn't exists.")
 
 
 def clembot_time_in_guild_timezone(message):
@@ -846,7 +864,53 @@ async def channel_cleanup(loop=True):
         continue
 
 
-
+async def message_cleanup(loop=True):
+    while (not Clembot.is_closed()):
+        logger.info('message_cleanup ------ BEGIN ------')
+        guilddict_temp = copy.deepcopy(guild_dict)
+        for guildid in guilddict_temp.keys():
+            questreport_dict = guilddict_temp[guildid].get('questreport_dict',{})
+            wildreport_dict = guilddict_temp[guildid].get('wildreport_dict',{})
+            report_dict_dict = {
+                'questreport_dict':questreport_dict,
+                'wildreport_dict':wildreport_dict,
+            }
+            report_edit_dict = {}
+            report_delete_dict = {}
+            for report_dict in report_dict_dict:
+                for reportid in report_dict_dict[report_dict].keys():
+                    if report_dict_dict[report_dict][reportid]['exp'] <= time.time():
+                        report_channel = Clembot.get_channel(report_dict_dict[report_dict][reportid]['reportchannel'])
+                        if report_channel:
+                            user_report = report_dict_dict[report_dict][reportid].get('reportmessage',None)
+                            if user_report:
+                                report_delete_dict[user_report] = {"action":"delete","channel":report_channel}
+                            if report_dict_dict[report_dict][reportid]['expedit'] == "delete":
+                                report_delete_dict[reportid] = {"action":report_dict_dict[report_dict][reportid]['expedit'],"channel":report_channel}
+                            else:
+                                report_edit_dict[reportid] = {"action":report_dict_dict[report_dict][reportid]['expedit'],"channel":report_channel}
+                        del guild_dict[guildid][report_dict][reportid]
+            for messageid in report_delete_dict.keys():
+                try:
+                    report_message = await report_delete_dict[messageid]['channel'].get_message(messageid)
+                    await report_message.delete()
+                except discord.errors.NotFound:
+                    pass
+            for messageid in report_edit_dict.keys():
+                try:
+                    report_message = await report_edit_dict[messageid]['channel'].get_message(messageid)
+                    await report_message.edit(content=report_edit_dict[messageid]['action']['content'],embed=discord.Embed(description=report_edit_dict[messageid]['action']['embedcontent'], colour=report_message.embeds[0].colour.value))
+                except discord.errors.NotFound:
+                    pass
+        # save server_dict changes after cleanup
+        logger.info('message_cleanup - SAVING CHANGES')
+        try:
+            await _save()
+        except Exception as err:
+            logger.info('message_cleanup - SAVING FAILED' + err)
+        logger.info('message_cleanup ------ END ------')
+        await asyncio.sleep(600)
+        continue
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -923,6 +987,7 @@ async def maint_start():
     try:
         event_loop.create_task(guild_cleanup())
         event_loop.create_task(channel_cleanup())
+        event_loop.create_task(message_cleanup())
         logger.info("Maintenance Tasks Started")
     except KeyboardInterrupt as e:
         tasks.cancel()
@@ -2203,42 +2268,154 @@ async def wild(ctx):
 
 
 async def _wild(message):
-    wild_split = message.clean_content.lower().split()
-    del wild_split[0]
-    if len(wild_split) <= 1:
-        await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
-        return
-    else:
-        content = " ".join(wild_split)
-        entered_wild = content.split(' ', 1)[0]
-        wild_details = content.split(' ', 1)[1]
-        if entered_wild not in pkmn_info['pokemon_list']:
-            entered_wild2 = ' '.join([content.split(' ', 2)[0], content.split(' ', 2)[1]])
-            if entered_wild2 in pkmn_info['pokemon_list']:
-                entered_wild = entered_wild2
-                try:
-                    wild_details = content.split(' ', 2)[2]
-                except IndexError:
-                    await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!wild <pokemon name> <location>**"))
-                    return
-        wild_gmaps_link = create_gmaps_query(wild_details, message.channel)
+    try:
+        timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
+        wild_split = message.clean_content.lower().split()
+        del wild_split[0]
+        if len(wild_split) <= 1:
+            await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!wild <pokemon name> <location>**"))
+            return
+        else:
+            content = ' '.join(wild_split)
+            entered_wild = content.split(' ', 1)[0]
+            entered_wild = get_name(entered_wild).lower() if entered_wild.isdigit() else entered_wild.lower()
+            wild_details = content.split(' ', 1)[1]
+            if entered_wild not in pkmn_info['pokemon_list']:
+                entered_wild2 = ' '.join([content.split(' ', 2)[0], content.split(' ', 2)[1]]).lower()
+                if entered_wild2 in pkmn_info['pokemon_list']:
+                    entered_wild = entered_wild2
+                    try:
+                        wild_details = content.split(' ', 2)[2]
+                    except IndexError:
+                        await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!wild <pokemon name> <location>**"))
+                        return
+            wild_gmaps_link = create_gmaps_query(wild_details, message.channel)
+            rgx = '[^a-zA-Z0-9]'
+            pkmn_match = next((p for p in pkmn_info['pokemon_list'] if re.sub(rgx, '', p) == re.sub(rgx, '', entered_wild)), None)
 
-    if entered_wild not in pkmn_info['pokemon_list']:
-        await message.channel.send( spellcheck(entered_wild))
-        return
+            if pkmn_match:
+                entered_wild = pkmn_match
+            else:
+                entered_wild = await autocorrect(entered_wild, message.channel, message.author)
+            wild = discord.utils.get(message.guild.roles, name=entered_wild)
+
+            if wild is None:
+                roletest = ""
+            else:
+                roletest = _("{pokemon} - ").format(pokemon=wild.mention)
+            # if wild is None:
+            #     wild = await guild.create_role(name=entered_wild, hoist=False, mentionable=True)
+            #     await asyncio.sleep(0.5)
+
+            wild_number = pkmn_info['pokemon_list'].index(entered_wild) + 1
+            expiremsg = _('**This {pokemon} has despawned!**').format(pokemon=entered_wild.title())
+
+            wild_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(wild_number).zfill(3))
+
+            wild_img_url = get_pokemon_image_url(wild_number)  # This part embeds the sprite
+            wild_embed = discord.Embed(title=_("Beep Beep! Click here for my directions to the wild {pokemon}!").format(pokemon=entered_wild.capitalize()), description=_("Ask {author} if my directions aren't perfect!").format(author=message.author.name), url=wild_gmaps_link, colour=message.guild.me.colour)
+            wild_embed.add_field(name=_('**Details:**'), value=_('{pokemon} ({pokemonnumber}) {type}').format(pokemon=entered_wild.capitalize(), pokemonnumber=str(wild_number), type=''.join(get_type(message.guild, wild_number))), inline=False)
+            # wild_embed.add_field(name='**Reactions:**', value= "🏎: I'm on my way!\n 💨 The Pokemon despawned!".format(parse_emoji(message.guild, ':dash:')))
+            wild_embed.add_field(name='**Reactions:**', value="🏎: I'm on my way!\n💨: The Pokemon despawned!")
+
+            if message.author.avatar:
+                wild_embed.set_footer(text=_('Reported by @{author} - {timestamp}').format(author=message.author.display_name, timestamp=timestamp), icon_url='https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}'.format(user=message.author, format='jpg', size=32))
+            else:
+                wild_embed.set_footer(text=_('Reported by @{author} - {timestamp}').format(author=message.author.display_name, timestamp=timestamp), icon_url=message.author.default_avatar_url)
+            wild_embed.set_thumbnail(url=wild_img_url)
+            wildreportmsg = await message.channel.send(embed=wild_embed)
+            # content=_("{roletest}Beep Beep! Wild {pokemon} reported by {member}! Details: {location_details}").format(roletest=roletest, pokemon=entered_wild.title(), member=message.author.mention, location_details=wild_details)
+
+            await asyncio.sleep(0.25)
+            await wildreportmsg.add_reaction('🏎')
+            await asyncio.sleep(0.25)
+            await wildreportmsg.add_reaction('💨')
+            await asyncio.sleep(0.25)
+            wild_dict = copy.deepcopy(guild_dict[message.guild.id].get('wildreport_dict',{}))
+            wild_dict[wildreportmsg.id] = {
+                'exp':time.time() + 3600,
+                'expedit': {"content":wildreportmsg.content,"embedcontent":expiremsg},
+                'reportmessage':message.id,
+                'reportchannel':message.channel.id,
+                'reportauthor':message.author.id,
+                'location':wild_details,
+                'pokemon':entered_wild,
+                'omw': []
+            }
+            guild_dict[message.guild.id]['wildreport_dict'] = wild_dict
+    except Exception as error:
+        print(error)
+
+
+
+@Clembot.event
+async def on_raw_reaction_add(emoji, message_id, channel_id, user_id):
+    channel = Clembot.get_channel(channel_id)
+    message = await channel.get_message(message_id)
+    guild = message.guild
+    user = guild.get_member(user_id)
+    if channel.id in guild_dict[guild.id]['raidchannel_dict'] and message.id == guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrsmessage'] and user_id != Meowth.user.id:
+        ctrs_dict = guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrs_dict']
+        for i in ctrs_dict:
+            if ctrs_dict[i]['emoji'] == str(emoji):
+                newembed = ctrs_dict[i]['embed']
+                moveset = i
+                break
+        else:
+            return
+        await message.edit(embed=newembed)
+        await message.remove_reaction(emoji, user)
+        guild_dict[guild.id]['raidchannel_dict'][channel.id]['moveset'] = moveset
+    if message_id in guild_dict[guild.id]['wildreport_dict'] and user_id != Clembot.user.id:
+        wild_dict = guild_dict[guild.id]['wildreport_dict'][message_id]
+        if str(emoji) == '🏎':
+            wild_dict['omw'].append(user.mention)
+            guild_dict[guild.id]['wildreport_dict'][message_id] = wild_dict
+        elif str(emoji) == '💨':
+            if wild_dict['omw']:
+                await channel.send(f"{' '.join(wild_dict['omw'])}: the {wild_dict['pokemon'].title()} has despawned!")
+            await expire_wild(message)
+
+async def expire_wild(message):
+    guild = message.channel.guild
+    channel = message.channel
+    wild_dict = guild_dict[guild.id]['wildreport_dict']
+    try:
+        expiremsg = _('**This {pokemon} has despawned!**').format(pokemon=guild_dict[guild.id]['wildreport_dict'][message.id]['pokemon'].title())
+        await message.edit(embed=discord.Embed(description=expiremsg, colour=message.embeds[0].colour.value))
+        await message.clear_reactions()
+    except discord.errors.NotFound:
+        pass
+    try:
+        user_message = await channel.get_message(wild_dict[message.id]['reportmessage'])
+        await user_message.delete()
+    except discord.errors.NotFound:
+        pass
+    del guild_dict[guild.id]['wildreport_dict'][message.id]
+
+async def autocorrect(entered_word, destination, author):
+    msg = _("Beep Beep! **{word}** isn't a Pokemon!").format(word=entered_word.title())
+    if spellcheck(entered_word) and (spellcheck(entered_word) != entered_word):
+        msg += _(' Did you mean **{correction}**?').format(correction=spellcheck(entered_word).title())
+        question = await destination.send(msg)
+        if author:
+            try:
+                timeout = False
+                res, reactuser = await ask(question, destination, author.id)
+            except TypeError:
+                timeout = True
+            await question.delete()
+            if timeout or res.emoji == '❎':
+                return
+            elif res.emoji == '✅':
+                return spellcheck(entered_word)
+            else:
+                return
+        else:
+            return
     else:
-        wild = discord.utils.get(message.guild.roles, name=entered_wild)
-        if wild is None:
-            wild = await guild.create_role(name=entered_wild, hoist=False, mentionable=True)
-            await asyncio.sleep(0.5)
-        wild_number = pkmn_info['pokemon_list'].index(entered_wild) + 1
-        wild_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(wild_number).zfill(3))
-        wild_img_url = get_pokemon_image_url(wild_number)  # This part embeds the sprite
-        wild_embed = discord.Embed(title=_("Beep Beep! Click here for my directions to the wild {pokemon}!").format(pokemon=entered_wild.capitalize()), description=_("Ask {author} if my directions aren't perfect!").format(author=message.author.name), url=wild_gmaps_link, colour=message.guild.me.colour)
-        wild_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_wild.capitalize(), pokemonnumber=str(wild_number), type="".join(get_type(message.guild, wild_number)), inline=True))
-        wild_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
-        wild_embed.set_thumbnail(url=wild_img_url)
-        await message.channel.send( content=_("Beep Beep! Wild {pokemon} reported by {member}! Details: {location_details}").format(pokemon=wild.mention, member=message.author.mention, location_details=wild_details), embed=wild_embed)
+        question = await destination.send(msg)
+        return
 
 
 @Clembot.command(pass_context=True)
@@ -3027,19 +3204,19 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-		'reportcity': message.channel.id,
-		'trainer_dict': {},
-		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
+        'reportcity': message.channel.id,
+        'trainer_dict': {},
+        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
         'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
         'active': True,
         'raidmessage' : raidmessage.id,
         'raidreport' : raidreport.id,
-		'address': raid_details,
-		'type': 'raid',
-		'pokemon': entered_raid,
-		'egglevel': '0',
-		'suggested_start': False
-		}
+        'address': raid_details,
+        'type': 'raid',
+        'pokemon': entered_raid,
+        'egglevel': '0',
+        'suggested_start': False
+        }
 
     if channel_role:
         await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
@@ -3211,19 +3388,19 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-		'reportcity': message.channel.id,
-		'trainer_dict': {},
-		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
+        'reportcity': message.channel.id,
+        'trainer_dict': {},
+        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
         'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
         'active': True,
         'raidmessage' : raidmessage.id,
         'raidreport' : raidreport.id,
-		'address': raid_details,
-		'type': 'raid',
-		'pokemon': entered_raid,
-		'egglevel': '0',
-		'suggested_start': False
-		}
+        'address': raid_details,
+        'type': 'raid',
+        'pokemon': entered_raid,
+        'egglevel': '0',
+        'suggested_start': False
+        }
 
 
     if channel_role:
@@ -3234,6 +3411,133 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
     else:
         await raid_channel.send( content=_("Beep Beep! Hey {member}, if you can, set the time left on the raid using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
     event_loop.create_task(expiry_check(raid_channel))
+
+
+@Clembot.command()
+@checks.nonraidchannel()
+async def research(ctx, *, args = None):
+    """Report Field research
+    Guided report method with just !research. If you supply arguments in one
+    line, avoid commas in anything but your separations between pokestop,
+    quest, reward. Order matters if you supply arguments. If a pokemon name
+    is included in reward, a @mention will be used if role exists.
+
+    Usage: !research [pokestop, quest, reward]"""
+    try:
+        message = ctx.message
+        channel = message.channel
+        author = message.author
+        guild = message.guild
+        timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset']))
+        to_midnight = 24*60*60 - ((timestamp-timestamp.replace(hour=0, minute=0, second=0, microsecond=0)).seconds)
+        error = False
+        research_embed = discord.Embed(colour=discord.Colour.gold()).set_thumbnail(url='https://raw.githubusercontent.com/TrainingB/Clembot/v1-rewrite/images/field-research.png?cache=0')
+        research_embed.set_footer(text=_('Reported by @{author} - {timestamp}').format(author=author.display_name, timestamp=timestamp.strftime(_('%I:%M %p (%H:%M)'))), icon_url=author.avatar_url_as(format=None, static_format='jpg', size=32))
+        while True:
+            if args:
+                research_split = message.clean_content.replace("!research ","").split(", ")
+                if len(research_split) != 3:
+                    error = _("entered an incorrect amount of arguments.\n\nUsage: **!research** or **!research <pokestop>, <quest>, <reward>**")
+                    break
+                location, quest, reward = research_split
+                research_embed.add_field(name=_("**Location:**"),value='\n'.join(textwrap.wrap(location.title(), width=30)),inline=True)
+                research_embed.add_field(name=_("**Quest:**"),value='\n'.join(textwrap.wrap(quest.title(), width=30)),inline=True)
+                research_embed.add_field(name=_("**Reward:**"),value='\n'.join(textwrap.wrap(reward.title(), width=30)),inline=True)
+                break
+            else:
+                research_embed.add_field(name=_('**New Research Report**'), value=_("Beep Beep! I'll help you report a research quest!\n\nFirst, I'll need to know what **pokestop** you received the quest from. Reply with the name of the **pokestop**. You can reply with **cancel** to stop anytime."), inline=False)
+                pokestopwait = await channel.send(embed=research_embed)
+                try:
+                    pokestopmsg = await Clembot.wait_for('message', timeout=60, check=(lambda reply: reply.author == message.author))
+                except asyncio.TimeoutError:
+                    pokestopmsg = None
+                await pokestopwait.delete()
+                if not pokestopmsg:
+                    error = _("took too long to respond")
+                    break
+                elif pokestopmsg.clean_content.lower() == "cancel":
+                    error = _("cancelled the report")
+                    break
+                elif pokestopmsg:
+                    location = pokestopmsg.clean_content
+                await pokestopmsg.delete()
+                research_embed.add_field(name=_("**Location:**"),value='\n'.join(textwrap.wrap(location.title(), width=30)),inline=True)
+                research_embed.set_field_at(0, name=research_embed.fields[0].name, value=_("Great! Now, reply with the **quest** that you received from **{location}**. You can reply with **cancel** to stop anytime.\n\nHere's what I have so far:").format(location=location), inline=False)
+                questwait = await channel.send(embed=research_embed)
+                try:
+                    questmsg = await Clembot.wait_for('message', timeout=60, check=(lambda reply: reply.author == message.author))
+                except asyncio.TimeoutError:
+                    questmsg = None
+                await questwait.delete()
+                if not questmsg:
+                    error = _("took too long to respond")
+                    break
+                elif questmsg.clean_content.lower() == "cancel":
+                    error = _("cancelled the report")
+                    break
+                elif questmsg:
+                    quest = questmsg.clean_content
+                await questmsg.delete()
+                research_embed.add_field(name=_("**Quest:**"),value='\n'.join(textwrap.wrap(quest.title(), width=30)),inline=True)
+                research_embed.set_field_at(0, name=research_embed.fields[0].name, value=_("Fantastic! Now, reply with the **reward** for the **{quest}** quest that you received from **{location}**. You can reply with **cancel** to stop anytime.\n\nHere's what I have so far:").format(quest=quest, location=location), inline=False)
+                rewardwait = await channel.send(embed=research_embed)
+                try:
+                    rewardmsg = await Clembot.wait_for('message', timeout=60, check=(lambda reply: reply.author == message.author))
+                except asyncio.TimeoutError:
+                    rewardmsg = None
+                await rewardwait.delete()
+                if not rewardmsg:
+                    error = _("took too long to respond")
+                    break
+                elif rewardmsg.clean_content.lower() == "cancel":
+                    error = _("cancelled the report")
+                    break
+                elif rewardmsg:
+	                reward = rewardmsg.clean_content
+                await rewardmsg.delete()
+                research_embed.add_field(name=_("**Reward:**"),value='\n'.join(textwrap.wrap(reward.title(), width=30)),inline=True)
+                research_embed.remove_field(0)
+                break
+        if not error:
+            roletest = ""
+            pkmn_match = next((p for p in pkmn_info['pokemon_list'] if re.sub('[^a-zA-Z0-9]', '', p) == re.sub('[^a-zA-Z0-9]', '', reward.lower())), None)
+            if pkmn_match:
+                role = discord.utils.get(guild.roles, name=pkmn_match)
+                if role:
+                    roletest = _("{pokemon} - ").format(pokemon=role.mention)
+            research_msg = _("A {roletest} Field Research has been reported!").format(roletest=roletest,author=author.display_name)
+
+
+            research_embed.__setattr__('title', research_msg)
+            confirmation = await channel.send(embed=research_embed)
+            research_dict = copy.deepcopy(guild_dict[guild.id].get('questreport_dict',{}))
+            research_dict[confirmation.id] = {
+                'exp':time.time() + to_midnight,
+                'expedit':"delete",
+                'reportmessage':message.id,
+                'reportchannel':channel.id,
+                'reportauthor':author.id,
+                'location':location,
+                'quest':quest,
+                'reward':reward
+            }
+            guild_dict[guild.id]['questreport_dict'] = research_dict
+            await message.delete()
+        else:
+            research_embed.clear_fields()
+            research_embed.add_field(name='**Research Report Cancelled**', value=_("Beep Beep! Your report has been cancelled because you {error}! Retry when you're ready.").format(error=error), inline=False)
+            confirmation = await channel.send(embed=research_embed)
+            await asyncio.sleep(10)
+            await confirmation.delete()
+            await message.delete()
+
+    except Exception as error:
+        print(error)
+        logger.info(error)
+        print(traceback.print_exc())
+
+
+
 
 
 # Print raid timer
@@ -4558,7 +4862,7 @@ async def gymlookup(ctx):
 
 
 async def _gymlookup(message):
-    await message.channel.send( content="Beep Beep... {member} **!gyms** is the newer version of this command!".format(member=message.author.mention))
+    return await _send_error_message(message.channel, "Beep Beep... **{member}** this command has been moved to **!gyms**.".format(member=message.author.display_name))
 
     args = message.content
     args_split = args.split(" ")
@@ -4898,7 +5202,11 @@ beepmsg = _("""**{member}, !beep** can be used with following options:
 **!beep gym** - for gym code related commands.
 **!beep notification** - for notification related commands.
 
+**!beep raidparty** - for raidparty related commands
+**!beep raidowner** - for raidparty 
+
 """)
+
 
 beep_report = _(
 """**{member}** to report raids, eggs or wild pokemon use following commands:
@@ -4934,7 +5242,6 @@ Example: **!coming 5** or **!c 5**
 **!starting** - to clear the **here** list.
 
 **!raid <pokemon>** - to update egg channel into an open raid.
-**!raid assume <pokemon>** - to have the egg channel auto-update into an open raid.
 
 """)
 
@@ -5432,7 +5739,7 @@ async def starting(ctx):
     await ctx.message.channel.send( starting_str)
 
 
-@Clembot.group(pass_context=True, hidden=True, aliases=["lists"])
+@Clembot.group(pass_context=True, hidden=True, aliases=["lists, list"])
 @checks.cityraidchannel()
 @checks.raidset()
 async def list(ctx):
@@ -5446,6 +5753,9 @@ async def list(ctx):
             listmsg = ""
             guild = ctx.message.guild
             channel = ctx.message.channel
+            args = ctx.message.clean_content.lower().split()
+            if len(args) > 1:
+                return await _send_error_message(ctx.message.channel, "**{0}** Please use **!beep list** to see various usage of list command.".format(ctx.message.author.name))
             exp = None
             if checks.check_citychannel(ctx):
                 activeraidnum = 0
@@ -5595,6 +5905,35 @@ async def list(ctx):
     except Exception as error:
         print(error)
     return
+
+
+@list.command()
+@checks.nonraidchannel()
+async def research(ctx):
+    """List the quests for the channel
+
+    Usage: !list research"""
+    listmsg = _('**Beep Beep!**')
+    listmsg += await _researchlist(ctx)
+    await _send_message(ctx.channel, description=listmsg)
+
+async def _researchlist(ctx):
+    research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict',{}))
+    questmsg = ""
+    for questid in research_dict:
+        if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
+            try:
+                questreportmsg = await ctx.message.channel.get_message(questid)
+                questauthor = ctx.channel.guild.get_member(research_dict[questid]['reportauthor'])
+                questmsg += _('\n🔰')
+                questmsg += _("**Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title(), author=questauthor.display_name))
+            except discord.errors.NotFound:
+                pass
+    if questmsg:
+        listmsg = _(' **Here\'s the current research reports for {channel}**\n{questmsg}').format(channel=ctx.message.channel.name.capitalize(),questmsg=questmsg)
+    else:
+        listmsg = _(" There are no reported research reports. Report one with **!research**")
+    return listmsg
 
 
 async def _generate_list_embed(message):
@@ -6451,9 +6790,9 @@ async def where(ctx):
         print(error)
 
 
-@Clembot.command(pass_context=True, hidden=True)
+@Clembot.command(pass_context=True, hidden=True, aliases= ["next"])
 @checks.raidpartychannel()
-async def next(ctx):
+async def _next_location(ctx):
     roster = guild_dict[ctx.message.channel.guild.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
 
     if len(roster) < 1:
@@ -7014,6 +7353,30 @@ async def raid_boss(ctx, level=None, *, newlist=None):
     except Exception as error:
         print(error)
 
+
+@list.command()
+@checks.citychannel()
+async def wild(ctx):
+    """List the wilds for the channel
+
+    Usage: !list wilds"""
+    listmsg = _('**Beep Beep!**')
+    listmsg += await _wildlist(ctx)
+    await _send_message(ctx.channel, listmsg)
+
+async def _wildlist(ctx):
+    wild_dict = copy.deepcopy(guild_dict[ctx.guild.id]['wildreport_dict'])
+    wildmsg = ""
+    for wildid in wild_dict:
+        if wild_dict[wildid]['reportchannel'] == ctx.message.channel.id:
+            wildmsg += ('\n🔰')
+            wildmsg += _("**Pokemon**: {pokemon}, **Location**: {location}".format(pokemon=wild_dict[wildid]['pokemon'].title(),location=wild_dict[wildid]['location'].title()))
+    if wildmsg:
+        listmsg = _(' **Here\'s the current wild reports for {channel}**\n{wildmsg}').format(channel=ctx.message.channel.name.capitalize(),wildmsg=wildmsg)
+    else:
+        listmsg = _(" There are no reported wild pokemon. Report one with **!wild <pokemon> <location>**")
+    return listmsg
+
 try:
     event_loop.run_until_complete(Clembot.start(config['bot_token']))
 except discord.LoginFailure:
@@ -7197,19 +7560,19 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 
 
         guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
-		'reportcity': message.channel.id,
-		'trainer_dict': {},
-		'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer),  # One hour from now
-		'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
-		'active': True,
-		'raidmessage': raidmessage.id,
-		'raidreport': raidreport.id,
-		'address': raid_details,
-		'type': 'egg',
-		'pokemon': '',
-		'egglevel': egg_level,
-		'suggested_start': False
-		}
+        'reportcity': message.channel.id,
+        'trainer_dict': {},
+        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer),  # One hour from now
+        'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
+        'active': True,
+        'raidmessage': raidmessage.id,
+        'raidreport': raidreport.id,
+        'address': raid_details,
+        'type': 'egg',
+        'pokemon': '',
+        'egglevel': egg_level,
+        'suggested_start': False
+        }
 
         if raidexp is not False:
             await _timerset(raid_channel, raidexp)
