@@ -3046,7 +3046,7 @@ raidegg_SYNTAX_ATTRIBUTE = ['command', 'egg', 'gym_info', 'timer', 'location']
 
 raid_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'timer', 'location']
 
-nest_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'link']
+nest_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'link']
 
 
 @checks.cityeggchannel()
@@ -5043,23 +5043,29 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
 @Clembot.command(pass_context=True, hidden=True)
 async def nest(ctx):
     try:
-
-        ctx.message.delete()
-
         message=ctx.message
+
         argument_text = message.clean_content
-        parameters = argparser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid})
+        parameters = argparser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid, 'gym_info' : get_gym_by_code},{'message' : message})
 
-        if parameters.get('length') == 1:
-            raise Exception ("**{0}**, The correct usage is **!nest pokmeon location-name link-to-location**".format(message.author.name))
-
+        if parameters.get('length') <= 2:
+            return await _send_error_message(ctx.message.channel, "**{0}**, Please use **!beep nest** to see the correct usage.".format(message.author.name))
 
         pokemon = parameters.get('pokemon', [None])[0]
         if pokemon == None:
-            raise Exception("**{0}**, Did you spell the pokemon right?".format(message.author.name))
+           return await _send_error_message(ctx.message.channel, "**{0}**, Did you spell the pokemon right?".format(message.author.name))
 
         link = parameters.get('link', None)
-        location_name = " ".join(parameters.get('others'))
+
+        if link == None:
+            gym_info = None
+            if parameters.get('gym_info', None):
+                gym_info = parameters['gym_info']
+                location_name = gym_info['gym_name']
+                link = gym_info['gmap_link']
+            else:
+                location_name = " ".join(parameters.get('others'))
+
         if link:
             embed_title = _("Beep Beep! Click here for the directions to {location}!".format(location=location_name))
         else:
@@ -5074,15 +5080,12 @@ async def nest(ctx):
         nest_embed = discord.Embed(title=embed_title, description=embed_desription, url=link, colour=discord.Colour.gold())
         nest_embed.set_thumbnail(url=raid_img_url)
         nest_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
+
         await message.channel.send(embed=nest_embed)
 
     except Exception as error:
-        logger.info("{0} while processing message :{1}".format(error, ctx.message.clean_content))
-        print("{0} while processing message : {1}".format(error, ctx.message.clean_content))
+        print("{0} while processing message.".format(error))
 
-        error_msg = await ctx.channel.send(embed=_send_error_message(error, None))
-        await asyncio.sleep(10)
-        await error_msg.delete()
 
     await asyncio.sleep(15)
     await ctx.message.delete()
@@ -5349,7 +5352,8 @@ beep_bingo = ("""**{member}** here are the commands for bingo.
 
 beep_nest = ("""**{member}** here is the commands for nests reporting. 
 
-**!nest <pokemon> <name-of-location> <url>** - to report a nest at location and google url
+**!nest <pokemon> <name-of-location> [url]** - to report a nest at location and google url
+**!nest <pokemon> <gym-code>** - to report a nest using gym-code for location
 """)
 
 
@@ -5362,7 +5366,7 @@ beep_research = ("""**{member}** here are the commands for reporting quests.
 
 **!remove-research <research-id>** - to delete a research quest.
 
-**Note:** researchs are cleaned up automatically at midnight.
+**Note:** research list is cleaned up automatically at midnight.
 """)
 
 # ---------------------------------------------------------------------------------------
@@ -5409,7 +5413,7 @@ async def beep(ctx):
             elif args_split[0] == 'nest':
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Nest", description=beep_nest.format(member=ctx.message.author.name), footer=footer))
             elif args_split[0] == 'research':
-                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Nest", description=beep_research.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Research", description=beep_research.format(member=ctx.message.author.name), footer=footer))
             elif args_split[0] == 'raid' or args_split[0] == 'status' :
                 await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Status Management", description = beep_raid_status.format(member=ctx.message.author.name), footer=footer))
     except Exception as error:
