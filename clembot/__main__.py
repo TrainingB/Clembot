@@ -5046,6 +5046,7 @@ async def _import(ctx):
 
         gym_info = {}
         gym_info['Name'] = 'Name of the Gym'
+        gym_info['OriginalName'] = 'Optional Gym Name to resolve conflict'
         gym_info['Latitude'] = 00.00000
         gym_info['Longitude'] = 00.00000
         gym_info['CityState'] = 'CITY,STATE'
@@ -5083,7 +5084,7 @@ async def _import(ctx):
             gym_info_to_save['city_state_key'] = city+state
             gym_info_to_save['gym_code_key'] = gym_code_key
             gym_info_to_save['gym_name'] = gym_info['Name']
-            gym_info_to_save['original_gym_name'] = gym_info['Name']
+            gym_info_to_save['original_gym_name'] = gym_info.get('OriginalName',gym_info['Name'])
             gym_info_to_save['gmap_url'] = gmap_url
             gym_info_to_save['latitude'] = gym_info['Latitude']
             gym_info_to_save['longitude'] = gym_info['Longitude']
