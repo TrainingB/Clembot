@@ -4838,19 +4838,20 @@ async def _get_city(message):
 
     channel_city = gymsql.read_channel_city(message.guild.id, message.channel.id)
     if channel_city:
-        content = "Beep Beep! Reporting City for this channel is {channel_city}.".format(channel_city=channel_city)
+        content = "Beep Beep! **{member}** Reporting City for this channel is **{channel_city}**.".format(member=message.author.display_name,channel_city=channel_city)
     else:
         guild_city = gymsql.read_guild_city(message.guild.id)
         if guild_city:
-            content = "Beep Beep! Reporting City for this guild is {guild_city}.".format(guild_city=guild_city)
+            content = "Beep Beep! **{member}** Reporting City for this guild is **{guild_city}**.".format(member=message.author.display_name, guild_city=guild_city)
 
-    await message.channel.send( content=content)
+    return await _send_message(message.channel, content)
 
 
 async def _get_guild_city(message):
     guild_city = gymsql.read_guild_city(message.guild.id)
-    content = "Beep Beep! Reporting City for this guild is {guild_city}.".format(guild_city=guild_city)
-    await message.channel.send( content=content)
+    content = "Beep Beep! **{member}** Reporting City for this guild is **{guild_city}**.".format(member=message.author.display_name, guild_city=guild_city)
+
+    return await _send_message(message.channel, content)
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -4865,52 +4866,6 @@ async def gymlookup(ctx):
 
 async def _gymlookup(message):
     return await _send_error_message(message.channel, "Beep Beep... **{member}** this command has been moved to **!gyms**.".format(member=message.author.display_name))
-
-    args = message.content
-    args_split = args.split(" ")
-    del args_split[0]
-
-    gym_code = args_split[0].upper()
-
-    if len(gym_code) < 1:
-        await message.channel.send( content="Beep Beep... I need at-least one character for lookup!")
-        return
-
-    try:
-
-        city_state_list = get_city_list(message)
-
-        if len(city_state_list) < 1:
-            await message.channel.send( content="Beep Beep... Reporting City has not been defined for this channel, please contact {admin} to set it up!".format(admin=message.guild.owner.mention))
-            return
-
-        list_of_gyms = gymutil.get_matching_gym_info(gym_code, city_state=city_state_list)
-
-        if len(list_of_gyms) < 1:
-            await message.channel.send( content="Beep Beep... I could not find any gym starting with {gym_code} for {city}!".format(city=" ".join(city_state_list), gym_code=gym_code))
-            return
-
-        gym_message_output = "Beep Beep! I found following gyms for [{city}] :\n".format(city=",".join(city_state_list))
-        for gym_info in gymutil.get_matching_gym_info(gym_code, city_state=city_state_list):
-
-            if len(city_state_list) == 1:
-                new_gym_info = ("{gym_code} \t- {gym_name}\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name')))
-            else:
-                new_gym_info = ("{gym_code} \t- {gym_name} ({city_state})\n".format(gym_code=gym_info.get('gym_code'), gym_name=gym_info.get('gym_name'), city_state=gym_info.get('city_state')))
-
-            if len(gym_message_output) + len(new_gym_info) > 1990:
-                await message.channel.send( content=gym_message_output)
-                gym_message_output = ""
-
-            gym_message_output += new_gym_info
-
-        if gym_message_output:
-            await message.channel.send( content=gym_message_output)
-        else:
-            await message.channel.send( content="Beep Beep...Hmmm, no matches found for {gym_code}".format(gym_code=gym_code))
-    except Exception as error:
-        print(error)
-        await message.channel.send( content="Beep Beep... No matches found!")
 
 
 @Clembot.command(pass_context=True, hidden=False)
@@ -5040,24 +4995,26 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
     help_embed.set_footer(text=footer)
     return help_embed
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["import"])
+@Clembot.command(pass_context=True, hidden=True, aliases=["import-gym"])
 async def _import(ctx):
     try:
 
         gym_info = {}
-        gym_info['Name'] = 'Name of the Gym'
-        gym_info['OriginalName'] = 'Optional Gym Name to resolve conflict'
+        gym_info['Name'] = 'Gym Name for Gym Code'
+        gym_info['OriginalName'] = 'Original Gym Name (if different)'
         gym_info['Latitude'] = 00.00000
         gym_info['Longitude'] = 00.00000
         gym_info['CityState'] = 'CITY,STATE'
 
         gym_info_list = [ gym_info , gym_info ]
 
-        if len(ctx.message.clean_content) == 8:
-            return await _send_message(ctx.message.channel, "Beep Beep! **{member}** please provide gym information is following format. \n```{gym_info}```\n You can use https://www.csvjson.com/csv2json to convert CSV to JSON.".format(member=ctx.message.author.display_name, gym_info=json.dumps(gym_info_list, indent=4)))
+        args = ctx.message.clean_content.split()
+
+        if len(args) == 1:
+            return await _send_message(ctx.message.channel, "Beep Beep! **{member}**, please provide gym information is following format. \n```{gym_info}```\n You can use https://www.csvjson.com/csv2json to convert CSV to JSON.".format(member=ctx.message.author.display_name, gym_info=json.dumps(gym_info_list, indent=4)))
 
 
-        gym_info_text = ctx.message.clean_content[len("!import\n"):]
+        gym_info_text = ctx.message.clean_content[len("!import-gym"):]
 
         gym_info_list = json.loads(gym_info_text)
 
@@ -5095,11 +5052,11 @@ async def _import(ctx):
             gym_info_to_save['gym_location_city'] = city
             gym_info_to_save['gym_location_state'] = state
 
-            message_text = "Beep Beep! **{0}** , Gym **{1}** has been added successfully.".format(ctx.message.author.display_name, gym_info_to_save['original_gym_name'])
+            message_text = "Beep Beep! **{0}**, Gym **{1}** has been added successfully.".format(ctx.message.author.display_name, gym_info_to_save['original_gym_name'])
 
             gym_info_already_saved = gymsql.find_gym(city+state,gym_code_key)
             if gym_info_already_saved:
-                message_text = "Beep Beep! **{0}** , Gym **{1}** already exists for **{2}**.".format(ctx.message.author.display_name, gym_info_to_save['original_gym_name'], city+state)
+                message_text = "Beep Beep! **{0}**, Gym **{1}** already exists for **{2}**.".format(ctx.message.author.display_name, gym_info_to_save['original_gym_name'], city+state)
                 confirmation_msg = await _send_error_message(ctx.message.channel, message_text)
             else:
                 gymsql.insert_gym_info(gym_info_to_save)
@@ -7146,12 +7103,12 @@ async def _remove_gym(ctx):
             city = _read_channel_city(ctx.message)
             gym_dict = gymsql.find_gym(city, args_split[0])
             if len(gym_dict) == 0:
-                return await message.channel.send(content="Beep Beep...! I couldn't find a match for {gym_code} in {city_code}".format(gym_code=gym_code, city_code=city))
+                return await _send_error_message(message.channel, "Beep Beep...! **{member}** I couldn't find a match for {gym_code} in {city_code}".format(member=message.author.display_name,gym_code=gym_code, city_code=city))
 
             gymsql.delete_gym_info(city, args_split[0])
-            return await message.channel.send(content="Beep Beep...! The gym has been removed successfully.")
+            return await _send_message(message.channel, "Beep Beep...! **{member}** The gym has been removed successfully.".format(member=message.author.display_name))
         else:
-            await message.channel.send(content="Beep Beep...! provide gym-code for lookup")
+            await _send_error_message(message.channel, "Beep Beep...! **{message}** please provide gym-code for lookup.".format(member=message.author.display_name))
     except Exception as error:
         print(error)
 
