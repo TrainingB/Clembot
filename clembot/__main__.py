@@ -2755,7 +2755,7 @@ registers a role and a gym
     return
 
 
-def get_gym_by_code(gym_code, message):
+def get_gym_by_code_message(gym_code, message):
     return get_gym_info_wrapper(message,gym_code)
 
 def get_gym_info_wrapper(message, gym_code):
@@ -3077,7 +3077,7 @@ async def _newraid(message):
 
 
     argument_text = message.clean_content.lower()
-    parameters = argparser.parse_arguments(argument_text, raid_SYNTAX_ATTRIBUTE , {'pokemon' : is_pokemon_valid, 'gym_info' : get_gym_by_code} , {'message' : message})
+    parameters = argparser.parse_arguments(argument_text, raid_SYNTAX_ATTRIBUTE, {'pokemon' : is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
     logger.info(parameters)
 
     if fromegg and parameters['length'] > 2:
@@ -4337,7 +4337,7 @@ async def raidegg(ctx):
 
 async def _raidegg(message):
         argument_text = message.clean_content.lower()
-        parameters = argparser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE , {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code} , {'message' : message})
+        parameters = argparser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
         logger.info(parameters)
 
         if parameters['length'] <= 2:
@@ -5040,13 +5040,91 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
     help_embed.set_footer(text=footer)
     return help_embed
 
+@Clembot.command(pass_context=True, hidden=True, aliases=["import"])
+async def _import(ctx):
+    try:
+
+        gym_info = {}
+        gym_info['Name'] = 'Name of the Gym'
+        gym_info['Latitude'] = 00.00000
+        gym_info['Longitude'] = 00.00000
+        gym_info['CityState'] = 'CITY,STATE'
+
+        gym_info_list = [ gym_info , gym_info ]
+
+        if len(ctx.message.clean_content) == 8:
+            return await _send_message(ctx.message.channel, "Beep Beep! **{member}** please provide gym information is following format. \n```{gym_info}```\n You can use https://www.csvjson.com/csv2json to convert CSV to JSON.".format(member=ctx.message.author.display_name, gym_info=json.dumps(gym_info_list, indent=4)))
+
+
+        gym_info_text = ctx.message.clean_content[len("!import\n"):]
+
+        gym_info_list = json.loads(gym_info_text)
+
+        list_of_msg = []
+
+        for gym_info in gym_info_list:
+
+            gym_name_words = gym_info['Name'].upper().split(' ')
+            words_1 = words_2 = words_3 = ''
+            words_1 = gym_name_words[0]
+            if len(gym_name_words) >= 2:
+                words_2 = gym_name_words[1]
+
+            if len(gym_name_words) >= 3:
+                words_3 = gym_name_words[2]
+
+            gym_code_key = words_1[:2] + words_2[:2] + words_3[:2]
+
+            city,state = gym_info['CityState'].split(",")
+
+            gmap_url = "https://www.google.com/maps/place/{0},{1}".format(gym_info['Latitude'],gym_info['Longitude'])
+
+            gym_info_to_save = {}
+            gym_info_to_save['city_state_key'] = city+state
+            gym_info_to_save['gym_code_key'] = gym_code_key
+            gym_info_to_save['gym_name'] = gym_info['Name']
+            gym_info_to_save['original_gym_name'] = gym_info['Name']
+            gym_info_to_save['gmap_url'] = gmap_url
+            gym_info_to_save['latitude'] = gym_info['Latitude']
+            gym_info_to_save['longitude'] = gym_info['Longitude']
+            gym_info_to_save['region_code_key'] = city+state
+            gym_info_to_save['word_1'] = words_1
+            gym_info_to_save['word_2'] = words_2
+            gym_info_to_save['word_3'] = words_3
+            gym_info_to_save['gym_location_city'] = city
+            gym_info_to_save['gym_location_state'] = state
+
+            message_text = "Beep Beep! **{0}** , Gym **{1}** has been added successfully.".format(ctx.message.author.display_name, gym_info_to_save['original_gym_name'])
+
+            gym_info_already_saved = gymsql.find_gym(city+state,gym_code_key)
+            if gym_info_already_saved:
+                message_text = "Beep Beep! **{0}** , Gym **{1}** already exists for **{2}**.".format(ctx.message.author.display_name, gym_info_to_save['original_gym_name'], city+state)
+                confirmation_msg = await _send_error_message(ctx.message.channel, message_text)
+            else:
+                gymsql.insert_gym_info(gym_info_to_save)
+                confirmation_msg = await _send_message(ctx.message.channel, message_text)
+
+            list_of_msg.append(confirmation_msg)
+
+        # await asyncio.sleep(5)
+        # for msg in list_of_msg:
+            # await msg.delete()
+            # await asyncio.sleep(2)
+
+        await asyncio.sleep(15)
+        await ctx.message.delete()
+
+    except Exception as error:
+        print(error)
+
+
 @Clembot.command(pass_context=True, hidden=True)
 async def nest(ctx):
     try:
         message=ctx.message
 
         argument_text = message.clean_content
-        parameters = argparser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid, 'gym_info' : get_gym_by_code},{'message' : message})
+        parameters = argparser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
 
         if parameters.get('length') <= 2:
             return await _send_error_message(ctx.message.channel, "**{0}**, Please use **!beep nest** to see the correct usage.".format(message.author.name))

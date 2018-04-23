@@ -285,7 +285,7 @@ def insert_gym_info(gym_info):
         for key, value in gym_info.items():
             insert_statement = insert_statement + " {key} ,".format(key=key)
             parameter_list.append(value)
-            print(value)
+            # print(value)
 
         insert_statement = insert_statement[:-1]
         insert_statement = insert_statement + ") values ("
@@ -715,5 +715,6 @@ def test_config():
 def main():
     set_db_name(SQLITE_DB)
     test_config()
+    print(find_gym('EASTPEORIAIL','JOTJO'))
 
-#main()
+# main()
