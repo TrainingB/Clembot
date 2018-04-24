@@ -2382,7 +2382,7 @@ async def _wild(message):
             wild_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(wild_number).zfill(3))
 
             wild_img_url = get_pokemon_image_url(wild_number)  # This part embeds the sprite
-            wild_embed = discord.Embed(title=_("Beep Beep! Click here for my directions to the wild {pokemon}!").format(pokemon=entered_wild.capitalize()), description=_("Ask {author} if my directions aren't perfect!").format(author=message.author.name), url=wild_gmaps_link, colour=message.guild.me.colour)
+            wild_embed = discord.Embed(title=_("Beep Beep! Click here for my directions to the wild {pokemon}!").format(pokemon=entered_wild.capitalize()), description=_("Ask {author} if my directions aren't perfect!").format(author=message.author.display_name), url=wild_gmaps_link, colour=message.guild.me.colour)
             wild_embed.add_field(name=_('**Details:**'), value=_('{pokemon} ({pokemonnumber}) {type}').format(pokemon=entered_wild.capitalize(), pokemonnumber=str(wild_number), type=''.join(get_type(message.guild, wild_number))), inline=False)
             # wild_embed.add_field(name='**Reactions:**', value= "🏎: I'm on my way!\n 💨 The Pokemon despawned!".format(parse_emoji(message.guild, ':dash:')))
             wild_embed.add_field(name='**Reactions:**', value="🏎: I'm on my way!\n💨: The Pokemon despawned!")
@@ -2871,10 +2871,10 @@ async def _subscribe(ctx):
             raise Exception(_("Beep Beep! {member}, Hmmm... I can not find the {role}!").format(role=role_name))
 
         if _is_role_registered(guild.id, role.id) == False:
-            raise Exception(_("Beep Beep! {member}, {role} has not been registered for notifications. Please ask an admin to use `!register-role`!").format(member=ctx.message.author.name, role=role_name))
+            raise Exception(_("Beep Beep! {member}, {role} has not been registered for notifications. Please ask an admin to use `!register-role`!").format(member=ctx.message.author.display_name, role=role_name))
 
         await ctx.message.author.add_roles(role)
-        await _send_message(channel, _("Beep Beep! **{member}**, You have successfully subscribed for **{role}**.".format(role=role_name, member=ctx.message.author.name)))
+        await _send_message(channel, _("Beep Beep! **{member}**, You have successfully subscribed for **{role}**.".format(role=role_name, member=ctx.message.author.display_name)))
     except Exception as error:
         print(error)
         logger.info(error)
@@ -2900,25 +2900,25 @@ async def _unsubscribe(ctx):
         del args[0]
 
         if len(args) > 1:
-            await _send_error_message(channel, _("Beep Beep! **{member}**, Please provide the role-name. Usage `!unsubscribe role-name`").format(member=ctx.message.author.name))
+            await _send_error_message(channel, _("Beep Beep! **{member}**, Please provide the role-name. Usage `!unsubscribe role-name`").format(member=ctx.message.author.display_name))
             return
         role_name = args[0]
 
         role = discord.utils.get(guild.roles, name=role_name)
 
         if role is None:
-            await _send_error_message(channel, _("Beep Beep! **{member}**, No role found with name **{role}**!").format(member=ctx.message.author.name, role=role_name))
+            await _send_error_message(channel, _("Beep Beep! **{member}**, No role found with name **{role}**!").format(member=ctx.message.author.display_name, role=role_name))
             return
 
         if _is_role_registered(guild.id, role.id) == False:
-            await _send_error_message(channel, _("Beep Beep! **{member}**, **{role}** has not been registered for notifications.").format(member=ctx.message.author.name, role=role_name))
+            await _send_error_message(channel, _("Beep Beep! **{member}**, **{role}** has not been registered for notifications.").format(member=ctx.message.author.display_name, role=role_name))
             return
 
         if role not in ctx.message.author.roles:
-            await _send_message(channel, _("Beep Beep! **{member}**, Your subscribtion for **{role}** has been removed!".format(role=role_name, member=ctx.message.author.name)))
+            await _send_message(channel, _("Beep Beep! **{member}**, Your subscribtion for **{role}** has been removed!".format(role=role_name, member=ctx.message.author.display_name)))
         else:
             await message.author.remove_roles(role)
-            await _send_message(channel, _("Beep Beep! **{member}**, Your subscribtion for **{role}** has been removed!".format(role=role_name, member=ctx.message.author.name)))
+            await _send_message(channel, _("Beep Beep! **{member}**, Your subscribtion for **{role}** has been removed!".format(role=role_name, member=ctx.message.author.display_name)))
     except Exception as error:
         print(error)
         logger.info(error)
@@ -2993,7 +2993,7 @@ async def _contest(message):
         raid_embed = discord.Embed(title=_("Beep Beep! A contest is about to take place in this channel!"), colour=discord.Colour.gold(), description="The first member to correctly guess (and spell) the randomly selected pokemon name will win!")
         raid_embed.add_field(name="**Option:**", value=_("{option}").format(option=option))
         raid_embed.add_field(name="**Rules:**", value=_("{rules}").format(rules="One pokemon per attempt per line!"))
-        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=message.author.avatar_url)
         raid_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/396098777729204226/396103528554168320/imageedit_15_4199265561.png")
         await contest_channel.send(embed=raid_embed)
 
@@ -3002,7 +3002,7 @@ async def _contest(message):
         embed.add_field(name="**Option**", value=_(" {member}").format(member=option), inline=True)
         embed.add_field(name="**Pokemon**", value=_(" {member}").format(member=pokemon), inline=True)
         embed.add_field(name="**Server:**", value=_("{member}").format(member=message.guild.name), inline=True)
-        embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
+        embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.display_name), inline=True)
         await Clembot.owner.send(embed=embed)
         if message.author.id != Clembot.owner.id:
             await message.author.send(embed=embed)
@@ -3038,7 +3038,7 @@ async def renew(ctx):
                 embed.add_field(name="**Option**", value=_(" {member}").format(member=option), inline=True)
                 embed.add_field(name="**Pokemon**", value=_(" {member}").format(member=pokemon), inline=True)
                 embed.add_field(name="**Server:**", value=_("{member}").format(member=message.guild.name), inline=True)
-                embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.name), inline=True)
+                embed.add_field(name="**Reported By:**", value=_("{member}").format(member=message.author.display_name), inline=True)
 
                 await ctx.message.delete()
                 await Clembot.owner.send( embed=embed)
@@ -3859,7 +3859,7 @@ async def embed(ctx):
     raid_embed.add_field(name="**Interested:**", value=_("{bosslist1}").format(bosslist1="\n".join(bosslist1)), inline=True)
     raid_embed.add_field(name="**Coming:**", value=_("{bosslist2}").format(bosslist2="\n".join(bosslist2)), inline=True)
     raid_embed.add_field(name="**Here:**", value=_("{bosslist2}").format(bosslist2="\n".join(bosslist2)), inline=True)
-    raid_embed.set_footer(text=_("Reported by {author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+    raid_embed.set_footer(text=_("Reported by {author}").format(author=message.author.display_name), icon_url=message.author.avatar_url)
     raid_embed.set_thumbnail(url=raid_img_url)
     raidreport = await message.channel.send( content=_("Beep Beep! {member} here you go!").format(member=message.author.mention), embed=raid_embed)
 
@@ -4335,7 +4335,7 @@ async def _raidparty(message):
     except Exception as error:
         print(error)
 
-    raidreport = await _send_message(message.channel, _("Beep Beep! A **raid-party** has been reported by **{member}**! Coordinate in {raid_channel}").format(member=message.author.name, raid_channel=raid_channel.mention))
+    raidreport = await _send_message(message.channel, _("Beep Beep! A **raid-party** has been reported by **{member}**! Coordinate in {raid_channel}").format(member=message.author.display_name, raid_channel=raid_channel.mention))
     await asyncio.sleep(1)  # Wait for the channel to be created.
 
     raidmsg = _("""Beep Beep! A raid-party is happening and {member} will be organizing it here in {raid_channel}! Coordinate here!
@@ -4972,7 +4972,7 @@ async def _gyms(message):
     gym_code = args_split[0].upper()
 
     if len(gym_code) < 1:
-        await _send_error_message(message.channel, "Beep Beep... **{member}** I need at-least one character for lookup!".format(member=message.author.name))
+        await _send_error_message(message.channel, "Beep Beep... **{member}** I need at-least one character for lookup!".format(member=message.author.display_name))
         return
 
     city = _read_channel_city(message)
@@ -4982,10 +4982,10 @@ async def _gyms(message):
         list_of_gyms = await _get_gym_info_list(message, gym_code)
 
         if len(list_of_gyms) < 1:
-            await _send_error_message(message.channel, "Beep Beep... **{member}** I could not find any gym starting with **{gym_code}** for **{city}**!".format(member=message.author.name, city=city, gym_code=gym_code))
+            await _send_error_message(message.channel, "Beep Beep... **{member}** I could not find any gym starting with **{gym_code}** for **{city}**!".format(member=message.author.display_name, city=city, gym_code=gym_code))
             return
 
-        gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format(member=message.author.name, city=city)
+        gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format(member=message.author.display_name, city=city)
 
         for gym_info in list_of_gyms:
             new_gym_info = "**{gym_code}** - {gym_name}\n".format(gym_code=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
@@ -4999,10 +4999,10 @@ async def _gyms(message):
         if gym_message_output:
             await _send_message(message.channel, gym_message_output)
         else:
-            await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.name,gym_code=gym_code, city=city))
+            await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.display_name,gym_code=gym_code, city=city))
     except Exception as error:
         print(error)
-        await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.name,gym_code=gym_code, city=city))
+        await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.display_name,gym_code=gym_code, city=city))
 
 
 def _read_channel_city(message):
@@ -5154,11 +5154,11 @@ async def nest(ctx):
         parameters = argparser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
 
         if parameters.get('length') <= 2:
-            return await _send_error_message(ctx.message.channel, "**{0}**, Please use **!beep nest** to see the correct usage.".format(message.author.name))
+            return await _send_error_message(ctx.message.channel, "**{0}**, Please use **!beep nest** to see the correct usage.".format(message.author.display_name))
 
         pokemon = parameters.get('pokemon', [None])[0]
         if pokemon == None:
-           return await _send_error_message(ctx.message.channel, "**{0}**, Did you spell the pokemon right?".format(message.author.name))
+           return await _send_error_message(ctx.message.channel, "**{0}**, Did you spell the pokemon right?".format(message.author.display_name))
 
         link = parameters.get('link', None)
         location_name = " ".join(parameters.get('others',['']))
@@ -5499,26 +5499,26 @@ async def beep(ctx):
         args_split = args.split()
 
         if len(args_split) == 0:
-            await ctx.message.channel.send(embed=get_beep_embed(title="Help - Commands", description=beepmsg.format(member=ctx.message.author.name), footer=footer))
+            await ctx.message.channel.send(embed=get_beep_embed(title="Help - Commands", description=beepmsg.format(member=ctx.message.author.display_name), footer=footer))
         else:
             if args_split[0] == 'report':
-                await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Reporting", description = beep_report.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Reporting", description = beep_report.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'raidparty':
-                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Party (Status)", description=beep_raidparty.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Party (Status)", description=beep_raidparty.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'raidowner':
-                await ctx.message.channel.send( embed= get_beep_embed(title="Help - Raid Party (Organizer)", description=beep_raidowner.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send( embed= get_beep_embed(title="Help - Raid Party (Organizer)", description=beep_raidowner.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'gym':
-                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Gym Code", description=beep_gym.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Gym Code", description=beep_gym.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'notification':
-                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Notifications", description=beep_notifications.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Notifications", description=beep_notifications.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'bingo':
-                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Bingo", description=beep_bingo.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Bingo", description=beep_bingo.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'nest':
-                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Nest", description=beep_nest.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Nest", description=beep_nest.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'research':
-                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Research", description=beep_research.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Research", description=beep_research.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'raid' or args_split[0] == 'status' :
-                await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Status Management", description = beep_raid_status.format(member=ctx.message.author.name), footer=footer))
+                await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Status Management", description = beep_raid_status.format(member=ctx.message.author.display_name), footer=footer))
     except Exception as error:
         print(error)
 
@@ -5880,7 +5880,7 @@ async def list(ctx):
             channel = ctx.message.channel
             args = ctx.message.clean_content.lower().split()
             if len(args) > 1:
-                return await _send_error_message(ctx.message.channel, "**{0}** Please use **!beep list** to see various usage of list command.".format(ctx.message.author.name))
+                return await _send_error_message(ctx.message.channel, "**{0}** Please use **!beep list** to see various usage of list command.".format(ctx.message.author.display_name))
             exp = None
             if checks.check_citychannel(ctx):
                 activeraidnum = 0
@@ -6245,7 +6245,7 @@ async def duplicate(ctx):
             if res == "❎":
                 await rusure.delete()
                 confirmation = await channel.send(_('Duplicate Report cancelled.'))
-                logger.info((('Duplicate Report - Cancelled - ' + channel.name) + ' - Report by ') + author.name)
+                logger.info((('Duplicate Report - Cancelled - ' + channel.name) + ' - Report by ') + author.display_name)
                 dupecount = 2
                 guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
                 await asyncio.sleep(10)
@@ -6254,13 +6254,13 @@ async def duplicate(ctx):
             elif res == "✅":
                 await rusure.delete()
                 await channel.send('Duplicate Confirmed')
-                logger.info((('Duplicate Report - Channel Expired - ' + channel.name) + ' - Last Report by ') + author.name)
+                logger.info((('Duplicate Report - Channel Expired - ' + channel.name) + ' - Last Report by ') + author.display_name)
                 await expire_channel(channel)
                 return
         else:
             await rusure.delete()
             confirmation = await channel.send(_('Duplicate Report Timed Out.'))
-            logger.info((('Duplicate Report - Timeout - ' + channel.name) + ' - Report by ') + author.name)
+            logger.info((('Duplicate Report - Timeout - ' + channel.name) + ' - Report by ') + author.display_name)
             dupecount = 2
             guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
             await asyncio.sleep(10)
@@ -6268,7 +6268,7 @@ async def duplicate(ctx):
     else:
         rc_d['duplicate'] = dupecount
         confirmation = await channel.send(_('Duplicate report #{duplicate_report_count} received.').format(duplicate_report_count=str(dupecount)))
-        logger.info((((('Duplicate Report - ' + channel.name) + ' - Report #') + str(dupecount)) + '- Report by ') + author.name)
+        logger.info((((('Duplicate Report - ' + channel.name) + ' - Report #') + str(dupecount)) + '- Report by ') + author.display_name)
         return
 
 
@@ -7010,7 +7010,7 @@ async def print_roster_with_highlight(message, highlight_roster_loc, roster_mess
             if roster_loc['eta']:
                 raid_embed.add_field(name="**ETA:**", value=_("{eta}").format(eta=roster_loc['eta']), inline=True)
         raid_embed.set_thumbnail(url=raid_img_url)
-        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+        raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=message.author.avatar_url)
         if lat_long:
             embed_map_image_url = fetch_gmap_image_link(lat_long)
             raid_embed.set_image(url=embed_map_image_url)
@@ -7047,7 +7047,7 @@ async def print_roster(message, roster_message=None):
         raid_party_image_url = ""
 
     raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title), url=raid_party_image_url, description=roster_msg)
-    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.name), icon_url=message.author.avatar_url)
+    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=message.author.avatar_url)
     raid_embed.set_thumbnail(url=raid_img_url)
 
     if roster_message:
@@ -7102,7 +7102,7 @@ async def _get_gym_info(message, gym_code):
         await _generate_gym_embed(message, gym_info)
         return gym_info
 
-    await _send_error_message(message.channel, "Beep Beep... **{member}** No gyms found with **{gym_code}** in **{city}**. Please use **!gyms** to see the list of gyms.".format(member=message.author.name, city=city,gym_code=gym_code))
+    await _send_error_message(message.channel, "Beep Beep... **{member}** No gyms found with **{gym_code}** in **{city}**. Please use **!gyms** to see the list of gyms.".format(member=message.author.display_name, city=city,gym_code=gym_code))
     return None
 
 
@@ -7244,7 +7244,7 @@ async def _get_card(ctx):
 
         embed.add_field(name="**Card**", value="{card}".format(card=response), inline=True)
 
-        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=ctx.message.author.name, timestamp=timestamp))
+        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=ctx.message.author.display_name, timestamp=timestamp))
         await ctx.message.channel.send(embed=embed)
 
 
@@ -7268,7 +7268,7 @@ async def _bingo_win(ctx):
         if existing_bingo_card_record:
             raid_embed = discord.Embed(title=_("**{0} Shoutout!**".format(event_title_map.get(event_pokemon,"BingO"))), description="", colour=discord.Colour.dark_gold())
 
-            raid_embed.add_field(name="**Member:**", value=_("**{member}** believes the following Bingo card is completed as of **{timestamp}**.").format(member=message.author.name, timestamp=timestamp), inline=True)
+            raid_embed.add_field(name="**Member:**", value=_("**{member}** believes the following Bingo card is completed as of **{timestamp}**.").format(member=message.author.display_name, timestamp=timestamp), inline=True)
             raid_embed.set_image(url=existing_bingo_card_record['bingo_card_url'])
             raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=message.author, format="jpg")))
 
@@ -7299,7 +7299,7 @@ async def _bingo_card(ctx):
 
         event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
         if event_pokemon == None:
-            return await _send_error_message(message.channel, "Beep Beep! **{member}** The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**".format(ctx.message.author.name))
+            return await _send_error_message(message.channel, "Beep Beep! **{member}** The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**".format(ctx.message.author.display_name))
 
         existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, author.id, event_pokemon)
 
@@ -7310,7 +7310,7 @@ async def _bingo_card(ctx):
         else:
             bingo_card = bingo_generator.generate_card(event_pokemon)
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-            file_path = bingo.generate_board(user_name=author.name, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
+            file_path = bingo.generate_board(user_name=author.display_name, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
             repo_channel = await get_repository_channel(message)
 
             file_url_message = await repo_channel.send(file=discord.File(file_path), content="Generated for : {user} at {timestamp}".format(user=author.mention, timestamp=timestamp))
@@ -7321,7 +7321,7 @@ async def _bingo_card(ctx):
         embed_msg = "**!{0}!**".format(event_title_map.get(event_pokemon,"BingO"))
         embed = discord.Embed(title=embed_msg,colour=discord.Colour.gold())
         embed.set_image(url=file_url)
-        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=author.name, timestamp=timestamp))
+        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=author.display_name, timestamp=timestamp))
 
         await message.channel.send(msg)
 
@@ -7365,7 +7365,7 @@ async def silphcard(ctx, user: str = None):
             if ctx.message.mentions:
                 user = guild_dict[ctx.guild.id].get('trainers', {}).get(ctx.message.mentions[0].id,{}).get('silphid', None)
         if not user:
-            await _send_error_message(ctx.channel,_(f'Beep Beep! **{ctx.message.author.name}** you did not provide a known Silph Road Traveler!'))
+            await _send_error_message(ctx.channel,_(f'Beep Beep! **{ctx.message.author.display_name}** you did not provide a known Silph Road Traveler!'))
             return
         else:
             url = 'https://sil.ph/{user}.json'.format(user=user)
