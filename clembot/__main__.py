@@ -1319,6 +1319,74 @@ async def prefix(ctx):
     await ctx.message.channel.send( "Prefix for this guild is: `{}`".format(prefix))
 
 
+@_set.command()
+async def silph(ctx, silphid: str = ''):
+    """Links a server member to a Silph Road Travelers Card."""
+    if not silphid:
+        await ctx.send(_('Silph Road Travelers Card cleared!'))
+        try:
+            del guild_dict[ctx.guild.id]['trainers'][ctx.author.id]['silphid']
+        except:
+            pass
+        return
+    url = f'https://sil.ph/{silphid}.json'
+    async with ctx.typing():
+        async with aiohttp.ClientSession() as sess:
+            async with sess.get(url) as resp:
+                data = await resp.json()
+        if data.get('error', None):
+            if data['error']=="Private Travelers Card":
+                await ctx.send(_('This Travelers Card is private and cannot be linked!'))
+                return
+            elif data['error']=='Card not found':
+                await ctx.send(_('Travelers Card not found!'))
+                return
+        else:
+            socials = data['data'].get('socials', None)
+            if not socials:
+                await ctx.send(_('No Discord account found linked to this Travelers Card!'))
+                return
+            else:
+                disuser = ''
+                for social in socials:
+                    if social['vendor'] == "Discord":
+                        disuser = social['username']
+                        break
+                    else:
+                        continue
+                if not disuser:
+                    await ctx.send(_('No Discord account found linked to this Travelers Card!'))
+                    return
+                elif disuser != str(ctx.author):
+                    await ctx.send(_('This Travelers Card is linked to another Discord account!'))
+                    return
+                else:
+                    embed = _get_silph(ctx,data)
+                    trainers = guild_dict[ctx.guild.id].get('trainers', {})
+                    author = trainers.get(ctx.author.id,{})
+                    author['silphid'] = silphid
+                    trainers[ctx.author.id] = author
+                    guild_dict[ctx.guild.id]['trainers'] = trainers
+                    await ctx.send(_('This Travelers Card has been successfully linked to you!'),embed=embed)
+
+@_set.command()
+async def pokebattler(ctx, pbid: int = 0):
+    if not pbid:
+        await ctx.send(_('Pokebattler ID cleared!'))
+        try:
+            del guild_dict[ctx.guild.id]['trainers'][ctx.author.id]['pokebattlerid']
+        except:
+            pass
+        return
+    trainers = guild_dict[ctx.guild.id].get('trainers',{})
+    author = trainers.get(ctx.author.id,{})
+    author['pokebattlerid'] = pbid
+    trainers[ctx.author.id] = author
+    guild_dict[ctx.guild.id]['trainers'] = trainers
+    await ctx.send(_(f'Pokebattler ID set to {pbid}!'))
+
+
+
 @Clembot.command(pass_context=True, hidden=True)
 @commands.has_permissions(manage_guild=True)
 async def announce(ctx, *, announce=None):
