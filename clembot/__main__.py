@@ -4996,6 +4996,7 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
     return help_embed
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["import-gym"])
+@commands.has_permissions(manage_guild=True)
 async def _import(ctx):
     try:
 
@@ -5092,15 +5093,13 @@ async def nest(ctx):
            return await _send_error_message(ctx.message.channel, "**{0}**, Did you spell the pokemon right?".format(message.author.name))
 
         link = parameters.get('link', None)
-
+        location_name = " ".join(parameters.get('others',['']))
         if link == None:
             gym_info = None
             if parameters.get('gym_info', None):
                 gym_info = parameters['gym_info']
                 location_name = gym_info['gym_name']
                 link = gym_info['gmap_link']
-            else:
-                location_name = " ".join(parameters.get('others'))
 
         if link:
             embed_title = _("Beep Beep! Click here for the directions to {location}!".format(location=location_name))
