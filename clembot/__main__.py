@@ -7120,20 +7120,21 @@ async def _update_gym(ctx):
         del args[0]
 
         if len(args) < 3:
-            await ctx.message.channel.send(content=_("Beep Beep! Please provide information as !update-gym gym-code field-name value"))
+            return await _send_error_message(ctx.message.channel, "Beep Beep! **{0}** Correct usage is **!update-gym gym-code field-name value**".format(ctx.message.author.display_name))
 
-        gymsql.update_gym(read_channel_city(ctx.message), args[0], args[1], " ".join(args[2:]))
+        channel_city = _read_channel_city(ctx.message)
+        gymsql.update_gym(channel_city, args[0], args[1], " ".join(args[2:]))
 
-        gym_dict = gymsql.find_gym(read_channel_city(ctx.message), args[0])
+        gym_dict = gymsql.find_gym(channel_city, args[0])
 
         if gym_dict:
-            await ctx.message.channel.send(content=json.dumps(gym_dict, indent=4, sort_keys=True))
+            return await _send_message(ctx.message.channel, json.dumps(gym_dict, indent=4, sort_keys=True))
         else:
-            await ctx.message.channel.send("No Gym Found!")
+            return await _send_error_message(ctx.message.channel, "Beep Beep! **{0}** No gym found by **{1}** in **{2}**!".format(ctx.message.author.display_name, args[0], channel_city))
 
         return
     except Exception as error:
-        logger.info("Error : " + error)
+        print(error)
 
 
 @Clembot.command(pass_context=True, hidden=True,aliases=["get-gym"])
