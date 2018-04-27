@@ -11,4 +11,4 @@ with open('../data/guilddict', "rb") as fd:
 
 
 
-print(server_dict_old)
+print(json.dumps(server_dict_old, indent=4))
