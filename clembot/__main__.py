@@ -5068,19 +5068,19 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
 async def _import(ctx):
     try:
 
-        gym_info = {}
-        gym_info['Name'] = 'Gym Name for Gym Code'
-        gym_info['OriginalName'] = 'Original Gym Name (if different)'
-        gym_info['Latitude'] = 00.00000
-        gym_info['Longitude'] = 00.00000
-        gym_info['CityState'] = 'CITY,STATE'
+        gym_info_1 = {}
+        gym_info_1['Name'] = 'Gym Name'
+        # gym_info_1['OriginalName'] = 'Gym Original Name (if different)'
+        gym_info_1['Latitude'] = 00.00000
+        gym_info_1['Longitude'] = 00.00000
+        gym_info_1['CityState'] = 'CITY,STATE'
 
-        gym_info_list = [ gym_info , gym_info ]
+        gym_info_list = [ gym_info_1 ]
 
         args = ctx.message.clean_content.split()
 
         if len(args) == 1:
-            return await _send_message(ctx.message.channel, "Beep Beep! **{member}**, please provide gym information is following format. \n```{gym_info}```\n You can use https://www.csvjson.com/csv2json to convert CSV to JSON.".format(member=ctx.message.author.display_name, gym_info=json.dumps(gym_info_list, indent=4)))
+            return await _send_message(ctx.message.channel, "Beep Beep! **{member}**, please provide gym information is following format. \n```!import-gym \n{gym_info}```\n You can use https://www.csvjson.com/csv2json to convert CSV to JSON.".format(member=ctx.message.author.display_name, gym_info=json.dumps(gym_info_list, indent=4)))
 
 
         gym_info_text = ctx.message.clean_content[len("!import-gym"):]
@@ -5089,9 +5089,9 @@ async def _import(ctx):
 
         list_of_msg = []
 
-        for gym_info in gym_info_list:
+        for gym_info_1 in gym_info_list:
 
-            gym_name_words = gym_info['Name'].upper().split(' ')
+            gym_name_words = gym_info_1['Name'].upper().split(' ')
             words_1 = words_2 = words_3 = ''
             words_1 = gym_name_words[0]
             if len(gym_name_words) >= 2:
@@ -5102,22 +5102,22 @@ async def _import(ctx):
 
             gym_code_key = words_1[:2] + words_2[:2] + words_3[:2]
 
-            city,state = gym_info['CityState'].split(",")
+            city,state = gym_info_1['CityState'].split(",")
 
-            gmap_url = "https://www.google.com/maps/place/{0},{1}".format(gym_info['Latitude'],gym_info['Longitude'])
+            gmap_url = "https://www.google.com/maps/place/{0},{1}".format(gym_info_1['Latitude'],gym_info_1['Longitude'])
 
             gym_info_to_save = {}
             gym_info_to_save['city_state_key'] = city+state
             gym_info_to_save['gym_code_key'] = gym_code_key
-            gym_info_to_save['gym_name'] = gym_info['Name']
-            gym_info_to_save['original_gym_name'] = gym_info.get('OriginalName',gym_info['Name'])
+            gym_info_to_save['gym_name'] = gym_info_1['Name']
+            gym_info_to_save['original_gym_name'] = gym_info_1.get('OriginalName',gym_info_1['Name'])
             gym_info_to_save['gmap_url'] = gmap_url
-            gym_info_to_save['latitude'] = gym_info['Latitude']
-            gym_info_to_save['longitude'] = gym_info['Longitude']
+            gym_info_to_save['latitude'] = gym_info_1['Latitude']
+            gym_info_to_save['longitude'] = gym_info_1['Longitude']
             gym_info_to_save['region_code_key'] = city+state
-            gym_info_to_save['word_1'] = words_1
-            gym_info_to_save['word_2'] = words_2
-            gym_info_to_save['word_3'] = words_3
+            gym_info_to_save['word_1'] = words_1[:2]
+            gym_info_to_save['word_2'] = words_2[:2]
+            gym_info_to_save['word_3'] = words_3[:2]
             gym_info_to_save['gym_location_city'] = city
             gym_info_to_save['gym_location_state'] = state
 
@@ -5142,6 +5142,7 @@ async def _import(ctx):
         await ctx.message.delete()
 
     except Exception as error:
+        return await _send_error_message(ctx.message.channel, error)
         print(error)
 
 
