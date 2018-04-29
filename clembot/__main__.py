@@ -1215,6 +1215,17 @@ async def _set(ctx):
         for page in pages:
             await bot.send_message(ctx.message.channel, page)
 
+
+@Clembot.group(pass_context=True, hidden=True, name="get")
+@commands.has_permissions(manage_guild=True)
+async def _get(ctx):
+    """Changes a setting."""
+    if ctx.invoked_subcommand is None:
+        pages = bot.formatter.format_help_for(ctx, ctx.command)
+        for page in pages:
+            await bot.send_message(ctx.message.channel, page)
+
+
 @_set.command(pass_context=True, hidden=True, aliases=["config"])
 @checks.is_owner()
 async def _set_config(ctx):
@@ -1235,6 +1246,20 @@ async def _set_config(ctx):
     except Exception as error:
         print(error)
 
+@_get.command(pass_context=True, hidden=True, aliases=["config"])
+@checks.is_owner()
+async def _get_config(ctx):
+    try:
+        message = ctx.message
+        args = ctx.message.content
+        args_split = args.split()
+        del args_split[0]
+        key = args_split[1]
+        content = "Beep Beep! **{0}**, **{1}** has the current value as **{2}**.".format(ctx.message.author.display_name, key, gymsql.find_clembot_config(key))
+
+        await _send_message(ctx.message.channel, content)
+    except Exception as error:
+        print(error)
 
 
 @_set.command(pass_context=True, hidden=True, aliases=["bingo-event"])
@@ -1286,16 +1311,6 @@ async def prefix(ctx, prefix=None):
     else:
         default_prefix = Clembot.config["default_prefix"]
         await ctx.message.channel.send( "Prefix has been reset to default: `{}`".format(default_prefix))
-
-
-@Clembot.group(pass_context=True, hidden=True, name="get")
-async def _get(ctx):
-    """Get a setting value"""
-    if ctx.invoked_subcommand is None:
-        pages = bot.formatter.format_help_for(ctx, ctx.command)
-        for page in pages:
-            await bot.send_message(ctx.message.channel, page)
-
 
 
 
@@ -4827,7 +4842,7 @@ async def get_guild_config(ctx):
 @checks.guildowner_or_permissions(manage_guild=True)
 async def set_guild_config(ctx):
     args = ctx.message.content
-    args_split = args.split(" ")
+    args_split = args.split()
     del args_split[0]
 
     new_configuration={}
@@ -7287,14 +7302,23 @@ async def _bingo_win(ctx):
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["bingo-card"])
 async def _bingo_card(ctx):
-    try:
+
+    command_option = "-new"
+    is_option_new = False
+    try :
+        message = ctx.message
+        args = message.content
+        args_split = args.split()
+        if args_split.__contains__(command_option):
+            args_split.remove(command_option)
+            is_option_new = True
+
         print("_bingo_card() called")
         message = ctx.message
         author = ctx.message.author
 
         if len(ctx.message.mentions) > 0:
             author = ctx.message.mentions[0]
-
 
         event_title_map = gymsql.find_clembot_config("bingo-event-title")
 
@@ -7303,6 +7327,10 @@ async def _bingo_card(ctx):
             return await _send_error_message(message.channel, "Beep Beep! **{member}** The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**".format(ctx.message.author.display_name))
 
         existing_bingo_card_record = gymsql.find_bingo_card(ctx.message.guild.id, author.id, event_pokemon)
+
+        if is_option_new:
+            existing_bingo_card_record = None
+
 
         if existing_bingo_card_record:
             bingo_card = json.loads(existing_bingo_card_record['bingo_card'])

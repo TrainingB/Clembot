@@ -9,6 +9,9 @@ from random import *
 pokemon_cp = {}
 mareep_cp = {}
 bulbasaur_cp = {}
+
+pokemon_cp_level = {}
+
 script_path = os.path.dirname(os.path.realpath(__file__))
 
 def load_data():
@@ -17,10 +20,10 @@ def load_data():
     directory = os.path.join(script_path,"..","data","cp_chart")
     filenames = ["","bulbasaur.json"]
     with open(os.path.join(directory, "mareep.json"), "r") as fd:
-        mareep_cp = json.load(fd)
+        pokemon_cp_level['mareep'] = json.load(fd)
 
     with open(os.path.join(directory, "bulbasaur.json"), "r") as fd:
-        bulbasaur_cp = json.load(fd)
+        pokemon_cp_level['bulbasaur_cp'] = json.load(fd)
 
 
 load_data()
@@ -43,12 +46,15 @@ def keep_number_in_range(number, spread, min_cp, max_cp):
 
 
 
-def generate_card(event_pokemon="mareep"):
+gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"] ,
+                  'charmander' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
+                  }
 
-    if event_pokemon == "mareep":
-        pokemon_cp = mareep_cp
-    else:
-        pokemon_cp = bulbasaur_cp
+
+
+def generate_card(event_pokemon="charmander"):
+
+    pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level['bulbasaur_cp'])
 
 
     MALE_SIGN = u"\u2642"
@@ -57,16 +63,16 @@ def generate_card(event_pokemon="mareep"):
     stats = ['Attack','Defense','Stamina']
 
     category = []
-    size = ['XL','XL','XL','XS','XS','XS']
-    gender = [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2640",u"\u2640"]
+    size = ['XL','XL','XL','XL','XS','XS','XS','XS']
+    gender = gender_master.get(event_pokemon,[u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2640",u"\u2640"])
 
     bingo_card = {}
 
-    cell_1_level = randint(2,5)
+    cell_1_level = randint(6,9)
     cell_1_json = pokemon_cp["{0}".format(cell_1_level)]
     cell_1_cp = randint(cell_1_json['Min CP'], cell_1_json['Max CP'])
     cell_1_range = keep_number_in_range(cell_1_cp, cell_1_json['Spread'], cell_1_json['Min CP'],cell_1_json['Max CP'])
-    cell_1_value = ["CP : {0}".format(cell_1_range, size[randint(0,1)], cell_1_json['Stardust'])]
+    cell_1_value = ["CP : {0}".format(cell_1_range)]
 
 
     cell_2_level = randint(4,14)
@@ -75,35 +81,35 @@ def generate_card(event_pokemon="mareep"):
     cell_2_high_json = pokemon_cp["{0}".format(cell_2_level + 2)]
     cell_2_cp = randint(cell_2_json['Min CP'], cell_2_json['Max CP'])
     cell_2_range = keep_number_in_range(cell_2_cp, randint(80,110), cell_2_low_json['Min CP'], cell_2_high_json['Max CP'])
-    cell_2_value = [ "CP: {0}".format(cell_2_range) , "Weight = {0}".format(size[randint(0,5)])  ]
+    cell_2_value = [ "CP: {0}".format(cell_2_range) , "Weight = {0}".format(size[randint(0,7)])  ]
 
-    cell_3_level = randint(16,20)
+    cell_3_level = randint(18,21)
     cell_3_json = pokemon_cp["{0}".format(cell_3_level)]
     cell_3_cp = randint(cell_3_json['Min CP'], cell_3_json['Max CP'])
     cell_3_range = keep_number_in_range(cell_3_cp, cell_3_json['Spread'], cell_3_json['Min CP'],cell_3_json['Max CP'])
-    cell_3_value = ["CP : {0} ".format(cell_3_range, size[randint(0, 1)], cell_3_json['Stardust'])]
+    cell_3_value = ["CP : {0} ".format(cell_3_range)]
 
 
-    cell_4_level = randint(6,10)
+    cell_4_level = randint(10,13)
     cell_4_json = pokemon_cp["{0}".format(cell_4_level)]
     cell_4_cp = randint(cell_4_json['Min CP'], cell_4_json['Max CP'])
     cell_4_range = keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP'])
-    cell_4_value = ["CP : {0} ".format(cell_4_range, size[randint(0, 1)]), "{0}".format(gender[randint(0,5)])]
+    cell_4_value = ["CP : {0} ".format(cell_4_range), "{0}".format(gender[randint(0,7)])]
 
-    cell_5_value = ["  {0}".format(event_pokemon.capitalize()), "✩"]
+    cell_5_value = ["{0}".format(event_pokemon.capitalize()), "✩"]
 
-    cell_6_level = randint(21, 25)
+    cell_6_level = randint(22, 25)
     cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
     cell_6_cp = randint(cell_6_json['Min CP'], cell_6_json['Max CP'])
     cell_6_range = keep_number_in_range(cell_6_cp, cell_6_json['Spread'] * 2, cell_6_json['Min CP'], cell_6_json['Max CP'])
-    cell_6_value = ["CP : {0} ".format(cell_6_range, size[randint(0, 1)]), "{0}".format(gender[randint(0, 5)])]
+    cell_6_value = ["CP : {0} ".format(cell_6_range), "{0}".format(gender[randint(0, 7)])]
 
 
-    cell_7_level = randint(11, 15)
+    cell_7_level = randint(14, 17)
     cell_7_json = pokemon_cp["{0}".format(cell_7_level)]
     cell_7_cp = randint(cell_7_json['Min CP'], cell_7_json['Max CP'])
     cell_7_range = keep_number_in_range(cell_7_cp, cell_7_json['Spread'], cell_7_json['Min CP'], cell_7_json['Max CP'])
-    cell_7_value = ["CP : {0} ".format(cell_7_range, size[randint(0, 1)], cell_7_json['Stardust'])]
+    cell_7_value = ["CP : {0} ".format(cell_7_range)]
 
 
     cell_8_level = randint(16,26)
@@ -112,13 +118,13 @@ def generate_card(event_pokemon="mareep"):
     cell_8_high_json = pokemon_cp["{0}".format(cell_8_level + 1)]
     cell_8_cp = randint(cell_8_json['Min CP'], cell_8_json['Max CP'])
     cell_8_range = keep_number_in_range(cell_8_cp, randint(80,110), cell_8_low_json['Min CP'], cell_8_high_json['Max CP'])
-    cell_8_value = ["CP: {0}".format(cell_8_range), "Height = {0}".format(size[randint(0, 5)])]
+    cell_8_value = ["CP: {0}".format(cell_8_range), "Height = {0}".format(size[randint(0, 7)])]
 
     cell_9_level = randint(26, 30)
     cell_9_json = pokemon_cp["{0}".format(cell_9_level)]
     cell_9_cp = randint(cell_9_json['Min CP'], cell_9_json['Max CP'])
     cell_9_range = keep_number_in_range(cell_9_cp, cell_9_json['Spread'], cell_9_json['Min CP'],cell_9_json['Max CP'])
-    cell_9_value = ["CP : {0} ".format(cell_9_range, size[randint(0, 1)], cell_9_json['Stardust'])]
+    cell_9_value = ["CP : {0} ".format(cell_9_range)]
 
 
     bingo_card['1'] = cell_1_value
@@ -192,4 +198,4 @@ def main():
     print(print_card_as_text(generate_card()))
 
 
-#main()
+main()
