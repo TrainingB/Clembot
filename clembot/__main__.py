@@ -1207,7 +1207,6 @@ async def welcome(ctx, user: discord.Member = None):
 
 
 @Clembot.group(pass_context=True, hidden=True, name="set")
-@commands.has_permissions(manage_guild=True)
 async def _set(ctx):
     """Changes a setting."""
     if ctx.invoked_subcommand is None:
@@ -2452,8 +2451,8 @@ async def on_raw_reaction_add(emoji, message_id, channel_id, user_id):
         await message.edit(embed=newembed)
         await message.remove_reaction(emoji, user)
         guild_dict[guild.id]['raidchannel_dict'][channel.id]['moveset'] = moveset
-    if message_id in guild_dict[guild.id]['wildreport_dict'] and user_id != Clembot.user.id:
-        wild_dict = guild_dict[guild.id]['wildreport_dict'][message_id]
+    if message_id in guild_dict[guild.id].setdefault('wildreport_dict',{}) and user_id != Clembot.user.id:
+        wild_dict = guild_dict[guild.id].setdefault('wildreport_dict',{})[message_id]
         if str(emoji) == '🏎':
             wild_dict['omw'].append(user.mention)
             guild_dict[guild.id]['wildreport_dict'][message_id] = wild_dict
