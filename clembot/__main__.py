@@ -42,6 +42,7 @@ from contextlib import redirect_stdout
 # --B--
 # ---- dependencies
 import gymsql
+import gymutil
 import time
 from datetime import timedelta
 import calendar
@@ -168,7 +169,7 @@ def load_config():
     SQLITE_DB = config['sqlite_db']
 
     gymsql.set_db_name(SQLITE_DB)
-    # gymutil.load_gyms()
+    gymutil.load_gyms()
     bingo_template[347397406033182721] = "bingo_template_bur.png"
     bingo_template[329013844427014145] = "bingo_template_qcy.png"
     bingo_template[341367173266276353] = "bingo_template_spg.png"
@@ -176,6 +177,7 @@ def load_config():
 load_config()
 
 Clembot.config = config
+
 
 poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
 floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png"
