@@ -76,7 +76,7 @@ def _get_prefix(bot, message):
     return set_prefix or default_prefix
 
 
-Clembot = commands.Bot(command_prefix=_get_prefix)
+Clembot = commands.Bot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
 Clembot.remove_command("help")
 custom_error_handling(Clembot, logger)
 
@@ -5238,6 +5238,7 @@ async def gym(ctx):
             gym_info = await _get_gym_info(ctx.message, gym_code)
             if gym_info:
                 await _update_channel_with_link(ctx.message, gym_info['gmap_url'])
+                guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['address'] = gym_info['gym_name']
                 await _change_channel_name(ctx.message, gym_info)
             # else:
             #     gym_info = await _get_gym_info_old(ctx.message, gym_code)
@@ -5285,13 +5286,21 @@ async def _generate_gym_embed_old(message, gym_info):
 
 async def _change_channel_name(message, gym_info):
     try:
+
+        raid_dict = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]
+
         region_prefix = get_region_prefix(message)
-        entered_raid = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['pokemon']
         if region_prefix:
             prefix = region_prefix + "-"
         else:
             prefix = ""
-        raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
+
+        if raid_dict['type'] == 'egg':
+            egg_level = raid_dict['egglevel']
+            raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
+        else :
+            entered_raid = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['pokemon']
+            raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
 
         await message.channel.edit(name=raid_channel_name)
     except Exception as error:
@@ -6272,7 +6281,7 @@ async def duplicate(ctx):
         rusure = await channel.send( _("Beep Beep! Are you sure you wish to remove this raid?"))
         res = await ask(rusure, channel, author.id)
         if res is not None:
-            if res == "❎":
+            if res[0].emoji == "❎":
                 await rusure.delete()
                 confirmation = await channel.send(_('Duplicate Report cancelled.'))
                 logger.info((('Duplicate Report - Cancelled - ' + channel.name) + ' - Report by ') + author.display_name)
@@ -6281,7 +6290,7 @@ async def duplicate(ctx):
                 await asyncio.sleep(10)
                 await confirmation.delete()
                 return
-            elif res == "✅":
+            elif res[0].emoji == "✅":
                 await rusure.delete()
                 await channel.send('Duplicate Confirmed')
                 logger.info((('Duplicate Report - Channel Expired - ' + channel.name) + ' - Last Report by ') + author.display_name)
