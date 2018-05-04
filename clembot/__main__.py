@@ -115,6 +115,7 @@ GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlon
 INVITE_CODE = "AUzEXRU"
 SQLITE_DB = ""
 
+
 # Append path of this script to the path of
 # config files which we're loading.
 # Assumes that config files will always live in the same directory.
@@ -485,6 +486,40 @@ def spellcheck(word):
         return _("Beep Beep! \"{entered_word}\" is not a Pokemon! Did you mean \"{corrected_word}\"?").format(entered_word=word, corrected_word=spelling.correction(word))
     else:
         return _("Beep Beep! \"{entered_word}\" is not a Pokemon! Check your spelling!").format(entered_word=word)
+
+def spellcheck(word):
+    suggestion = spelling.correction(word)
+    return suggestion
+    # If we have a spellcheck suggestion
+    if suggestion != word:
+        return _('Beep Beep! "{entered_word}" is not a Pokemon! Did you mean "{corrected_word}"?').format(entered_word=word, corrected_word=spelling.correction(word))
+    else:
+        return _('Beep Beep! "{entered_word}" is not a Pokemon! Check your spelling!').format(entered_word=word)
+
+async def autocorrect(entered_word, destination, author):
+    msg = _("Beep Beep! **{word}** isn't a Pokemon!").format(word=entered_word.title())
+    if spellcheck(entered_word) and (spellcheck(entered_word) != entered_word):
+        msg += _(' Did you mean **{correction}**?').format(correction=spellcheck(entered_word).title())
+        question = await _send_error_message(destination, msg)
+        if author:
+            try:
+                timeout = False
+                res, reactuser = await ask(question, destination, author.id)
+            except TypeError:
+                timeout = True
+            await question.delete()
+            if timeout or res.emoji == '❎':
+                return None
+            elif res.emoji == '✅':
+                return spellcheck(entered_word)
+            else:
+                return None
+        else:
+            return None
+    else:
+        question = await destination.send(msg)
+        return
+
 
 
 def do_template(message, author, guild):
@@ -2440,7 +2475,7 @@ async def on_raw_reaction_add(emoji, message_id, channel_id, user_id):
     message = await channel.get_message(message_id)
     guild = message.guild
     user = guild.get_member(user_id)
-    if channel.id in guild_dict[guild.id]['raidchannel_dict'] and message.id == guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrsmessage'] and user_id != Meowth.user.id:
+    if channel.id in guild_dict[guild.id]['raidchannel_dict'] and message.id == guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrsmessage'] and user_id != Clembot.user.id:
         ctrs_dict = guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrs_dict']
         for i in ctrs_dict:
             if ctrs_dict[i]['emoji'] == str(emoji):
@@ -3315,20 +3350,51 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 
 
 
+
+@Clembot.command(pass_context=True, aliases=['raid', 'r', 'egg', 'raidegg'])
 @checks.cityeggchannel()
-@Clembot.command(pass_context=True)
 @checks.raidset()
-async def raid(ctx):
-    """Report an ongoing raid.
+async def __raid(ctx, pokemon, *, location:commands.clean_content(fix_channel_mentions=True)="", weather=None, timer=None):
+    """Report an ongoing raid or a raid egg.
 
-    Usage: !raid <species> <location> [minutes]
-    Clembot will insert the details (really just everything after the species name) into a
+    Usage: !raid <species/level> <location> [weather] [minutes]
+    Meowth will insert <location> into a
     Google maps link and post the link to the same channel the report was made in.
-    Clembot's message will also include the type weaknesses of the boss.
+    Meowth's message will also include the type weaknesses of the boss.
 
-    Finally, Clembot will create a separate channel for the raid report, for the purposes of organizing the raid."""
-    await _raid(ctx.message)
+    Finally, Meowth will create a separate channel for the raid report, for the purposes of organizing the raid."""
+    try:
 
+        content = f"{pokemon} {location}"
+
+        parameters = {'pokemon':pokemon , 'location' : location, 'weather' : weather, 'timer' : timer}
+
+
+
+        await _send_message(ctx.channel, "{0}\n{1}".format(content, json.dumps(parameters, indent=4)))
+
+        if pokemon.isdigit():
+            await _raidegg(ctx.message)
+        else:
+            await _raid(ctx.message)
+
+    except Exception as error:
+        print(error)
+#
+# @checks.cityeggchannel()
+# @Clembot.command()
+# @checks.raidset()
+# async def raid(ctx):
+#     """Report an ongoing raid.
+#
+#     Usage: !raid <species> <location> [minutes]
+#     Clembot will insert the details (really just everything after the species name) into a
+#     Google maps link and post the link to the same channel the report was made in.
+#     Clembot's message will also include the type weaknesses of the boss.
+#
+#     Finally, Clembot will create a separate channel for the raid report, for the purposes of organizing the raid."""
+#     await _raid(ctx.message)
+#
 
 async def _raid(message):
     fromegg = False
@@ -3401,8 +3467,8 @@ async def _raid(message):
             return
 
     if entered_raid not in pkmn_info['pokemon_list']:
-        await message.channel.send( spellcheck(entered_raid))
-        return
+        entered_raid = await autocorrect(entered_raid, message.channel, message.author)
+
     if entered_raid not in get_raidlist() and entered_raid in pkmn_info['pokemon_list']:
         await message.channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
         return
@@ -3502,6 +3568,127 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 
     event_loop.create_task(expiry_check(raid_channel))
 
+
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases= ["moveset"])
+async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
+    try:
+        guild = ctx.guild
+        weather = 'clear'
+        emoji_dict = {0: '0\u20e3', 1: '1\u20e3', 2: '2\u20e3', 3: '3\u20e3', 4: '4\u20e3', 5: '5\u20e3', 6: '6\u20e3', 7: '7\u20e3', 8: '8\u20e3', 9: '9\u20e3', 10: '10\u20e3'}
+        counters_and_movesets = {}
+        ctrs_dict = {}
+        ctrs_index = 0
+        ctrs_dict[ctrs_index] = {}
+        ctrs_dict[ctrs_index]['moveset'] = "Unknown Moveset"
+        ctrs_dict[ctrs_index]['emoji'] = '0\u20e3'
+        img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/discordpy-v1/images/pkmn/{0}_.png?cache=4'.format(str(get_number(pkmn)).zfill(3))
+        level = get_level(pkmn) if get_level(pkmn).isdigit() else "5"
+        url = "https://fight.pokebattler.com/raids/defenders/{pkmn}/levels/RAID_LEVEL_{level}/attackers/".format(pkmn=pkmn.replace('-','_').upper(),level=level)
+        url += "levels/30/"
+        weather_list = [_('none'), _('extreme'), _('clear'), _('sunny'), _('rainy'),
+                        _('partlycloudy'), _('cloudy'), _('windy'), _('snow'), _('fog')]
+        match_list = ['NO_WEATHER','NO_WEATHER','CLEAR','CLEAR','RAINY',
+                            'PARTLY_CLOUDY','OVERCAST','WINDY','SNOW','FOG']
+        if not weather:
+            index = 0
+        else:
+            index = weather_list.index(weather)
+        weather = match_list[index]
+        url += "strategies/CINEMATIC_ATTACK_WHEN_POSSIBLE/DEFENSE_RANDOM_MC?sort=OVERALL&"
+        url += "weatherCondition={weather}&dodgeStrategy=DODGE_REACTION_TIME&aggregation=AVERAGE".format(weather=weather)
+        title_url = url.replace('https://fight', 'https://www')
+        hyperlink_icon = 'https://i.imgur.com/fn9E5nb.png'
+        pbtlr_icon = 'https://www.pokebattler.com/favicon-32x32.png'
+        print(url)
+        async with aiohttp.ClientSession() as sess:
+            async with sess.get(url) as resp:
+                data = await resp.json()
+        # print(json.dumps(data, indent=4))
+        data = data['attackers'][0]
+        raid_cp = data['cp']
+        atk_levels = '30'
+        ctrs = data['randomMove']['defenders'][-6:]
+        def clean(txt):
+            return txt.replace('_', ' ').title()
+        title = _('{pkmn} | {weather} | Unknown Moveset').format(pkmn=pkmn.title(),weather=weather_list[index].title())
+        stats_msg = _("**CP:** {raid_cp}\n").format(raid_cp=raid_cp)
+        stats_msg += _("**Weather:** {weather}\n").format(weather=clean(weather))
+        stats_msg += _("**Attacker Level:** {atk_levels}").format(atk_levels=atk_levels)
+        ctrs_embed = discord.Embed(colour=guild.me.colour)
+        ctrs_embed.set_author(name=title,url=title_url,icon_url=hyperlink_icon)
+        ctrs_embed.set_thumbnail(url=img_url)
+        ctrs_embed.set_footer(text=_('Results courtesy of Pokebattler'), icon_url=pbtlr_icon)
+        ctrindex = 1
+
+        for ctr in reversed(ctrs):
+            ctr_name = clean(ctr['pokemonId'])
+            moveset = ctr['byMove'][-1]
+            moves = _("{move1} | {move2}").format(move1=clean(moveset['move1'])[:-5], move2=clean(moveset['move2']))
+            name = _("#{index} - {ctr_name}").format(index=ctrindex, ctr_name=ctr_name)
+            ctrs_embed.add_field(name=name,value=moves)
+            ctrindex += 1
+
+
+
+        for moveset in data['byMove']:
+            ctrs_index += 1
+            move1 = moveset['move1'][:-5].lower().title().replace('_', ' ')
+            move2 = moveset['move2'].lower().title().replace('_', ' ')
+            movesetstr = f'{move1} | {move2}'
+            ctrs = moveset['defenders'][-6:]
+            title = _(f'{pkmn.title()} | {weather_list[index].title()} | {movesetstr}')
+            ctrs_embed = discord.Embed(colour=guild.me.colour)
+            ctrs_embed.set_author(name=title,url=title_url,icon_url=hyperlink_icon)
+            ctrs_embed.set_thumbnail(url=img_url)
+            ctrs_embed.set_footer(text=_('Results courtesy of Pokebattler'), icon_url=pbtlr_icon)
+            ctrindex = 1
+            counters_list = []
+            for ctr in reversed(ctrs):
+                ctr_name = clean(ctr['pokemonId'])
+                moveset = ctr['byMove'][-1]
+                moves = _("{move1} | {move2}").format(move1=clean(moveset['move1'])[:-5], move2=clean(moveset['move2']))
+                name = _("#{index} - {ctr_name}").format(index=ctrindex, ctr_name=ctr_name)
+                counters_list.append({'index' :  ctrindex, 'counter' : ctr_name, 'mvoeset' : moves})
+                ctrs_embed.add_field(name=name,value=moves)
+                ctrindex += 1
+            # 'embed': ctrs_embed,
+            ctrs_dict[ctrs_index] = {'moveset': movesetstr, 'emoji': emoji_dict[ctrs_index]} #'counters': counters_list}
+
+        moveset_list = []
+        for moveset in ctrs_dict:
+            moveset_list.append(f"{ctrs_dict[moveset]['emoji']}: {ctrs_dict[moveset]['moveset']}\n")
+        # for moveset in ctrs_dict:
+            # ctrs_split = int(round(len(moveset_list)/2+0.1))
+
+            # ctrs_dict[moveset]['embed'].add_field(name="**Possible Movesets:**", value=f"{''.join(moveset_list[:ctrs_split])}", inline=True)
+            # ctrs_dict[moveset]['embed'].add_field(name="\u200b", value=f"{''.join(moveset_list[ctrs_split:])}",inline=True)
+            # ctrs_dict[moveset]['embed'].add_field(name=_("Results with Level 30 attackers"), value=_("[See your personalized results!](https://www.pokebattler.com/raids/{pkmn})").format(pkmn=pkmn.replace('-','_').upper()),inline=False)
+
+        ctrs_embed = discord.Embed(colour=guild.me.colour)
+        ctrs_embed.set_author(name=title, url=title_url, icon_url=hyperlink_icon)
+        ctrs_embed.set_thumbnail(url=img_url)
+        ctrs_embed.set_footer(text=_('Results courtesy of Pokebattler'), icon_url=pbtlr_icon)
+
+
+
+        description = ""
+
+        for moveset in ctrs_dict:
+            ctrs_embed.add_field(name = ctrs_dict[moveset]['emoji'], value = ctrs_dict[moveset]['moveset'])
+
+
+
+        text = json.dumps(ctrs_dict, indent=0)
+        print(text)
+
+        await _send_message(ctx.channel, text)
+
+        await ctx.channel.send(embed=ctrs_embed)
+
+    except Exception as error:
+        print(error)
 
 
 @Clembot.command()
@@ -4424,18 +4611,18 @@ def emojify_numbers(number):
 
 
 
-@Clembot.command(pass_context=True, hidden=True)
-@checks.citychannel()
-@checks.raidset()
-async def raidegg(ctx):
-    await _raidegg(ctx.message)
+# @Clembot.command(pass_context=True, hidden=True)
+# @checks.citychannel()
+# @checks.raidset()
+# async def raidegg(ctx):
+#     await _raidegg(ctx.message)
 
 
 async def _raidegg(message):
         argument_text = message.clean_content.lower()
         parameters = argparser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
         logger.info(parameters)
-
+        print(parameters)
         if parameters['length'] <= 2:
             await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
             return
