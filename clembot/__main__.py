@@ -180,6 +180,7 @@ load_config()
 Clembot.config = config
 
 
+
 poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
 floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png"
 """
@@ -2475,27 +2476,31 @@ async def on_raw_reaction_add(emoji, message_id, channel_id, user_id):
     message = await channel.get_message(message_id)
     guild = message.guild
     user = guild.get_member(user_id)
-    if channel.id in guild_dict[guild.id]['raidchannel_dict'] and message.id == guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrsmessage'] and user_id != Clembot.user.id:
-        ctrs_dict = guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrs_dict']
-        for i in ctrs_dict:
-            if ctrs_dict[i]['emoji'] == str(emoji):
-                newembed = ctrs_dict[i]['embed']
-                moveset = i
-                break
-        else:
-            return
-        await message.edit(embed=newembed)
-        await message.remove_reaction(emoji, user)
-        guild_dict[guild.id]['raidchannel_dict'][channel.id]['moveset'] = moveset
-    if message_id in guild_dict[guild.id].setdefault('wildreport_dict',{}) and user_id != Clembot.user.id:
-        wild_dict = guild_dict[guild.id].setdefault('wildreport_dict',{})[message_id]
-        if str(emoji) == '🏎':
-            wild_dict['omw'].append(user.mention)
-            guild_dict[guild.id]['wildreport_dict'][message_id] = wild_dict
-        elif str(emoji) == '💨':
-            if wild_dict['omw']:
-                await channel.send(f"{' '.join(wild_dict['omw'])}: the {wild_dict['pokemon'].title()} has despawned!")
-            await expire_wild(message)
+    try:
+        if message_id in guild_dict[guild.id].setdefault('wildreport_dict',{}) and user_id != Clembot.user.id:
+            wild_dict = guild_dict[guild.id].setdefault('wildreport_dict',{})[message_id]
+            if str(emoji) == '🏎':
+                wild_dict['omw'].append(user.mention)
+                guild_dict[guild.id]['wildreport_dict'][message_id] = wild_dict
+            elif str(emoji) == '💨':
+                if wild_dict['omw']:
+                    await channel.send(f"{' '.join(wild_dict['omw'])}: the {wild_dict['pokemon'].title()} has despawned!")
+                await expire_wild(message)
+
+        if channel.id in guild_dict[guild.id]['raidchannel_dict'] and message.id == guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrsmessage'] and user_id != Clembot.user.id:
+            ctrs_dict = guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrs_dict']
+            for i in ctrs_dict:
+                if ctrs_dict[i]['emoji'] == str(emoji):
+                    newembed = ctrs_dict[i]['embed']
+                    moveset = i
+                    break
+            else:
+                return
+            await message.edit(embed=newembed)
+            await message.remove_reaction(emoji, user)
+            guild_dict[guild.id]['raidchannel_dict'][channel.id]['moveset'] = moveset
+    except Exception as error:
+        logger.error(error)
 
 async def expire_wild(message):
     guild = message.channel.guild
@@ -3364,15 +3369,6 @@ async def __raid(ctx, pokemon, *, location:commands.clean_content(fix_channel_me
 
     Finally, Meowth will create a separate channel for the raid report, for the purposes of organizing the raid."""
     try:
-
-        content = f"{pokemon} {location}"
-
-        parameters = {'pokemon':pokemon , 'location' : location, 'weather' : weather, 'timer' : timer}
-
-
-
-        await _send_message(ctx.channel, "{0}\n{1}".format(content, json.dumps(parameters, indent=4)))
-
         if pokemon.isdigit():
             await _raidegg(ctx.message)
         else:
@@ -3605,6 +3601,7 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
         async with aiohttp.ClientSession() as sess:
             async with sess.get(url) as resp:
                 data = await resp.json()
+
         # print(json.dumps(data, indent=4))
         data = data['attackers'][0]
         raid_cp = data['cp']
@@ -6294,13 +6291,19 @@ async def _remove_research(ctx, research_id=None):
         return await _send_error_message(ctx.channel, "Please provide the 4 char code for the research quest!")
     research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict', {}))
     questmsg = ""
+    delete_quest_id = None
     for questid in research_dict:
         if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
             try:
                 quest_research_id = research_dict[questid]['research_id']
+                quest_reported_by = research_dict[questid]['reportauthor']
                 if quest_research_id == research_id:
+                    record_error_reported_by(ctx.message.guild.id, quest_reported_by, 'research_reports')
                     del research_dict[questid]
                     guild_dict[ctx.guild.id]['questreport_dict'] = research_dict
+                    research_report = await ctx.channel.get_message(questid)
+                    if research_report:
+                        await research_report.delete()
                     return await _send_message(ctx.channel, "**{0}** Research # **{1}** has been removed.".format(ctx.message.author.display_name,research_id))
                     break
             except discord.errors.NotFound:
@@ -6482,6 +6485,13 @@ async def duplicate(ctx):
                 await rusure.delete()
                 await channel.send('Duplicate Confirmed')
                 logger.info((('Duplicate Report - Channel Expired - ' + channel.name) + ' - Last Report by ') + author.display_name)
+
+                raidmsg = await channel.get_message(rc_d['raidmessage'])
+                reporter = raidmsg.mentions[0]
+                if 'egg' in raidmsg.content:
+                    record_error_reported_by(guild.id, reporter.id, 'egg_reports')
+                else:
+                    record_error_reported_by(guild.id, reporter.id, 'raid_reports')
                 await expire_channel(channel)
                 return
         else:
@@ -6494,7 +6504,7 @@ async def duplicate(ctx):
             await confirmation.delete()
     else:
         rc_d['duplicate'] = dupecount
-        confirmation = await channel.send(_('Duplicate report #{duplicate_report_count} received.').format(duplicate_report_count=str(dupecount)))
+        confirmation = await channel.send(_('Duplicate report #{duplicate_report_count} / 3 received.').format(duplicate_report_count=str(dupecount)))
         logger.info((((('Duplicate Report - ' + channel.name) + ' - Report #') + str(dupecount)) + '- Report by ') + author.display_name)
         return
 
@@ -7827,7 +7837,12 @@ def record_reported_by(guild_id, author_id, report_type):
     print(json.dumps(guild_dict[guild_id]['trainers']))
 
 
+def record_error_reported_by(guild_id, author_id, report_type):
 
+    existing_reports = guild_dict[guild_id].setdefault('trainers',{}).setdefault(author_id, {}).setdefault(report_type, 0) - 1
+    guild_dict[guild_id]['trainers'][author_id][report_type] = existing_reports
+
+    print(json.dumps(guild_dict[guild_id]['trainers']))
 
 
 
