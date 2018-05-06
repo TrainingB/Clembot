@@ -604,22 +604,27 @@ async def letter_case(iterable, find, *, limits=None):
         return servercase_list[index]
     else:
         return None
-def get_category(channel, level):
-    guild = channel.guild
-    catsort = guild_dict[guild.id].get('categories', None)
-    if catsort == None:
-        return None
-    elif catsort == "same":
-        return channel.category
-    elif catsort == "region":
-        category = discord.utils.get(guild.categories,name=guild_dict[guild.id]['category_dict'][channel.name])
-        return category
-    elif catsort == "level":
-        category = discord.utils.get(guild.categories,name=guild_dict[guild.id]['category_dict'][level])
-        return category
-    else:
-        return None
 
+ 
+def get_category(channel, level):
+    try:
+        guild = channel.guild
+        catsort = guild_dict[guild.id].get('categories', None)
+        if catsort == None:
+            return None
+        elif catsort == "same":
+            return channel.category
+        elif catsort == "region":
+            category = discord.utils.get(guild.categories,name=guild_dict[guild.id]['category_dict'][channel.name])
+            return category
+        elif catsort == "level":
+            category = discord.utils.get(guild.categories,name=guild_dict[guild.id]['category_dict'][level])
+            return category
+        else:
+            return None
+    except Exception as error:
+        logger.error(error)
+        return None
 
 @Clembot.command(hidden=True)
 async def template(ctx, *, sample_message):
