@@ -1348,7 +1348,66 @@ async def prefix(ctx, prefix=None):
         default_prefix = Clembot.config["default_prefix"]
         await ctx.message.channel.send( "Prefix has been reset to default: `{}`".format(default_prefix))
 
+@_get.command()
+@commands.has_permissions(manage_guild=True)
+async def perms(ctx, channel_id = None):
+    """Show Meowth's permissions for the guild and channel."""
+    channel = discord.utils.get(ctx.bot.get_all_channels(), id=channel_id)
+    guild = channel.guild if channel else ctx.guild
+    channel = channel or ctx.channel
+    guild_perms = guild.me.guild_permissions
+    chan_perms = channel.permissions_for(guild.me)
+    req_perms = discord.Permissions(268822608)
 
+    embed = discord.Embed(colour=ctx.guild.me.colour)
+    embed.set_author(name='Bot Permissions', icon_url="https://i.imgur.com/wzryVaS.png")
+
+    wrap = functools.partial(textwrap.wrap, width=20)
+    names = [wrap(channel.name), wrap(guild.name)]
+    if channel.category:
+        names.append(wrap(channel.category.name))
+    name_len = max(len(n) for n in names)
+    def same_len(txt):
+        return '\n'.join(txt + ([' '] * (name_len-len(txt))))
+    names = [same_len(n) for n in names]
+    chan_msg = [f"**{names[0]}** \n{channel.id} \n"]
+    guild_msg = [f"**{names[1]}** \n{guild.id} \n"]
+    def perms_result(perms):
+        data = []
+        meet_req = perms >= req_perms
+        result = "**PASS**" if meet_req else "**FAIL**"
+        data.append(f"{result} - {perms.value} \n")
+        true_perms = [k for k, v in dict(perms).items() if v is True]
+        false_perms = [k for k, v in dict(perms).items() if v is False]
+        req_perms_list = [k for k, v in dict(req_perms).items() if v is True]
+        true_perms_str = '\n'.join(true_perms)
+        if not meet_req:
+            missing = '\n'.join([p for p in false_perms if p in req_perms_list])
+            data.append(f"**MISSING** \n{missing} \n")
+        if true_perms_str:
+            data.append(f"**ENABLED** \n{true_perms_str} \n")
+        return '\n'.join(data)
+    guild_msg.append(perms_result(guild_perms))
+    chan_msg.append(perms_result(chan_perms))
+    embed.add_field(name='GUILD', value='\n'.join(guild_msg))
+    if channel.category:
+        cat_perms = channel.category.permissions_for(guild.me)
+        cat_msg = [f"**{names[2]}** \n{channel.category.id} \n"]
+        cat_msg.append(perms_result(cat_perms))
+        embed.add_field(name='CATEGORY', value='\n'.join(cat_msg))
+    embed.add_field(name='CHANNEL', value='\n'.join(chan_msg))
+
+    try:
+        await ctx.send(embed=embed)
+    except discord.errors.Forbidden:
+        # didn't have permissions to send a message with an embed
+        try:
+            msg = "I couldn't send an embed here, so I've sent you a DM"
+            await ctx.send(msg)
+        except discord.errors.Forbidden:
+            # didn't have permissions to send a message at all
+            pass
+        await ctx.author.send(embed=embed)
 
 
 @_get.command(pass_context=True, hidden=True, aliases=["bingo-event"])
@@ -7523,7 +7582,7 @@ async def _bingo_win(ctx):
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["bingo-card"])
 async def _bingo_card(ctx):
-
+    print("_bingo_card() called")
     command_option = "-new"
     is_option_new = False
     try :
@@ -7542,8 +7601,9 @@ async def _bingo_card(ctx):
             author = ctx.message.mentions[0]
 
         event_title_map = gymsql.find_clembot_config("bingo-event-title")
-
+        logger.info(event_title_map)
         event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
+        logger.info(event_pokemon)
         if event_pokemon == None:
             return await _send_error_message(message.channel, "Beep Beep! **{member}** The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**".format(ctx.message.author.display_name))
 
@@ -7554,10 +7614,12 @@ async def _bingo_card(ctx):
 
 
         if existing_bingo_card_record:
+            logger.info("existing_bingo_card_record found")
             bingo_card = json.loads(existing_bingo_card_record['bingo_card'])
             timestamp = existing_bingo_card_record['generated_at']
             file_url = existing_bingo_card_record['bingo_card_url']
         else:
+            logger.info("new bingo-card")
             bingo_card = bingo_generator.generate_card(event_pokemon)
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
             file_path = bingo.generate_board(user_name=author.display_name, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
@@ -7590,8 +7652,6 @@ async def _bingo_card(ctx):
 async def get_repository_channel(message):
     bingo_card_repo_channel = None
 
-
-
     if 'bingo_card_repo' in guild_dict[message.guild.id]:
         bingo_card_repo_channel_id = guild_dict[message.guild.id]['bingo_card_repo']
         if bingo_card_repo_channel_id:
@@ -7603,7 +7663,7 @@ async def get_repository_channel(message):
 
     bingo_card_repo = {'bingo_card_repo': bingo_card_repo_channel.id}
     guild_dict[message.guild.id].update(bingo_card_repo)
-
+    logger.info("Repo Channel : {0}".format(bingo_card_repo_channel))
     return bingo_card_repo_channel
 
 @Clembot.command()
