@@ -7650,24 +7650,29 @@ async def _bingo_card(ctx):
 
 
 async def get_repository_channel(message):
-    logger.info("get_repository_channel called")
-    bingo_card_repo_channel = None
+    try:
+        logger.info("get_repository_channel called")
+        bingo_card_repo_channel = None
 
 
-    if 'bingo_card_repo' in guild_dict[message.guild.id]:
-        bingo_card_repo_channel_id = guild_dict[message.guild.id]['bingo_card_repo']
-        if bingo_card_repo_channel_id:
-            bingo_card_repo_channel = Clembot.get_channel(bingo_card_repo_channel_id)
+        if 'bingo_card_repo' in guild_dict[message.guild.id]:
+            bingo_card_repo_channel_id = guild_dict[message.guild.id]['bingo_card_repo']
+            if bingo_card_repo_channel_id:
+                bingo_card_repo_channel = Clembot.get_channel(bingo_card_repo_channel_id)
 
-    if bingo_card_repo_channel == None:
-        bingo_card_repo_category = get_category(message.channel, None)
-        logger.info("Repo Category : {0}".format(bingo_card_repo_category))
-        bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(message.channel.overwrites), category=bingo_card_repo_category)
+        if bingo_card_repo_channel == None:
+            bingo_card_repo_category = get_category(message.channel, None)
+            logger.info("Repo Category : {0}".format(bingo_card_repo_category))
+            bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(message.channel.overwrites), category=bingo_card_repo_category)
 
-    bingo_card_repo = {'bingo_card_repo': bingo_card_repo_channel.id}
-    guild_dict[message.guild.id].update(bingo_card_repo)
-    logger.info("Repo Channel : {0}".format(bingo_card_repo_channel))
-    return bingo_card_repo_channel
+        bingo_card_repo = {'bingo_card_repo': bingo_card_repo_channel.id}
+        guild_dict[message.guild.id].update(bingo_card_repo)
+        logger.info("Repo Channel : {0}".format(bingo_card_repo_channel))
+        return bingo_card_repo_channel
+    except Exception as error:
+        print(error)
+        logger.error(error)
+
 
 @Clembot.command()
 async def silphcard(ctx, user: str = None):
