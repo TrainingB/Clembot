@@ -4475,7 +4475,7 @@ async def process_map_link(message, newloc=None):
 
 
 @Clembot.command(pass_context=True, hidden=True)
-@checks.cityexraidchannel()
+@checks.cityraidchannel()
 @checks.raidset()
 async def exraid(ctx):
     """Report an upcoming EX raid.
