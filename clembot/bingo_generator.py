@@ -198,4 +198,4 @@ def main():
     print(print_card_as_text(generate_card()))
 
 
-main()
+#main()

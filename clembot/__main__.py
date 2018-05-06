@@ -42,7 +42,7 @@ from contextlib import redirect_stdout
 # --B--
 # ---- dependencies
 import gymsql
-import gymutil
+
 import time
 from datetime import timedelta
 import calendar
@@ -170,7 +170,7 @@ def load_config():
     SQLITE_DB = config['sqlite_db']
 
     gymsql.set_db_name(SQLITE_DB)
-    gymutil.load_gyms()
+    # gymutil.load_gyms()
     bingo_template[347397406033182721] = "bingo_template_bur.png"
     bingo_template[329013844427014145] = "bingo_template_qcy.png"
     bingo_template[341367173266276353] = "bingo_template_spg.png"
@@ -605,7 +605,7 @@ async def letter_case(iterable, find, *, limits=None):
     else:
         return None
 
- 
+
 def get_category(channel, level):
     try:
         guild = channel.guild
@@ -1234,8 +1234,10 @@ async def outputlog(ctx):
     with open(os.path.join('logs', 'clembot.log'), 'r') as logfile:
         logdata = logfile.read()
     logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
-    await ctx.message.channel.send( hastebin.post(logdata))
-
+    outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))
+    await asyncio.sleep(20)
+    await ctx.message.delete()
+    await outputlog_message.delete()
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.is_owner()
@@ -2956,11 +2958,11 @@ def get_gym_info_wrapper(message, gym_code):
     if gym_info_new_format:
         return gymsql.convert_into_gym_info(gym_info_new_format)
 
-    city_state_list = get_city_list(message)
-    gym_info = gymutil.get_gym_info(gym_code, city_state=city_state_list)
-
-    if gym_info:
-        return gym_info
+    # city_state_list = get_city_list(message)
+    # gym_info = gymutil.get_gym_info(gym_code, city_state=city_state_list)
+    #
+    # if gym_info:
+    #     return gym_info
 
     return None
 
@@ -3233,6 +3235,8 @@ def is_pokemon_valid(entered_raid):
     return False
 
 raidegg_SYNTAX_ATTRIBUTE = ['command', 'egg', 'gym_info', 'timer', 'location']
+
+exraid_SYNTAX_ATTRIBUTE = ['command', 'gym_info' , 'location']
 
 raid_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'timer', 'location']
 
@@ -3903,7 +3907,8 @@ async def print_raid_timer(channel_id):
     else:
         if guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'] == "EX" or guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['type'] == "exraid":
             if guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['manual_timer']:
-                timerstr += _("Beep Beep! This {raidtype} will {raidaction} on {expiry_day} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_day=strftime("%B %d", localexpire), expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
+                timerstr += _("Beep Beep! This {raidtype} will {raidaction} on {expiry_day} at {expiry_time} ({expiry_time24})!").format(
+                    raidtype=raidtype, raidaction=raidaction, expiry_day=localexpire.strftime("%B %d"), expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
             else:
                 timerstr += _("Beep Beep! No one told me when the {raidtype} will {raidaction}, so I'm assuming it will {raidaction} on {expiry_day} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_day=localexpire.strftime("%B %d"), expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
         else:
@@ -3955,17 +3960,20 @@ async def timerset(ctx, timer):
     if checks.check_exraidchannel(ctx):
         if checks.check_eggchannel(ctx):
             tzlocal = tz.tzoffset(None, guild_dict[guild.id]['offset'] * 3600)
-            now = datetime.datetime.now()
+            now = fetch_current_time(ctx.message.guild.id)
             timer_split = message.clean_content.lower().split()
             del timer_split[0]
             try:
-                end = datetime.strptime(" ".join(timer_split) + " " + str(now.year), '%m/%d %I:%M %p %Y').replace(tzinfo=tzlocal)
+                end = datetime.datetime.strptime(" ".join(timer_split) + " " + str(now.year), '%m/%d %I:%M %p %Y')
             except ValueError:
                 await channel.send( _("Beep Beep! Your timer wasn't formatted correctly. Change your **!timerset** to match the format on your EX Raid invite and try again."))
-            diff = end - now
-            total = (diff.total_seconds() / 60)
-            if now <= end:
-                await _timerset(channel, total)
+            except Exception as error:
+                print(error)
+                await channel.send(_("Beep Beep! Your timer wasn't formatted correctly. Change your **!timerset** to match the format on your EX Raid invite and try again."))
+            diff = convert_to_epoch(end) - convert_to_epoch(now)
+            total = (diff / 60)
+            if total > 0:
+                await _timerset(channel, int(total), end)
             elif now > end:
                 await channel.send( _("Beep Beep! Please enter a time in the future."))
         else:
@@ -3976,12 +3984,18 @@ def _timercheck(time, maxtime):
     return time > maxtime
 
 
-async def _timerset(channel, exptime):
+def convert_to_epoch(current_time):
+    return calendar.timegm(current_time.utctimetuple())
+
+async def _timerset(channel, exptime, expire_datetime=None):
     guild = channel.guild
     exptime = int(exptime)
     # Clembot saves the timer message in the channel's 'exp' field.
 
-    expire = fetch_current_time(channel.guild.id) + timedelta(minutes=exptime)
+    if expire_datetime:
+        expire = expire_datetime
+    else:
+        expire = fetch_current_time(channel.guild.id) + timedelta(minutes=exptime)
 
     # Update timestamp
     guild_dict[guild.id]['raidchannel_dict'][channel.id]['exp'] = expire
@@ -4285,7 +4299,11 @@ def get_names_from_channel(message, status, mentions=False):
                 # name_list.append("**<@!" + message.author.id + ">**")
             else:
                 user_name = user.nick if user.nick else user.name
-                name_list.append("**{trainer}**".format(trainer=user_name))
+                count = trainer_dict[trainer]['count']
+                if count > 1:
+                    name_list.append("**{trainer} ({count})**".format(trainer=user_name, count=count))
+                else:
+                    name_list.append("**{trainer}**".format(trainer=user_name))
 
     if len(name_list) > 0:
         return ', '.join(name_list)
@@ -4468,7 +4486,112 @@ async def exraid(ctx):
     Clembot's message will also include the type weaknesses of the boss.
 
     Finally, Clembot will create a separate channel for the raid report, for the purposes of organizing the raid."""
-    await _exraid(ctx)
+    await __exraid(ctx)
+
+
+async def __exraid(ctx):
+    message = ctx.message
+    argument_text = ctx.message.clean_content.lower()
+    parameters = argparser.parse_arguments(argument_text, exraid_SYNTAX_ATTRIBUTE, {'gym_info' : get_gym_by_code_message}, {'message' : ctx.message})
+    logger.info(parameters)
+    print(parameters)
+    if parameters['length'] <= 1:
+        await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!exraid <location>**"))
+        return
+
+    channel_role = None
+    gym_info = None
+    if parameters.get('gym_info', None):
+        gym_info = parameters['gym_info']
+        raid_details = gym_info['gym_name']
+        channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+    else:
+        raid_details = " ".join(parameters.get('others'))
+
+    egg_level = 'EX'
+    egg_info = raid_info['raid_eggs'][egg_level]
+    egg_img = egg_info['egg_img']
+    boss_list = []
+    mon_in_one_line = 0
+    for p in egg_info['pokemon']:
+        p_name = get_name(p)
+        p_type = get_type(message.guild, p)
+        boss_list.append(p_name + " (" + str(p) + ") " + ''.join(p_type))
+
+    region_prefix = get_region_prefix(message)
+    if region_prefix:
+        prefix = region_prefix + "-"
+    else:
+        prefix = ""
+
+    if gym_info:
+        raid_gmaps_link = gym_info['gmap_link']
+        raid_channel_name = prefix + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
+    else:
+        raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
+        raid_channel_name = prefix + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+    try:
+        raid_channel_category = get_category(message.channel, egg_level)
+        raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
+    except Exception as error:
+        print(error)
+        await message.channel.send(content=_("Beep Beep! An error occurred while creating the channel. {error}").format(error=error))
+        return
+
+    raid_img_url = get_egg_image_url(egg_level)
+    raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.guild.me.colour)
+    if len(egg_info['pokemon']) > 1:
+        raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
+        raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
+    else:
+        raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
+
+    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
+    raid_embed.set_thumbnail(url=raid_img_url)
+    try:
+        raidreport = await message.channel.send(content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
+    except Exception as error:
+        print(error)
+    await asyncio.sleep(1)  # Wait for the channel to be created.
+
+    raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.
+** **
+Please type `!beep raid` if you need a refresher of Clembot commands! 
+""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+
+    raidmessage = await raid_channel.send(content=raidmsg, embed=raid_embed)
+
+    guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
+        'reportcity': message.channel.id,
+        'trainer_dict': {},
+        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer) + timedelta(days=14),  # One hour from now
+        'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
+        'active': True,
+        'raidmessage': raidmessage.id,
+        'raidreport': raidreport.id,
+        'address': raid_details,
+        'type': 'egg',
+        'pokemon': '',
+        'egglevel': 'EX',
+        'suggested_start': False}
+
+    if raidexp is not False:
+        await _timerset(raid_channel, raidexp)
+    else:
+        await raid_channel.send(content=_("Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
+
+    if channel_role:
+        await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+
+    if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
+        await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
+
+    record_reported_by(message.guild.id, message.author.id, 'egg_reports')
+
+    event_loop.create_task(expiry_check(raid_channel))
+    return
 
 
 async def _exraid(ctx):
@@ -5503,15 +5626,6 @@ async def gym(ctx):
         print(error)
         logger.info(error)
 
-async def _get_gym_info_old(message, gym_code):
-    gym_info = gymutil.get_gym_info(gym_code, city_state=get_city_list(message))
-    if gym_info:
-        await _generate_gym_embed_old(message, gym_info)
-        return gym_info
-    else:
-        return None
-
-
 async def _generate_gym_embed_old(message, gym_info):
     try:
         gym_location = gym_info['gmap_link']
@@ -6273,11 +6387,13 @@ async def list(ctx):
                     embed_msg = ""
 
                     embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
+                    raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%I:%M %p (%H:%M)")
 
                     raid_time_label = "**Raid Expires At**"
-                    if rc_d['type'] == 'egg' and rc_d['egglevel'].isdigit():
+                    if rc_d['type'] == 'egg' :
                         raid_time_label = "**Egg Hatches At**"
-                    raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%I:%M %p (%H:%M)")
+                        if rc_d['egglevel'] == 'EX':
+                            raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%B %d %I:%M %p (%H:%M)")
 
                     start_time = fetch_channel_start_time(ctx.message.channel.id)
                     start_time_label = "None"
@@ -7598,7 +7714,6 @@ async def _bingo_card(ctx):
             args_split.remove(command_option)
             is_option_new = True
 
-        print("_bingo_card() called")
         message = ctx.message
         author = ctx.message.author
 
@@ -7617,14 +7732,11 @@ async def _bingo_card(ctx):
         if is_option_new:
             existing_bingo_card_record = None
 
-
         if existing_bingo_card_record:
-            logger.info("existing_bingo_card_record found")
             bingo_card = json.loads(existing_bingo_card_record['bingo_card'])
             timestamp = existing_bingo_card_record['generated_at']
             file_url = existing_bingo_card_record['bingo_card_url']
         else:
-            logger.info("new bingo-card")
             bingo_card = bingo_generator.generate_card(event_pokemon)
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
             file_path = bingo.generate_board(user_name=author.display_name, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
@@ -7648,7 +7760,6 @@ async def _bingo_card(ctx):
             gymsql.save_bingo_card(ctx.message.guild.id, author.id, event_pokemon, bingo_card, file_url, str(timestamp))
             os.remove(file_path)
 
-
     except Exception as error:
         print(error)
     return
@@ -7656,9 +7767,7 @@ async def _bingo_card(ctx):
 
 async def get_repository_channel(message):
     try:
-        logger.info("get_repository_channel called")
         bingo_card_repo_channel = None
-
 
         if 'bingo_card_repo' in guild_dict[message.guild.id]:
             bingo_card_repo_channel_id = guild_dict[message.guild.id]['bingo_card_repo']
@@ -7667,15 +7776,13 @@ async def get_repository_channel(message):
 
         if bingo_card_repo_channel == None:
             bingo_card_repo_category = get_category(message.channel, None)
-            logger.info("Repo Category : {0}".format(bingo_card_repo_category))
             bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(message.channel.overwrites), category=bingo_card_repo_category)
 
         bingo_card_repo = {'bingo_card_repo': bingo_card_repo_channel.id}
         guild_dict[message.guild.id].update(bingo_card_repo)
-        logger.info("Repo Channel : {0}".format(bingo_card_repo_channel))
         return bingo_card_repo_channel
+
     except Exception as error:
-        print(error)
         logger.error(error)
 
 

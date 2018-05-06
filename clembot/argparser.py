@@ -28,7 +28,7 @@ def translate_team(text):
 
 def gym_validator_mock(gym_code, message):
 
-    gym_codes = ['stem','clco']
+    gym_codes = ['stem','clco','mesc']
     gym_info = {}
     if gym_code in gym_codes:
         gym_info['gym_info'] = gym_code
@@ -206,6 +206,9 @@ def test2():
     print(" ".join(str(x) for x in parameters.get('others')))
 
     parse_test("!nest Squirtle Tonga Park ( some city ) https://goo.gl/maps/suEo9zDBCCP2", ['command','pokemon','link'])
+
+    parse_test("!exraid mesc", ['command', 'gym_info'])
+
 
 # ---------------uncomment this line to test stand alone-------------------------
 #main()
