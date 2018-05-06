@@ -4527,10 +4527,10 @@ async def __exraid(ctx):
 
     if gym_info:
         raid_gmaps_link = gym_info['gmap_link']
-        raid_channel_name = prefix + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
+        raid_channel_name = prefix + egg_level + "-raid-egg-" + sanitize_channel_name(gym_info['gym_name'])
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
-        raid_channel_name = prefix + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+        raid_channel_name = prefix + egg_level + "-raid-egg-" + sanitize_channel_name(raid_details)
     try:
         raid_channel_category = get_category(message.channel, egg_level)
         raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
