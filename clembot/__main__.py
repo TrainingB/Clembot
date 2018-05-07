@@ -4495,10 +4495,12 @@ async def __exraid(ctx):
     parameters = argparser.parse_arguments(argument_text, exraid_SYNTAX_ATTRIBUTE, {'gym_info' : get_gym_by_code_message}, {'message' : ctx.message})
     logger.info(parameters)
     print(parameters)
+
     if parameters['length'] <= 1:
         await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!exraid <location>**"))
         return
 
+    raidexp = None
     channel_role = None
     gym_info = None
     if parameters.get('gym_info', None):
@@ -4506,6 +4508,11 @@ async def __exraid(ctx):
         raid_details = gym_info['gym_name']
         channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
         channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+        location_prefix = " ".join(parameters.get('others',[]))
+
+        if len(location_prefix) >= 1:
+            location_prefix = "-" + location_prefix + "-"
+
     else:
         raid_details = " ".join(parameters.get('others'))
 
@@ -4527,10 +4534,12 @@ async def __exraid(ctx):
 
     if gym_info:
         raid_gmaps_link = gym_info['gmap_link']
-        raid_channel_name = prefix + egg_level + "-raid-egg-" + sanitize_channel_name(gym_info['gym_name'])
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
-        raid_channel_name = prefix + egg_level + "-raid-egg-" + sanitize_channel_name(raid_details)
+
+    raid_details = sanitize_channel_name(location_prefix) + sanitize_channel_name(raid_details)
+    raid_channel_name = prefix + egg_level + "-" + raid_details
+
     try:
         raid_channel_category = get_category(message.channel, egg_level)
         raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
@@ -4577,10 +4586,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         'egglevel': 'EX',
         'suggested_start': False}
 
-    if raidexp is not False:
-        await _timerset(raid_channel, raidexp)
-    else:
-        await raid_channel.send(content=_("Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
+    await raid_channel.send(content=_('Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <date and time>** so others can check it with **!timer**. **<date and time>** can just be written exactly how it appears on your EX Raid Pass.').format(member=message.author.mention))
 
     if channel_role:
         await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
@@ -4961,141 +4967,117 @@ async def _eggassume(args, raid_channel):
 
 
 async def _eggtoraid(entered_raid, channel):
-    eggdetails = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]
-    egglevel = eggdetails['egglevel']
-    reportcity = eggdetails['reportcity']
-    reportcitychannel = Clembot.get_channel(reportcity)
-    manual_timer = eggdetails['manual_timer']
-    trainer_dict = eggdetails['trainer_dict']
-    egg_address = eggdetails['address']
     try:
-        egg_report = await reportcitychannel.get_message(eggdetails['raidreport'])
-        raid_message = await channel.get_message(eggdetails['raidmessage'])
-        raid_messageauthor = raid_message.mentions[0]
-    except Exception as error:
-        print(error)
-        raid_messageauthor = "<@" + raid_message.raw_mentions[0] + ">"
-        logger.info("Hatching Mention Failed - Trying alternative method: channel: {} (id: {}) - guild: {} | Attempted mention: {}...".format(channel.name, channel.id, channel.guild.name, raid_message.content[:125]))
+        eggdetails = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]
+        egglevel = eggdetails['egglevel']
+        reportcity = eggdetails['reportcity']
+        reportcitychannel = Clembot.get_channel(reportcity)
+        manual_timer = eggdetails['manual_timer']
+        trainer_dict = eggdetails['trainer_dict']
+        egg_address = eggdetails['address']
+        try:
+            egg_report = await reportcitychannel.get_message(eggdetails['raidreport'])
+            raid_message = await channel.get_message(eggdetails['raidmessage'])
+            raid_messageauthor = raid_message.mentions[0]
+        except Exception as error:
+            print(error)
 
-    if eggdetails['egglevel'].isdigit():
-        suggested_start = eggdetails['suggested_start']
-        raidexp = eggdetails['exp'] + timedelta(minutes=raid_timer)
-        hatchtype = "raid"
-        raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=channel.mention)
+        if eggdetails.get('egglevel',None):
+            suggested_start = eggdetails['suggested_start']
+            raidexp = eggdetails['exp'] + timedelta(minutes=raid_timer)
+            hatchtype = "raid"
+            raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=channel.mention)
 
-    if entered_raid not in pkmn_info['pokemon_list']:
-        await channel.send( spellcheck(entered_raid))
-        return
-    else:
-        if entered_raid not in get_raidlist():
-            await channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
+        if entered_raid not in pkmn_info['pokemon_list']:
+            await channel.send( spellcheck(entered_raid))
             return
         else:
-            if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
-                await channel.send( _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
+            if entered_raid not in get_raidlist():
+                await channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
                 return
+            else:
+                if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
+                    await channel.send( _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
+                    return
 
-    region_prefix = get_region_prefix_by_channel_id(guild_id=channel.guild.id, channel_id=reportcitychannel.id)
-    if region_prefix:
-        prefix = region_prefix + "-"
-    else:
-        prefix = ""
+        region_prefix = get_region_prefix_by_channel_id(guild_id=channel.guild.id, channel_id=reportcitychannel.id)
+        if region_prefix:
+            prefix = region_prefix + "-"
+        else:
+            prefix = ""
 
-    raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(egg_address)
-    oldembed = raid_message.embeds[0]
-    raid_gmaps_link = oldembed.url
-    raid = discord.utils.get(channel.guild.roles, name=entered_raid)
-    if raid is None:
-        # raid = await Clembot.create_role(guild=channel.guild, name=entered_raid, hoist=False, mentionable=True)
-        # await asyncio.sleep(0.5)
-        raid_role = "**" + entered_raid.capitalize() + "**"
-    else:
-        raid_role = raid.mention
+        raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(egg_address)
+        oldembed = raid_message.embeds[0]
+        raid_gmaps_link = oldembed.url
+        raid = discord.utils.get(channel.guild.roles, name=entered_raid)
+        if raid is None:
+            # raid = await Clembot.create_role(guild=channel.guild, name=entered_raid, hoist=False, mentionable=True)
+            # await asyncio.sleep(0.5)
+            raid_role = "**" + entered_raid.capitalize() + "**"
+        else:
+            raid_role = raid.mention
 
-    raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
-    raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
-    raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
-    raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=channel.guild.me.colour)
-    raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(channel.guild, raid_number)), inline=True))
-    raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(channel.guild, get_weaknesses(entered_raid))), inline=True)
-    raid_embed.set_footer(text=_("Reported by @{author}").format(author=raid_messageauthor.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=raid_messageauthor, format="jpg", size=32)))
-    raid_embed.set_thumbnail(url=raid_img_url)
-    try:
-        await channel.edit(name=raid_channel_name) # topic=raidexp.strftime('Ends on %B %d at %I:%M %p (%H:%M)')
-    except Exception as error:
-        print(error)
-    raidmsg = _("""
-Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
-This channel will be deleted five minutes after the timer expires.
-** **
-Please type `!beep raid` if you need a refresher of Clembot commands! 
-""").format(member=raid_messageauthor.mention, citychannel=reportcitychannel.mention, pokemon=raid_role, location_details=egg_address)
+        raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
+        raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
+        raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
+        raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=channel.guild.me.colour)
+        raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(channel.guild, raid_number)), inline=True))
+        raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(channel.guild, get_weaknesses(entered_raid))), inline=True)
+        raid_embed.set_footer(text=_("Reported by @{author}").format(author=raid_messageauthor.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=raid_messageauthor, format="jpg", size=32)))
+        raid_embed.set_thumbnail(url=raid_img_url)
+        try:
+            await channel.edit(name=raid_channel_name) # topic=raidexp.strftime('Ends on %B %d at %I:%M %p (%H:%M)')
+        except Exception as error:
+            print(error)
+        raidmsg = _("""
+    Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
+    This channel will be deleted five minutes after the timer expires.
+    ** **
+    Please type `!beep raid` if you need a refresher of Clembot commands! 
+    """).format(member=raid_messageauthor.mention, citychannel=reportcitychannel.mention, pokemon=raid_role, location_details=egg_address)
 
-    #     raidmsg = _("""Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
-    #
-    # To update your status, choose from the following commands:
-    # **!interested, !coming, !here, !cancel**
-    # If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
-    # Example: `!coming 5`
-    #
-    # To see the list of trainers who have given their status:
-    # **!list interested, !list coming, !list here**
-    # Alternatively **!list** by itself will show all of the above.
-    #
-    # **!location** will show the current raid location.
-    # **!location new <address>** will let you correct the raid address.
-    # Sending a Google Maps link will also update the raid location.
-    #
-    # **!timer** will show the current raid time.
-    # **!timerset** will let you correct the raid countdown time.
-    #
-    # Message **!starting** when the raid is beginning to clear the raid's 'here' list.
-    #
-    # This channel will be deleted five minutes after the timer expires.""").format(member=raid_messageauthor.mention,
-    #                                                                               citychannel=reportcitychannel.mention,
-    #                                                                               pokemon=entered_raid.capitalize(),
-    #                                                                               location_details=egg_address)
+        try:
+            await raid_message.edit(new_content=raidmsg, embed=raid_embed, content=raidmsg)
+            raid_message_id = raid_message.id
+        except (discord.errors.NotFound, AttributeError):
+            raid_message_id = None
 
-    try:
-        await raid_message.edit(new_content=raidmsg, embed=raid_embed, content=raidmsg)
-        raid_message_id = raid_message.id
-    except (discord.errors.NotFound, AttributeError):
-        raid_message_id = None
-
-    try:
-        await egg_report.edit(new_content=raidreportcontent, embed=raid_embed, content=raidreportcontent)
-        egg_report_id = egg_report.id
-    except (discord.errors.NotFound, AttributeError):
-        egg_report_id = None
+        try:
+            await egg_report.edit(new_content=raidreportcontent, embed=raid_embed, content=raidreportcontent)
+            egg_report_id = egg_report.id
+        except (discord.errors.NotFound, AttributeError):
+            egg_report_id = None
 
 
-    guild_dict[channel.guild.id]['raidchannel_dict'][channel.id] = {
-        'reportcity': reportcity,
-        'trainer_dict': trainer_dict,
-        'exp': raidexp,
-        'manual_timer': manual_timer,
-        'active': True,
-        'raidmessage' : raid_message_id,
-        'raidreport' : egg_report_id,
-        'address': egg_address,
-        'type': hatchtype,
-        'pokemon': entered_raid,
-        'egglevel': '0',
-        'suggested_start': suggested_start
-    }
+        guild_dict[channel.guild.id]['raidchannel_dict'][channel.id] = {
+            'reportcity': reportcity,
+            'trainer_dict': trainer_dict,
+            'exp': raidexp,
+            'manual_timer': manual_timer,
+            'active': True,
+            'raidmessage' : raid_message_id,
+            'raidreport' : egg_report_id,
+            'address': egg_address,
+            'type': hatchtype,
+            'pokemon': entered_raid,
+            'egglevel': '0',
+            'suggested_start': suggested_start
+        }
 
-    trainer_list = []
-    trainer_dict = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['trainer_dict']
-    for trainer in trainer_dict.keys():
-        if trainer_dict[trainer]['status'] == 'maybe' or trainer_dict[trainer]['status'] == 'omw' or trainer_dict[trainer]['status'] == 'waiting':
-            user = await Clembot.get_user_info(trainer)
-            trainer_list.append(user.mention)
+        trainer_list = []
+        trainer_dict = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['trainer_dict']
+        for trainer in trainer_dict.keys():
+            if trainer_dict[trainer]['status'] == 'maybe' or trainer_dict[trainer]['status'] == 'omw' or trainer_dict[trainer]['status'] == 'waiting':
+                user = await Clembot.get_user_info(trainer)
+                trainer_list.append(user.mention)
 
-            # or len(raid_info['raid_eggs']['EX']['pokemon']) > 1
-    try:
-        if eggdetails['egglevel'].isdigit():
-            await channel.send( content=_("Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!\nIf you couldn't before, you're now able to update your status with **!coming** or **!here**. If you've changed your plans, use **!cancel**.").format(trainer_list=", ".join(trainer_list), pokemon=raid_role), embed=raid_embed)
-    except Exception as error:
+                # or len(raid_info['raid_eggs']['EX']['pokemon']) > 1
+        try:
+            if eggdetails.get('egglevel', None):
+                await channel.send( content=_("Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!").format(trainer_list=", ".join(trainer_list), pokemon=raid_role), embed=raid_embed)
+        except Exception as error:
+            print(error)
+    except Exception as mainerror:
         print(error)
     event_loop.create_task(expiry_check(channel))
 
