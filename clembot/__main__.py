@@ -114,7 +114,7 @@ GOOGLE_API_KEY = ""
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
 INVITE_CODE = "AUzEXRU"
 SQLITE_DB = ""
-
+CACHE_VERSION = 6
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -219,7 +219,7 @@ def clembot_time_in_guild_timezone(message):
 
 def get_pokemon_image_url(pokedex_number):
     # url = icon_list.get(str(pokedex_number))
-    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{0}_.png?cache=3".format(str(pokedex_number).zfill(3))
+    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{0}_.png?cache={1}".format(str(pokedex_number).zfill(3),CACHE_VERSION)
     if url:
         return url
     else:
@@ -228,7 +228,7 @@ def get_pokemon_image_url(pokedex_number):
 
 def get_egg_image_url(egg_level):
     # url = icon_list.get(str(pokedex_number))
-    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/eggs/{0}.png?cache=2".format(str(egg_level))
+    url = "https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/eggs/{0}.png?cache={1}".format(str(egg_level),CACHE_VERSION)
     if url:
         return url
     else:
@@ -1300,6 +1300,28 @@ async def _get_config(ctx):
         key = args_split[1]
         content = "Beep Beep! **{0}**, **{1}** has the current value as **{2}**.".format(ctx.message.author.display_name, key, gymsql.find_clembot_config(key))
 
+        await _send_message(ctx.message.channel, content)
+    except Exception as error:
+        print(error)
+
+@_get.command(pass_context=True, hidden=True, aliases=["configuration"])
+@checks.is_owner()
+async def _get_configuration(ctx):
+    try:
+        message = ctx.message
+        guild_dict_temp = copy.deepcopy(guild_dict[ctx.message.guild.id])
+
+        guild_dict_temp['raidchannel_dict'] = {}
+        guild_dict_temp['wildreport_dict'] = {}
+        guild_dict_temp['questreport_dict'] = {}
+        guild_dict_temp['trainers'] = {}
+        guild_dict_temp['notifications'] = {}
+        guild_dict_temp['contest_channel'] = {}
+
+        print(json.dumps(guild_dict_temp, indent=2))
+
+
+        content = ctx.message.guild.name + "\n" + json.dumps(guild_dict_temp, indent=2)
         await _send_message(ctx.message.channel, content)
     except Exception as error:
         print(error)
@@ -3602,6 +3624,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 """).format(pokemon=raid_role, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
+    countersmessage = await raid_channel.send(content="Use **!counters** or **!moveset** to see the movesets/counters for raid boss.")
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
         'reportcity': message.channel.id,
@@ -3615,7 +3638,11 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         'type': 'raid',
         'pokemon': entered_raid,
         'egglevel': '0',
-        'suggested_start': False
+        'suggested_start': False,
+        'counters_dict' : {},
+        'weather' : None,
+        'moveset' : 0,
+        'countersmessage' : None
         }
 
 
@@ -3634,11 +3661,10 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 
 
 
+async def old_fetch_counters_dict(pkmn , weather:None):
 
-@Clembot.command(pass_context=True, hidden=True, aliases= ["moveset"])
-async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
     try:
-        guild = ctx.guild
+
         weather = 'clear'
         emoji_dict = {0: '0\u20e3', 1: '1\u20e3', 2: '2\u20e3', 3: '3\u20e3', 4: '4\u20e3', 5: '5\u20e3', 6: '6\u20e3', 7: '7\u20e3', 8: '8\u20e3', 9: '9\u20e3', 10: '10\u20e3'}
         counters_and_movesets = {}
@@ -3647,7 +3673,7 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
         ctrs_dict[ctrs_index] = {}
         ctrs_dict[ctrs_index]['moveset'] = "Unknown Moveset"
         ctrs_dict[ctrs_index]['emoji'] = '0\u20e3'
-        img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/discordpy-v1/images/pkmn/{0}_.png?cache=4'.format(str(get_number(pkmn)).zfill(3))
+        img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/discordpy-v1/images/pkmn/{0}_.png?cache={1}'.format(str(get_number(pkmn)).zfill(3),CACHE_VERSION)
         level = get_level(pkmn) if get_level(pkmn).isdigit() else "5"
         url = "https://fight.pokebattler.com/raids/defenders/{pkmn}/levels/RAID_LEVEL_{level}/attackers/".format(pkmn=pkmn.replace('-','_').upper(),level=level)
         url += "levels/30/"
@@ -3672,6 +3698,9 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
 
         # print(json.dumps(data, indent=4))
         data = data['attackers'][0]
+
+        print(json.dumps(data, indent=4))
+
         raid_cp = data['cp']
         atk_levels = '30'
         ctrs = data['randomMove']['defenders'][-6:]
@@ -3703,9 +3732,9 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
             move2 = moveset['move2'].lower().title().replace('_', ' ')
             movesetstr = f'{move1} | {move2}'
             ctrs = moveset['defenders'][-6:]
-            title = _(f'{pkmn.title()} | {weather_list[index].title()} | {movesetstr}')
+            moveset_title = _(f'{pkmn.title()} | {weather_list[index].title()} | {movesetstr}')
             ctrs_embed = discord.Embed(colour=guild.me.colour)
-            ctrs_embed.set_author(name=title,url=title_url,icon_url=hyperlink_icon)
+            ctrs_embed.set_author(name=moveset_title,url=title_url,icon_url=hyperlink_icon)
             ctrs_embed.set_thumbnail(url=img_url)
             ctrs_embed.set_footer(text=_('Results courtesy of Pokebattler'), icon_url=pbtlr_icon)
             ctrindex = 1
@@ -3734,14 +3763,17 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
         ctrs_embed = discord.Embed(colour=guild.me.colour)
         ctrs_embed.set_author(name=title, url=title_url, icon_url=hyperlink_icon)
         ctrs_embed.set_thumbnail(url=img_url)
-        ctrs_embed.set_footer(text=_('Results courtesy of Pokebattler'), icon_url=pbtlr_icon)
+        ctrs_embed.set_footer(text=_('Results courtesy of Pokebattler. This message will be auto-deleted in 2 minutes'), icon_url=pbtlr_icon)
 
 
 
         description = ""
-
+        text=""
         for moveset in ctrs_dict:
-            ctrs_embed.add_field(name = ctrs_dict[moveset]['emoji'], value = ctrs_dict[moveset]['moveset'])
+            text = text+"{0} - {1}\n".format(ctrs_dict[moveset]['emoji'], ctrs_dict[moveset]['moveset'])
+
+        # ctrs_embed.add_field(name="Counters", value="*Please choose the moveset by using the emoji...*")
+        ctrs_embed.add_field(name="Possible Movesets", value=text)
 
 
 
@@ -3750,10 +3782,198 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
 
         await _send_message(ctx.channel, text)
 
-        await ctx.channel.send(embed=ctrs_embed)
+        moveset_message = await ctx.channel.send(embed=ctrs_embed)
+        asyncio.sleep(120)
+        await moveset_message.delete()
 
     except Exception as error:
         print(error)
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases= ["moveset"])
+async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
+    try:
+        message = ctx.message
+        raid_channel = ctx.message.channel
+
+        raid_dict = guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id]
+
+        if checks.check_raidchannel(ctx):
+
+            weather = guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id].get('weather',None)
+            moveset_index = guild_dict[message.guild.id]['raidchannel_dict'][ctx.message.channel.id].get('moveset',0)
+
+            counters_dict = guild_dict[message.guild.id]['raidchannel_dict'][ctx.message.channel.id].get('counters_dict', {})
+
+            if counters_dict :
+                moveset_dict = counters_dict['movesets'].get(moveset_index)
+            else :
+                counters_dict = await _fetch_moveset_and_counters(ctx, pkmn, weather)
+                moveset_dict = counters_dict['movesets'].get(moveset_index)
+                raid_boss_moveset = moveset_dict['moveset']
+            # 'counters_dict': {}, 'weather': None, 'moveset': 0, 'countersmessage': None}
+
+            await _send_message(ctx.channel, "**{0}** The moveset for current raid boss is {1}.".format(ctx.message.author.display_name, raid_boss_moveset))
+
+        else:
+            await _send_error_message (ctx.channel, "**{}** please use the command in the raid channel.".format(ctx.message.author.display_name))
+    except Exception as error:
+        print(error)
+
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases= ["movesets"])
+async def _test_get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
+
+    counters_dict = await _fetch_moveset_and_counters(ctx, pkmn, 'fog')
+
+    counters_dict = await _fetch_moveset_and_counters(ctx, pkmn, 'clear', counters_dict)
+
+    counters_dict = await _fetch_moveset_and_counters(ctx, pkmn, 'rainy', counters_dict)
+    print(counters_dict)
+
+async def _fetch_moveset_and_counters(ctx, pkmn, weather='clear', counters_and_movesets = {}):
+    try:
+        message = ctx.message
+        # rc_dict = guild_dict[message.guild.id]['raidchannel_dict'][ctx.message.channel.id]
+
+        guild = ctx.guild
+
+        emoji_dict = {0: '0\u20e3', 1: '1\u20e3', 2: '2\u20e3', 3: '3\u20e3', 4: '4\u20e3', 5: '5\u20e3', 6: '6\u20e3', 7: '7\u20e3', 8: '8\u20e3', 9: '9\u20e3', 10: '10\u20e3'}
+
+        ctrs_dict = {}
+        ctrs_index = 0
+        ctrs_dict[ctrs_index] = {}
+        ctrs_dict[ctrs_index]['moveset'] = "Unknown Moveset"
+        ctrs_dict[ctrs_index].setdefault('emoji',{})['0'] = '0\u20e3'
+        img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/discordpy-v1/images/pkmn/{0}_.png?cache={1}'.format(str(get_number(pkmn)).zfill(3),CACHE_VERSION)
+        level = get_level(pkmn) if get_level(pkmn).isdigit() else "5"
+        url = "https://fight.pokebattler.com/raids/defenders/{pkmn}/levels/RAID_LEVEL_{level}/attackers/".format(pkmn=pkmn.replace('-','_').upper(),level=level)
+        url += "levels/30/"
+        weather_list = [_('none'), _('extreme'), _('clear'), _('sunny'), _('rainy'),
+                        _('partlycloudy'), _('cloudy'), _('windy'), _('snow'), _('fog')]
+        match_list = ['NO_WEATHER','NO_WEATHER','CLEAR','CLEAR','RAINY',
+                            'PARTLY_CLOUDY','OVERCAST','WINDY','SNOW','FOG']
+        if not weather:
+            index = 0
+        else:
+            index = weather_list.index(weather)
+        weather = match_list[index]
+        url += "strategies/CINEMATIC_ATTACK_WHEN_POSSIBLE/DEFENSE_RANDOM_MC?sort=OVERALL&"
+        url += "weatherCondition={weather}&dodgeStrategy=DODGE_REACTION_TIME&aggregation=AVERAGE".format(weather=weather)
+        title_url = url.replace('https://fight', 'https://www')
+        hyperlink_icon = 'https://i.imgur.com/fn9E5nb.png'
+        pbtlr_icon = 'https://www.pokebattler.com/favicon-32x32.png'
+        print(url)
+        async with aiohttp.ClientSession() as sess:
+            async with sess.get(url) as resp:
+                data = await resp.json()
+
+        # print(json.dumps(data, indent=4))
+        data = data['attackers'][0]
+
+        raid_cp = data['cp']
+        atk_levels = '30'
+        ctrs = data['randomMove']['defenders'][-6:]
+
+
+        def clean(txt):
+            return txt.replace('_', ' ').title()
+
+        ctrindex = 1
+
+        ctrs_weather_random_moveset = {}
+
+        if counters_and_movesets :
+            counters_and_movesets.setdefault('counters', {})[weather] = {}
+        else:
+            counters_and_movesets = {}
+            counters_and_movesets['pokemon'] = pkmn
+            counters_and_movesets['raid_cp'] = raid_cp
+            counters_and_movesets['atk_levels'] = '30'
+            counters_and_movesets['movesets'] = {}
+            counters_and_movesets['movesets'][0] = {}
+            counters_and_movesets['movesets'][0]['emoji'] = emoji_dict[0]
+            counters_and_movesets['movesets'][0]['moveset']= "Unknown Moveset"
+            moveset_index = 1
+
+            # fetch possible movesets for raid-boss
+            for moveset in data['byMove']:
+                move1 = moveset['move1'][:-5].lower().title().replace('_', ' ')
+                move2 = moveset['move2'].lower().title().replace('_', ' ')
+                movesetstr = f'{move1} | {move2}'
+
+                counters_and_movesets['movesets'][moveset_index] = {}
+                counters_and_movesets['movesets'][moveset_index]['emoji'] =  emoji_dict[moveset_index]
+                counters_and_movesets['movesets'][moveset_index]['moveset'] = movesetstr
+                moveset_index += 1
+
+            counters_and_movesets.setdefault('counters', {})[weather] = {}
+
+
+        # fetch counters for random moveset
+        for ctr in reversed(ctrs):
+            ctrs_weather_random_moveset_ranked = {}
+            ctr_name = clean(ctr['pokemonId'])
+            moveset = ctr['byMove'][-1]
+
+
+            ctrs_weather_random_moveset_ranked['pokemonId'] = clean(ctr['pokemonId'])
+            ctrs_weather_random_moveset_ranked.setdefault('moveset',{})['move1'] = clean(moveset['move1'])[:-5]
+            ctrs_weather_random_moveset_ranked['moveset']['move2'] = clean(moveset['move2'])
+
+            ctrs_weather_random_moveset[ctrindex] = ctrs_weather_random_moveset_ranked
+            ctrindex += 1
+
+        counters_and_movesets['counters'][weather] = {}
+        counters_and_movesets['counters'][weather]['Unknown Moveset'] = ctrs_weather_random_moveset
+
+
+        # fetch counters with moveset possibilities
+        ctrs_weather_with_moveset = {}
+
+        for moveset in data['byMove']:
+            ctrs_index += 1
+
+            move1 = moveset['move1'][:-5].lower().title().replace('_', ' ')
+            move2 = moveset['move2'].lower().title().replace('_', ' ')
+            movesetstr = f'{move1} | {move2}'
+
+            counters_and_movesets['counters'][weather][movesetstr] = {}
+            ctrs_weather_with_moveset = {}
+
+            ctrs = moveset['defenders'][-6:]
+            ctrindex = 1
+            counters_list = []
+            for ctr in reversed(ctrs):
+                ctrs_weather_random_moveset_ranked = {}
+
+                ctr_name = clean(ctr['pokemonId'])
+                moveset = ctr['byMove'][-1]
+
+                ctrs_weather_random_moveset_ranked['pokemonId'] = clean(ctr['pokemonId'])
+                ctrs_weather_random_moveset_ranked.setdefault('moveset', {})['move1'] = clean(moveset['move1'])[:-5]
+                ctrs_weather_random_moveset_ranked['moveset']['move2'] = clean(moveset['move2'])
+
+                ctrs_weather_with_moveset[ctrindex] = ctrs_weather_random_moveset_ranked
+                ctrindex += 1
+
+            counters_and_movesets['counters'][weather][movesetstr] = ctrs_weather_with_moveset
+
+            ctrs_dict[ctrs_index] = {'moveset': movesetstr, 'emoji': emoji_dict[ctrs_index]}
+
+        text = json.dumps(counters_and_movesets, indent=2)
+        print(text)
+
+        return counters_and_movesets
+
+
+    except Exception as error:
+        print(error)
+
+
+
+
 
 
 @Clembot.command()
@@ -3775,7 +3995,7 @@ async def research(ctx, *, args = None):
         to_midnight = 24*60*60 - ((timestamp-timestamp.replace(hour=0, minute=0, second=0, microsecond=0)).seconds)
         error = False
         research_id = '%04x' % randrange(16 ** 4)
-        research_embed = discord.Embed(colour=discord.Colour.gold()).set_thumbnail(url='https://raw.githubusercontent.com/TrainingB/Clembot/v1-rewrite/images/field-research.png?cache=0')
+        research_embed = discord.Embed(colour=discord.Colour.gold()).set_thumbnail(url='https://raw.githubusercontent.com/TrainingB/Clembot/v1-rewrite/images/field-research.png?cache={0}'.format(CACHE_VERSION))
         research_embed.set_footer(text=_('Reported by @{author} - {timestamp} | {research_id}').format(author=author.display_name, timestamp=timestamp.strftime(_('%I:%M %p (%H:%M)')), research_id=research_id), icon_url=author.avatar_url_as(format=None, static_format='jpg', size=32))
         while True:
             if args:
@@ -4514,6 +4734,7 @@ async def __exraid(ctx):
             location_prefix = "-" + location_prefix + "-"
 
     else:
+        location_prefix = ""
         raid_details = " ".join(parameters.get('others'))
 
     egg_level = 'EX'
@@ -5926,11 +6147,11 @@ async def weather(ctx):
             return await ctx.channel.send("Beep Beep! valid weather conditions are : {}".format(", ".join(weather_list)))
         else:
             guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]['weather'] = weather.lower()
-            return await ctx.channel.send("Beep Beep! Weather set to {}!".format(get_weather(ctx.guild, weather)))
+            return await _send_message(ctx.channel,"Beep Beep! Weather set to **{0}**{1}!".format(weather, get_weather(ctx.guild, weather)))
     else:
         raid_weather = guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id].get('weather', None)
         if raid_weather:
-            return await ctx.channel.send("Beep Beep! The current weather is {}!".format(get_weather(ctx.guild, raid_weather)))
+            return await _send_message(ctx.channel,"Beep Beep! The current weather is **{0}**{1}!".format(weather, get_weather(ctx.guild, raid_weather)))
         return await ctx.channel.send("Beep Beep! Please use **!weather <weather>** to set weather for the raid. valid weather conditions are : {}".format(", ".join(weather_list)))
 
 @Clembot.command()
@@ -5969,7 +6190,7 @@ async def counters(ctx, *, args = None):
 
 
 async def _counters(ctx, pkmn, user = None, weather = None):
-    img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/master/images/pkmn/{0}_.png?cache=2'.format(str(get_number(pkmn)).zfill(3))
+    img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/master/images/pkmn/{0}_.png?cache={0}'.format(str(get_number(pkmn)).zfill(3),CACHE_VERSION)
     level = get_level(pkmn) if get_level(pkmn).isdigit() else "5"
     url = "https://fight.pokebattler.com/raids/defenders/{pkmn}/levels/RAID_LEVEL_{level}/attackers/".format(pkmn=pkmn.replace('-','_').upper(),level=level)
     if user:
@@ -6039,7 +6260,7 @@ async def countersold(ctx, *, entered_pkmn = None):
             pkmn = entered_pkmn.lower() if entered_pkmn.lower() in get_raidlist() else None
         weather = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('weather', None)
         if pkmn:
-            img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/master/images/pkmn/{0}_.png?cache=2'.format(str(get_number(pkmn)).zfill(3))
+            img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/master/images/pkmn/{0}_.png?cache={1}'.format(str(get_number(pkmn)).zfill(3),CACHE_VERSION)
             level = get_level(pkmn) if get_level(pkmn).isdigit() else "5"
             if not weather:
                 weather = "NO_WEATHER"
@@ -7894,8 +8115,9 @@ async def leaderboard(ctx, type="total"):
     embed.set_author(name=_("Reporting Leaderboard ({type})").format(type=type.title()), icon_url=Clembot.user.avatar_url)
     for trainer in leaderboard:
         user = ctx.guild.get_member(trainer['trainer'])
-        embed.add_field(name=f"{rank}. {user.display_name} - {type.title()}: **{trainer[type]}**", value=f"Raids: **{trainer['raids']}** | Eggs: **{trainer['eggs']}** | Wilds: **{trainer['wilds']}** | Research: **{trainer['research']}**", inline=False)
-        rank += 1
+        if user:
+            embed.add_field(name=f"{rank}. {user.display_name} - {type.title()}: **{trainer[type]}**", value=f"Raids: **{trainer['raids']}** | Eggs: **{trainer['eggs']}** | Wilds: **{trainer['wilds']}** | Research: **{trainer['research']}**", inline=False)
+            rank += 1
     await ctx.send(embed=embed)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["pokedex"])
