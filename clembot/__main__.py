@@ -1318,6 +1318,17 @@ async def _get_configuration(ctx):
         guild_dict_temp['notifications'] = {}
         guild_dict_temp['contest_channel'] = {}
 
+        want_channel_name_list = []
+
+        for channel_id in guild_dict_temp['want_channel_list']:
+
+            channel = Clembot.get_channel(channel_id)
+            if channel:
+                want_channel_name_list.append("{0} = {1} ".format(channel_id, channel.name))
+
+        guild_dict_temp['want_channel_name_list'] = want_channel_name_list
+        guild_dict_temp['want_channel_list'] = {}
+
         print(json.dumps(guild_dict_temp, indent=2))
 
 
@@ -1325,6 +1336,7 @@ async def _get_configuration(ctx):
         await _send_message(ctx.message.channel, content)
     except Exception as error:
         print(error)
+        await _send_error_message(ctx.message.channel, error)
 
 
 @_set.command(pass_context=True, hidden=True, aliases=["bingo-event"])
