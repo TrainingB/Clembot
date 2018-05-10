@@ -3636,7 +3636,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
 """).format(pokemon=raid_role, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
-    countersmessage = await raid_channel.send(content="Use **!counters** or **!moveset** to see the movesets/counters for raid boss.")
+    # countersmessage = await raid_channel.send(content="Use **!counters** or **!moveset** to see the movesets/counters for raid boss.")
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
         'reportcity': message.channel.id,
