@@ -2394,7 +2394,7 @@ async def want(ctx):
     # If user is already wanting the Pokemon,
     # print a less noisy message
     if role in ctx.message.author.roles:
-        await _send_message_("Beep Beep! **{member}**, I already know you want **{pokemon}**!").format(member=ctx.message.author.display_name, pokemon=entered_want.capitalize())
+        await channel.send("Beep Beep! **{member}**, I already know you want **{pokemon}**!".format(member=ctx.message.author.display_name, pokemon=entered_want.capitalize()))
     else:
         await ctx.message.author.add_roles(role)
         want_number = pkmn_info['pokemon_list'].index(entered_want) + 1
@@ -2402,7 +2402,7 @@ async def want(ctx):
         want_img_url = get_pokemon_image_url(want_number)  # This part embeds the sprite
         want_embed = discord.Embed(colour=guild.me.colour)
         want_embed.set_thumbnail(url=want_img_url)
-        await _send_error_message(channel, _("Beep Beep! Got it! {member} wants {pokemon}").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()), embed=want_embed)
+        await channel.send(_("Beep Beep! Got it! {member} wants {pokemon}").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()), embed=want_embed)
 
 
 
