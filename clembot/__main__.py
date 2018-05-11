@@ -498,10 +498,10 @@ def spellcheck(word):
         return _('Beep Beep! "{entered_word}" is not a Pokemon! Check your spelling!').format(entered_word=word)
 
 async def autocorrect(entered_word, destination, author):
-    msg = _("Beep Beep! **{word}** isn't a Pokemon!").format(word=entered_word.title())
+    not_a_pokemon_msg = _("Beep Beep! **{word}** isn't a Pokemon!").format(word=entered_word.title())
     if spellcheck(entered_word) and (spellcheck(entered_word) != entered_word):
-        msg += _(' Did you mean **{correction}**?').format(correction=spellcheck(entered_word).title())
-        question = await _send_error_message(destination, msg)
+        not_a_pokemon_msg += _(' Did you mean **{correction}**?').format(correction=spellcheck(entered_word).title())
+        question = await _send_error_message(destination, not_a_pokemon_msg)
         if author:
             try:
                 timeout = False
@@ -510,6 +510,7 @@ async def autocorrect(entered_word, destination, author):
                 timeout = True
             await question.delete()
             if timeout or res.emoji == '❎':
+                await destination.send(not_a_pokemon_msg)
                 return None
             elif res.emoji == '✅':
                 return spellcheck(entered_word)
@@ -518,7 +519,7 @@ async def autocorrect(entered_word, destination, author):
         else:
             return None
     else:
-        question = await destination.send(msg)
+        question = await destination.send(not_a_pokemon_msg)
         return
 
 
@@ -2371,14 +2372,21 @@ async def want(ctx):
     del want_split[0]
     entered_want = " ".join(want_split)
 
+    if entered_want not in pkmn_info['pokemon_list']:
+        entered_want = await autocorrect(entered_want, message.channel, message.author)
+
+    if entered_want == None:
+        return await _send_error_message(channel, _("Beep Beep! **{member}** {entered_want} is not a pokemon.").format(member=ctx.message.author.display_name, entered_want=entered_want))
+
+
     role = discord.utils.get(guild.roles, name=entered_want)
     # Create role if it doesn't exist yet
     if role is None:
         if entered_want not in get_raidlist():
             if entered_want not in pkmn_info['pokemon_list']:
-                await channel.send(spellcheck(entered_want))
+                await _send_error_message(channel, _("Beep Beep! **{member}** {entered_want} is not a pokemon. Please use a valid pokemon name.").format(member=ctx.message.author.mention, entered_want=edisplay_name))
             else:
-                await channel.send(_("Beep Beep! {member} only specific pokemon are allowed to be notified! Please contact an admin if you want {entered_want} to be included.").format(member=ctx.message.author.mention, entered_want=entered_want))
+                await _send_error_message(channel, _("Beep Beep! **{member}** only specific pokemon are allowed to be notified! Please contact an admin if you want **{entered_want}** to be included.").format(member=ctx.message.author.display_name, entered_want=entered_want))
             return
         role = await guild.create_role(name=entered_want, hoist=False, mentionable=True)
         await asyncio.sleep(0.5)
@@ -2386,7 +2394,7 @@ async def want(ctx):
     # If user is already wanting the Pokemon,
     # print a less noisy message
     if role in ctx.message.author.roles:
-        await channel.send( content=_("Beep Beep! {member}, I already know you want {pokemon}!").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()))
+        await channel.send( content=_("Beep Beep! {member}, I already know you want {pokemon}!").format(member=ctx.message.author.display_name, pokemon=entered_want.capitalize()))
     else:
         await ctx.message.author.add_roles(role)
         want_number = pkmn_info['pokemon_list'].index(entered_want) + 1
@@ -2394,7 +2402,7 @@ async def want(ctx):
         want_img_url = get_pokemon_image_url(want_number)  # This part embeds the sprite
         want_embed = discord.Embed(colour=guild.me.colour)
         want_embed.set_thumbnail(url=want_img_url)
-        await channel.send( content=_("Beep Beep! Got it! {member} wants {pokemon}").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()), embed=want_embed)
+        await _send_error_message(channel, _("Beep Beep! Got it! {member} wants {pokemon}").format(member=ctx.message.author.mention, pokemon=entered_want.capitalize()), embed=want_embed)
 
 
 
