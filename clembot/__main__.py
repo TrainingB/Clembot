@@ -2376,7 +2376,7 @@ async def want(ctx):
         entered_want = await autocorrect(entered_want, message.channel, message.author)
 
     if entered_want == None:
-        return await _send_error_message(channel, _("Beep Beep! **{member}** **{entered_want}** is not a pokemon.").format(member=ctx.message.author.display_name, entered_want=old_entered_want))
+        return
 
 
     role = discord.utils.get(guild.roles, name=entered_want)
@@ -2394,7 +2394,7 @@ async def want(ctx):
     # If user is already wanting the Pokemon,
     # print a less noisy message
     if role in ctx.message.author.roles:
-        await channel.send( content=_("Beep Beep! {member}, I already know you want {pokemon}!").format(member=ctx.message.author.display_name, pokemon=entered_want.capitalize()))
+        await _send_message_("Beep Beep! **{member}**, I already know you want **{pokemon}**!").format(member=ctx.message.author.display_name, pokemon=entered_want.capitalize())
     else:
         await ctx.message.author.add_roles(role)
         want_number = pkmn_info['pokemon_list'].index(entered_want) + 1
