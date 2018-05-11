@@ -147,8 +147,9 @@ def custom_error_handling(bot, logger):
                 channel = discord.utils.get(guild.channels, id=c)
                 if counter > 0:
                     msg += '\n'
-                msg += channel.mention
-                counter += 1
+                if channel:
+                    msg += channel.mention
+                    counter += 1
             await ctx.channel.send(msg)
             pass
         elif isinstance(error, RaidChannelCheckFail):
