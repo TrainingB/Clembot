@@ -699,6 +699,13 @@ async def expire_channel(channel):
         # else deleted the actual channel at some point.
         channel_exists = Clembot.get_channel(channel.id)
         channel = channel_exists
+
+        if channel :
+            is_archived = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('archive', False)
+            if is_archived:
+                logger.info("Expire_Channel - Channel Skipped as it is marked as Archived - " + channel.name)
+                return
+
         if (channel_exists == None) and (not Clembot.is_closed()):
             try:
                 del guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]
@@ -740,7 +747,7 @@ async def expire_channel(channel):
                 if (not alreadyexpired):
                     new_name = 'expired-' + channel.name
                     await channel.edit(name=new_name)
-                    await channel.send( _("""This channel timer has expired! The channel has been deactivated and will be deleted in 5 minutes.To reactivate the channel, use **!timerset** to set the timer again."""))
+                    await channel.send( _("""This channel timer has expired! The channel has been deactivated and will be deleted in 5 minutes."""))
                 delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=5).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
                 expiremsg = _("**This {pokemon} raid has expired!**").format(pokemon=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['pokemon'].capitalize())
             if delete_time:
@@ -782,8 +789,23 @@ async def expire_channel(channel):
     except Exception as error:
         print(error)
 
+@Clembot.command(pass_context=True, hidden=True, aliases=["archive"])
+async def _archive(ctx):
 
+    message = ctx.message
+    channel = message.channel
+    guild = message.guild
 
+    egg_level = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('egglevel',0)
+
+    if egg_level != 'EX':
+        return await _send_error_message(channel, "Beep Beep! **{0}** Only EX raids can be **Archived**.".format(message.author.display_name))
+
+    guild_dict[guild.id]['raidchannel_dict'][channel.id]['archive'] = True
+
+    await _send_message(channel, "Beep Beep! **{0}** The channel has been marked for **Archival**, it will not be deleted automatically!".format(message.author.display_name))
+
+    return None
 
 async def channel_cleanup(loop=True):
     while (not Clembot.is_closed()):
@@ -3450,7 +3472,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         'address': raid_details,
         'type': 'raid',
         'pokemon': entered_raid,
-        'egglevel': '0',
+        'egglevel': -1,
         'suggested_start': False
         }
 
@@ -3657,7 +3679,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         'address': raid_details,
         'type': 'raid',
         'pokemon': entered_raid,
-        'egglevel': '0',
+        'egglevel': -1,
         'suggested_start': False,
         'counters_dict' : {},
         'weather' : None,
@@ -5003,7 +5025,7 @@ async def _raidparty(message):
         'address': raid_details,
         'type': 'raidparty',
         'pokemon': None,
-        'egglevel': '0',
+        'egglevel': -1,
         'suggested_start': False,
         'roster': [],
         'roster_index': None,
@@ -5216,6 +5238,7 @@ async def _eggtoraid(entered_raid, channel):
         manual_timer = eggdetails['manual_timer']
         trainer_dict = eggdetails['trainer_dict']
         egg_address = eggdetails['address']
+        archive = eggdetails.get('archive',False)
         try:
             egg_report = await reportcitychannel.get_message(eggdetails['raidreport'])
             raid_message = await channel.get_message(eggdetails['raidmessage'])
@@ -5291,6 +5314,7 @@ async def _eggtoraid(entered_raid, channel):
 
 
         guild_dict[channel.guild.id]['raidchannel_dict'][channel.id] = {
+            'archive' : archive,
             'reportcity': reportcity,
             'trainer_dict': trainer_dict,
             'exp': raidexp,
@@ -5301,7 +5325,7 @@ async def _eggtoraid(entered_raid, channel):
             'address': egg_address,
             'type': hatchtype,
             'pokemon': entered_raid,
-            'egglevel': '0',
+            'egglevel': egglevel,
             'suggested_start': suggested_start
         }
 
@@ -7499,7 +7523,7 @@ async def makeitraidparty(ctx):
         'raidmessage': None,
         'type': 'raidparty',
         'pokemon': None,
-        'egglevel': '0',
+        'egglevel': -1,
         'suggested_start': False,
         'roster': [],
         'roster_index': None,
@@ -7525,7 +7549,7 @@ async def reset(ctx):
         'raidmessage': None,
         'type': 'raidparty',
         'pokemon': None,
-        'egglevel': '0',
+        'egglevel': -1,
         'suggested_start': False,
         'roster': [],
         'roster_index': None
