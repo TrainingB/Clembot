@@ -3836,6 +3836,7 @@ async def old_fetch_counters_dict(pkmn , weather:None):
 async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
     try:
         message = ctx.message
+        guild = ctx.message.guild
         raid_channel = ctx.message.channel
 
         raid_dict = guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id]
@@ -3851,11 +3852,36 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
                 moveset_dict = counters_dict['movesets'].get(moveset_index)
             else :
                 counters_dict = await _fetch_moveset_and_counters(ctx, pkmn, weather)
-                moveset_dict = counters_dict['movesets'].get(moveset_index)
-                raid_boss_moveset = moveset_dict['moveset']
+                if not counters_dict:
+                    return await _send_error_message(ctx.channel, "Beep Bepp! **{0}** No reponse recieved from Pokebattler.".format(ctx.message.author.display_name))
+                moveset_dict = counters_dict['movesets']
+                moveset_dict_index = counters_dict['movesets'].get(moveset_index)
+                raid_boss_moveset = moveset_dict_index['moveset']
             # 'counters_dict': {}, 'weather': None, 'moveset': 0, 'countersmessage': None}
 
-            await _send_message(ctx.channel, "**{0}** The moveset for current raid boss is {1}.".format(ctx.message.author.display_name, raid_boss_moveset))
+            if moveset_index == 0:
+                img_url = 'https://raw.githubusercontent.com/FoglyOgly/Meowth/discordpy-v1/images/pkmn/{0}_.png?cache={1}'.format(str(get_number(pkmn)).zfill(3), CACHE_VERSION)
+                hyperlink_icon = 'https://i.imgur.com/fn9E5nb.png'
+                pbtlr_icon = 'https://www.pokebattler.com/favicon-32x32.png'
+
+                moveset_embed = discord.Embed(colour=guild.me.colour)
+                moveset_embed.set_author(name="", url="", icon_url=hyperlink_icon)
+                moveset_embed.set_thumbnail(url=img_url)
+                moveset_embed.set_footer(text=_('Results courtesy of Pokebattler. This message will be auto-deleted in 2 minutes'), icon_url=pbtlr_icon)
+
+                description = ""
+                text = ""
+                for index,moveset in moveset_dict.items():
+
+                    text = text + "{0} - {1}\n".format(moveset['emoji'], moveset['moveset'])
+
+                moveset_embed.add_field(name="Possible Movesets", value=text)
+
+
+                await ctx.channel.send(embed=moveset_embed)
+
+            else :
+                await _send_message(ctx.channel, "**{0}** The moveset for current raid boss is {1}.".format(ctx.message.author.display_name, raid_boss_moveset))
 
         else:
             await _send_error_message (ctx.channel, "**{}** please use the command in the raid channel.".format(ctx.message.author.display_name))
@@ -4012,6 +4038,7 @@ async def _fetch_moveset_and_counters(ctx, pkmn, weather='clear', counters_and_m
 
     except Exception as error:
         print(error)
+        logger.error(error)
 
 
 
@@ -5521,7 +5548,6 @@ async def _set_guild_city(ctx):
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["set-city"])
-@checks.guildowner_or_permissions(manage_channel=True)
 async def _set_city(ctx):
     args = ctx.message.content
     args_split = args.split(" ")
@@ -5532,13 +5558,15 @@ async def _set_city(ctx):
     new_city_state = gymsql.save_channel_city(ctx.message.guild.id, ctx.message.channel.id, city_state)
 
     if new_city_state:
-        await _get_city(ctx.message)
+        return_message = await _get_city(ctx.message)
     else:
-        await ctx.message.channel.send( content="Beep Beep! I couldn't set the Reporting City successfully.")
+        return_message = await ctx.message.channel.send( content="Beep Beep! I couldn't set the Reporting City successfully.")
+
+    await asyncio.sleep(5)
+    await ctx.message.delete()
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["get-city"])
-@checks.guildowner_or_permissions(manage_guild=True)
 async def get_city(ctx):
     await _get_city(ctx.message)
 
@@ -6654,7 +6682,7 @@ async def list(ctx):
 
                     weather = rc_d.get('weather', None)
                     if weather:
-                        embed.add_field(name="Weather", value=get_weather(ctx.guild,weather))
+                        embed.add_field(name="Weather", value="{0} ({1})".format(get_weather(ctx.guild,weather), weather.capitalize()))
 
                     maybe = get_names_from_channel(ctx.message, "maybe")
                     if maybe:
