@@ -136,20 +136,15 @@ def custom_error_handling(bot, logger):
             pass
         elif isinstance(error, WantChannelCheckFail):
             guild = ctx.guild
-            msg = 'Beep Beep! Please use **!{cmd_name}** in the following channel'.format(cmd_name=ctx.command.name)
+            msg = 'Beep Beep! Please use **!{cmd_name}** in '.format(cmd_name=ctx.command.name)
             want_channels = bot.guild_dict[guild.id]['want_channel_list']
-            if len(want_channels) > 1:
-                msg += 's:\n'
+            if len(want_channels) > 5:
+                msg += 'a Region report channel.'
             else:
-                msg += ': '
-            counter = 0
-            for c in want_channels:
-                channel = discord.utils.get(guild.channels, id=c)
-                if counter > 0:
-                    msg += '\n'
-                if channel:
-                    msg += channel.mention
-                    counter += 1
+                msg += 'one of the following region channels:'
+                for c in want_channels:
+                    channel = discord.utils.get(guild.channels, id=c)
+                    msg += '\n' + channel.mention
             await ctx.channel.send(msg)
             pass
         elif isinstance(error, RaidChannelCheckFail):
