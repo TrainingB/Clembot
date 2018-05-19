@@ -5131,7 +5131,7 @@ async def _raidegg(message):
             channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
             channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
         else:
-            raid_details = " ".join(str(parameters.get('others')))
+            raid_details = " ".join(parameters.get('others'))
 
 
         if egg_level > 5 or egg_level == 0:
