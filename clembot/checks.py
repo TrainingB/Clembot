@@ -10,6 +10,18 @@ def is_owner_check(ctx):
 def is_owner():
     return commands.check(is_owner_check)
 
+def is_dev_check(ctx):
+    author = ctx.author.id
+    dev_list = [132314336914833409, 174764205927432192, 263607303096369152]
+    return author in dev_list
+
+def is_dev_or_owner():
+    def predicate(ctx):
+        if is_dev_check(ctx) or is_owner_check(ctx):
+            return True
+        else:
+            return False
+    return commands.check(predicate)
 def check_permissions(ctx, perms):
     if (not perms):
         return False
@@ -63,6 +75,14 @@ def check_citychannel(ctx):
         return False
     if channel in city_channels:
         return True
+
+def check_raidreport(ctx):
+    if ctx.guild is None:
+        return False
+    channel = ctx.channel
+    guild = ctx.guild
+    channel_list = [x for x in ctx.bot.guild_dict[guild.id]['city_channels'].keys()]
+    return channel.id in channel_list
 
 def check_raidchannel(ctx):
     if ctx.guild is None:
@@ -224,6 +244,8 @@ def activeraidchannel():
         raise errors.ActiveRaidChannelCheckFail()
     return commands.check(predicate)
 
+
+
 def cityraidchannel():
     def predicate(ctx):
         if check_raidchannel(ctx) == True:
@@ -271,3 +293,14 @@ def check_raidpartychannel(ctx):
         return False
     if type == 'raidparty':
         return True
+
+def allowraidreport():
+    def predicate(ctx):
+        if check_raidset(ctx):
+            if check_raidreport(ctx) or (check_eggchannel(ctx) and check_raidchannel(ctx)):
+                return True
+            else:
+                raise errors.RegionEggChannelCheckFail()
+        else:
+            raise errors.RaidSetCheckFail()
+    return commands.check(predicate)

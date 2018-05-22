@@ -5099,6 +5099,10 @@ def emojify_numbers(number):
 
 
 async def _raidegg(message):
+
+        if message.channel.id in guild_dict[message.guild.id]['raidchannel_dict'].keys():
+            await _send_error_message(message.channel, "Please use this command in a region channel.")
+            return
         argument_text = message.clean_content.lower()
         parameters = argparser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
         logger.info(parameters)
