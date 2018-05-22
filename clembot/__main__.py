@@ -2323,25 +2323,25 @@ async def team(ctx):
             # and the user has this role,
             if temp_role in ctx.message.author.roles:
                 # then report that a role is already assigned
-                await ctx.message.channel.send( _("Beep Beep! You already have a team role!"))
+                await _send_error_message (ctx.message.channel, _("Beep Beep! You already have a team role!"))
                 return
         # If the role isn't valid, something is misconfigured, so fire a warning.
         else:
-            await ctx.message.channel.send( _("Beep Beep! {team_role} is not configured as a role on this guild. Please contact an admin for assistance.").format(team_role=team))
+            await _send_error_message (ctx.message.channel,_("Beep Beep! **{team_role}** is not configured as a role on this guild. Please contact an admin for assistance.").format(team_role=team))
     # Check if team is one of the three defined in the team_dict
 
     if entered_team not in config['team_dict'].keys():
-        await ctx.message.channel.send( _("Beep Beep! \"{entered_team}\" isn't a valid team! Try {available_teams}").format(entered_team=entered_team, available_teams=team_msg))
+        await _send_error_message (ctx.message.channel, _("Beep Beep! **{entered_team}** isn't a valid team! Try {available_teams}").format(entered_team=entered_team, available_teams=team_msg))
         return
     # Check if the role is configured on the guild
     elif role is None:
-        await ctx.message.channel.send( _("Beep Beep! The \"{entered_team}\" role isn't configured on this guild! Contact an admin!").format(entered_team=entered_team))
+        await _send_error_message(ctx.message.channel, _("Beep Beep! The **{entered_team}** role isn't configured on this guild! Contact an admin!").format(entered_team=entered_team))
     else:
         try:
             await ctx.message.author.add_roles(role)
-            await ctx.message.channel.send( _("Beep Beep! Added {member} to Team {team_name}! {team_emoji}").format(member=ctx.message.author.mention, team_name=role.name.capitalize(), team_emoji=config['team_dict'][entered_team]))
+            await _send_message(ctx.message.channel, _("Beep Beep! Added **{member}** to Team **{team_name}**!").format(member=ctx.message.author.mention, team_name=role.name.capitalize()))
         except discord.Forbidden:
-            await ctx.message.channel.send( _("Beep Beep! I can't add roles!"))
+            await _send_error_message(ctx.message.channel, _("Beep Beep! I can't add roles!"))
 
 
 @Clembot.command(pass_context=True, hidden=True)
