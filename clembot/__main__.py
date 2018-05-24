@@ -801,9 +801,14 @@ async def _archive(ctx):
     if egg_level != 'EX':
         return await _send_error_message(channel, "Beep Beep! **{0}** Only EX raids can be **Archived**.".format(message.author.display_name))
 
-    guild_dict[guild.id]['raidchannel_dict'][channel.id]['archive'] = True
+    is_archived = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('archive', False)
 
-    await _send_message(channel, "Beep Beep! **{0}** The channel has been marked for **Archival**, it will not be deleted automatically!".format(message.author.display_name))
+    if is_archived:
+        guild_dict[guild.id]['raidchannel_dict'][channel.id]['archive'] = False
+        await _send_message(channel, "Beep Beep! **{0}** The channel is not marked for **Archival** anymore!".format(message.author.display_name))
+    else:
+        guild_dict[guild.id]['raidchannel_dict'][channel.id]['archive'] = True
+        await _send_message(channel, "Beep Beep! **{0}** The channel has been marked for **Archival**, it will not be deleted automatically!".format(message.author.display_name))
 
     return None
 
@@ -5997,6 +6002,8 @@ beepmsg = _("""**{member}, !beep** can be used with following options:
 **!beep research** - for research quest reporting commands.
 **!beep nest** - for nest reporting commands.
 
+**!beep exraid** - for EX-raid reporting commands.
+
 """)
 
 
@@ -6117,6 +6124,7 @@ Note : **gym-code** is **first two letters** of **first two or three words** of 
 beep_notifications = ("""**{member}** here are the commands for notifications. 
 
 **__Subscription__**
+**!subscribe** shows a list of available roles
 **!subscribe role-name** assigns you the role for raid-notifications
 **!unsubscribe role-name** removes the role for raid-notifications
 
@@ -6151,6 +6159,18 @@ beep_research = ("""**{member}** here are the commands for reporting quests.
 **!remove-research <research-id>** - to delete a research quest.
 
 **Note:** research list is cleaned up automatically at midnight.
+""")
+
+beep_exraid = ("""**{member}** here are the commands for ex-raids. 
+
+**!exraid <gym-code> [date]** creates an ex-raid channel with date in channel name.
+**!exraid <location>** creates an ex-raid channel for location.
+
+*Note: the date passed is just for the channel name. Timer needs to be set separately.*
+
+**!timerset mm/dd HH:MM AM/PM** can be used to set the timer for the channel.
+
+**!archive** marks a channel for archival and it's not deleted automatically. It's toggle command.
 """)
 
 # ---------------------------------------------------------------------------------------
@@ -6200,6 +6220,8 @@ async def beep(ctx):
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Research", description=beep_research.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'raid' or args_split[0] == 'status' :
                 await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Status Management", description = beep_raid_status.format(member=ctx.message.author.display_name), footer=footer))
+            elif args_split[0] == 'exraid' :
+                await ctx.message.channel.send( embed = get_beep_embed(title="Help - EX-Raid Reporting", description = beep_exraid.format(member=ctx.message.author.display_name), footer=footer))
     except Exception as error:
         print(error)
 
@@ -8299,15 +8321,11 @@ def record_reported_by(guild_id, author_id, report_type):
     existing_reports = guild_dict[guild_id].setdefault('trainers',{}).setdefault(author_id, {}).setdefault(report_type, 0) + 1
     guild_dict[guild_id]['trainers'][author_id][report_type] = existing_reports
 
-    print(json.dumps(guild_dict[guild_id]['trainers']))
-
 
 def record_error_reported_by(guild_id, author_id, report_type):
 
     existing_reports = guild_dict[guild_id].setdefault('trainers',{}).setdefault(author_id, {}).setdefault(report_type, 0) - 1
     guild_dict[guild_id]['trainers'][author_id][report_type] = existing_reports
-
-    print(json.dumps(guild_dict[guild_id]['trainers']))
 
 
 
