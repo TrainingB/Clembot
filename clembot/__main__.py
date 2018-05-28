@@ -6777,9 +6777,9 @@ async def list(ctx):
 
 
 
-@list.command(pass_context=True, hidden=True, ailases=["research"])
+@list.command(pass_context=True, hidden=True)
 @checks.nonraidchannel()
-async def _list_research(ctx):
+async def research(ctx):
     """List the quests for the channel
 
     Usage: !list research"""
