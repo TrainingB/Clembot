@@ -4143,7 +4143,7 @@ async def research(ctx, *, args = None):
                 role = discord.utils.get(guild.roles, name=pkmn_match)
                 if role:
                     roletest = _("{pokemon} - ").format(pokemon=role.mention)
-            research_msg = _("A {roletest} Field Research has been reported!").format(roletest=roletest,author=author.display_name)
+            research_msg = _("A Field Research has been reported!").format(roletest=roletest,author=author.display_name)
 
 
             research_embed.__setattr__('title', research_msg)
@@ -4161,8 +4161,10 @@ async def research(ctx, *, args = None):
                 'reward':reward
             }
             guild_dict[guild.id]['questreport_dict'] = research_dict
-            await message.delete()
-
+            try:
+                await message.delete()
+            except Exception:
+                pass
             record_reported_by(message.guild.id, message.author.id, 'research_reports')
         else:
             research_embed.clear_fields()
@@ -4521,22 +4523,56 @@ Triggerable through commands or through emoji
 """
 
 
-async def _maybe(message, count):
+def _input_to_status(text):
+
+    status = None
+
+    maybe_list = ['i','interested']
+
+    if text in maybe_list:
+        status = 'maybe'
+
+    return status
+
+def _add_rsvp_to_dict(trainer_dict, member_id, status, count=None):
+
+    if not trainer_dict:
+        trainer_dict = {}
+
+    if not count:
+        count = 1
+
+    if member_id not in trainer_dict:
+        trainer_dict[member_id] = {}
+
+    trainer_dict[member_id]['status'] = status
+    trainer_dict[member_id]['count'] = count
+
+    return trainer_dict
+
+
+async def _maybe(message, count, member=None):
+
+    if member:
+        trainer = member
+    else:
+        trainer = message.author
+
     trainer_dict = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
 
     # Add trainer name to trainer list
-    if message.author.id not in trainer_dict:
-        trainer_dict[message.author.id] = {}
-    trainer_dict[message.author.id]['status'] = "maybe"
-    trainer_dict[message.author.id]['count'] = count
+    if trainer.id not in trainer_dict:
+        trainer_dict[trainer.id] = {}
+    trainer_dict[trainer.id]['status'] = "maybe"
+    trainer_dict[trainer.id]['count'] = count
     guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict'] = trainer_dict
 
     if count == 1:
         # await message.channel.send( _("Beep Beep! {member} is interested!").format(member=message.author.mention))
-        embed_msg = _("Beep Beep! {member} is interested!").format(member=message.author.mention)
+        embed_msg = _("Beep Beep! {member} is interested!").format(member=trainer.mention)
     else:
         # await message.channel.send( _("Beep Beep! {member} is interested with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count))
-        embed_msg = _("Beep Beep! {member} is interested with a total of {trainer_count} trainers!").format(member=message.author.mention, trainer_count=count)
+        embed_msg = _("Beep Beep! {member} is interested with a total of {trainer_count} trainers!").format(member=trainer.mention, trainer_count=count)
 
     await message.channel.send( embed=channel_status_embed(message=message, embed_msg_desc=embed_msg, colour=discord.Colour.gold()))
 
@@ -6468,6 +6504,9 @@ async def coming(ctx, *, count: str = None):
 
     trainer_dict = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
 
+    print(ctx.message.mentions)
+
+
     if count:
         if count.isdigit():
             count = int(count)
@@ -6748,23 +6787,30 @@ async def research(ctx):
     await _send_message(ctx.channel, description=listmsg)
 
 async def _researchlist(ctx):
-    research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict',{}))
-    questmsg = ""
-    for questid in research_dict:
-        if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
-            try:
-                questreportmsg = await ctx.message.channel.get_message(questid)
-                questauthor = ctx.channel.guild.get_member(research_dict[questid]['reportauthor'])
-                research_id = research_dict[questid]['research_id']
-                questmsg += _('\n🔰')
-                questmsg += _("**[{research_id}]** - **Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(research_id=research_id,location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title(), author=questauthor.display_name))
-            except discord.errors.NotFound:
-                pass
-    if questmsg:
-        listmsg = _(' **Here\'s the current research reports for {channel}**\n{questmsg}').format(channel=ctx.message.channel.name.capitalize(),questmsg=questmsg)
-    else:
-        listmsg = _(" There are no reported research reports. Report one with **!research**")
-    return listmsg
+    try:
+        research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict',{}))
+        questmsg = ""
+        for questid in research_dict:
+            if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
+                try:
+                    questreportmsg = await ctx.message.channel.get_message(questid)
+                    questauthor = ctx.channel.guild.get_member(research_dict[questid]['reportauthor'])
+                    if questauthor :
+                        author_display_name = questauthor.display_name
+                    else:
+                        author_display_name = "N/A"
+                    research_id = research_dict[questid]['research_id']
+                    questmsg += _('\n🔰')
+                    questmsg += _("**[{research_id}]** - **Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(research_id=research_id,location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title(), author=author_display_name))
+                except discord.errors.NotFound:
+                    pass
+        if questmsg:
+            listmsg = _(' **Here\'s the current research reports for {channel}**\n{questmsg}').format(channel=ctx.message.channel.name.capitalize(),questmsg=questmsg)
+        else:
+            listmsg = _(" There are no reported research reports. Report one with **!research**")
+        return listmsg
+    except Exception as error:
+        print(error)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["remove-research"])
 async def _remove_research(ctx, research_id=None):
@@ -6831,9 +6877,9 @@ async def interested(ctx):
     await ctx.message.channel.send( listmsg)
 
 
-@list.command(pass_context=True, hidden=True)
+@list.command(pass_context=True, hidden=True, ailases=["coming"])
 @checks.activeraidchannel()
-async def coming(ctx):
+async def _list_coming(ctx):
     """Lists the number and users who are coming to a raid.
 
     Usage: !list coming
@@ -6842,11 +6888,10 @@ async def coming(ctx):
     await ctx.message.channel.send( listmsg)
 
 
-@list.command(pass_context=True, hidden=True)
+@list.command(pass_context=True, hidden=True, ailases=["here"])
 @checks.activeraidchannel()
-async def here(ctx):
+async def _list_here(ctx):
     """List the number and users who are present at a raid.
-
     Usage: !list here
     Works only in raid channels."""
     listmsg = await _waiting(ctx)
@@ -7076,6 +7121,160 @@ async def new(ctx):
         await message.channel.send( content=_("Beep Beep! Someone has suggested a different location for the raid! Trainers {trainer_list}: make sure you are headed to the right place!").format(trainer_list=", ".join(otw_list)), embed=newembed)
         return
 
+coming_list = ["c", "coming", "o" , "omw"]
+cancel_list = ["x", "cancel"]
+maybe_list = ["i", "interested", "maybe"]
+here_list = ["h", "here"]
+
+
+def convert_command_to_status(text):
+    status = None
+    command_text = text.replace('!','')
+
+    if command_text in coming_list:
+        status = "coming"
+    elif command_text in cancel_list:
+        status = "cancel"
+    elif command_text in maybe_list:
+        status = "maybe"
+    elif command_text in here_list:
+        status = "here"
+    return status
+
+
+@Clembot.command(pass_context=True, hidden=True)
+async def recover(ctx):
+    try:
+        channel = ctx.message.channel
+        guild = ctx.message.guild
+        await ctx.message.delete()
+        trainer_dict = {}
+        async for message in channel.history(limit=500, reverse=True):
+            if message.author.id != guild.me.id:
+                print("{0} {1}".format(message.author,message.content))
+
+                if message.content.startswith('!'):
+                    rsvp_command = convert_command_to_status(message.content.split()[0])
+                    try:
+                        rsvp_count = message.content.split()[1]
+                    except Exception:
+                        rsvp_count = None
+                        pass
+                    print(rsvp_command)
+                    if rsvp_command in coming_list:
+                        rsvp_status = 'coming'
+                    elif rsvp_command in cancel_list:
+                        rsvp_status = 'cancel'
+                    elif rsvp_command in maybe_list:
+                        rsvp_status = 'maybe'
+                    elif rsvp_command in here_list:
+                        rsvp_status = 'here'
+                    else:
+                        rsvp_status = None
+
+                    if rsvp_status:
+                        trainer_dict = _add_rsvp_to_dict(trainer_dict, message.author.id, rsvp_status, rsvp_count)
+                        print(trainer_dict)
+
+                if message.embeds:
+                    embed = message.embeds[0]
+                    print(embed.description)
+                print(message.embeds)
+                if (_('is interested') in message.content) or (_('on the way') in message.content) or (_('at the raid') in message.content) or (_('no longer') in message.content) or (_('left the raid') in message.content):
+                    if message.raw_mentions:
+                        if message.raw_mentions[0] not in trainer_dict:
+                            trainerid = message.raw_mentions[0]
+                            status = {'maybe': 0, 'coming': 0, 'here': 0, 'lobby': 0}
+                            trainerstatus = None
+                            if _('is interested') in message.content:
+                                trainerstatus = 'maybe'
+                            if _('on the way') in message.content:
+                                trainerstatus = 'coming'
+                            if _('at the raid') in message.content:
+                                trainerstatus = 'here'
+                            if (_('no longer') in message.content) or (_('left the raid') in message.content):
+                                trainerstatus = None
+                            if _('trainers') in message.content:
+                                messagesplit = message.content.split()
+                                if messagesplit[-1].isdigit():
+                                    count = int(messagesplit[-13])
+                                    party = {'mystic': int(messagesplit[-10]), 'valor': int(messagesplit[-7]), 'instinct': int(messagesplit[-4]), 'unknown': int(messagesplit[-1])}
+                                else:
+                                    count = 1
+                                    party = {'mystic': 0, 'valor': 0, 'instinct': 0, 'unknown': count}
+                            else:
+                                count = 1
+                                user = ctx.guild.get_member(trainerid)
+                                for role in user.roles:
+                                    if role.name.lower() == 'mystic':
+                                        party = {'mystic': 1, 'valor': 0, 'instinct': 0, 'unknown': 0}
+                                        break
+                                    elif role.name.lower() == 'valor':
+                                        party = {'mystic': 0, 'valor': 1, 'instinct': 0, 'unknown': 0}
+                                        break
+                                    elif role.name.lower() == 'instinct':
+                                        party = {'mystic': 0, 'valor': 0, 'instinct': 1, 'unknown': 0}
+                                        break
+                                    else:
+                                        party = {'mystic': 0, 'valor': 0, 'instinct': 0, 'unknown': 1}
+                            if trainerstatus:
+                                status[trainerstatus] = count
+                            trainer_dict[trainerid] = {'status': status, 'count': count, 'party': party}
+                        else:
+                            continue
+                    else:
+                        continue
+
+        output_message = await _send_message(ctx.message.channel, json.dumps(trainer_dict, indent=4))
+        await asyncio.sleep(15)
+        await output_message.delete()
+
+        # guild_dict[channel.guild.id]['raidchannel_dict'][channel.id] = {'reportcity': reportchannel, 'trainer_dict': trainer_dict, 'exp': exp, 'manual_timer': manual_timer, 'active': True, 'raidmessage': raidmessage.id, 'raidreport': None, 'address': raid_details, 'type': raidtype, 'pokemon': pokemon, 'egglevel': egglevel}
+        # await _edit_party(channel, message.author)
+        # recovermsg = _("Meowth! This channel has been recovered! However, there may be some inaccuracies in what I remembered! Here's what I have:")
+        # bulletpoint = '🔹'
+        # recovermsg += ('\n' + bulletpoint) + (await _interest(ctx))
+        # recovermsg += ('\n' + bulletpoint) + (await _otw(ctx))
+        # recovermsg += ('\n' + bulletpoint) + (await _waiting(ctx))
+        # if (not manual_timer):
+        #     if raidtype == 'egg':
+        #         action = _('hatch')
+        #         type = _('egg')
+        #     elif raidtype == 'raid':
+        #         action = _('end')
+        #         type = _('raid')
+        #     recovermsg += _("\nI'm not sure when this {raidtype} will {action}, so please use **!timerset** if you can!").format(raidtype=type, action=action)
+        # else:
+        #     recovermsg += ('\n' + bulletpoint) + (await print_raid_timer(channel))
+        # await _edit_party(channel, ctx.message.author)
+        # await channel.send(recovermsg)
+        # event_loop.create_task(expiry_check(channel))
+    except Exception as error:
+        print(error)
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["mention"])
+async def _mention(ctx):
+
+    try:
+        status_to_check = "omw"
+
+        trainer_dict = copy.deepcopy(guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict'])
+
+        message_to_say = ctx.message.clean_content.split()[2:]
+
+        name_list = []
+        for trainer in trainer_dict.keys():
+            if trainer_dict[trainer]['status'] == status_to_check:
+                user = await Clembot.get_user_info(trainer)
+                name_list.append(user.mention)
+
+        listmsg = (_("Beep Beep! {trainer_list} {message}").format(trainer_list=", ".join(name_list), message=" ".join(message_to_say)))
+
+
+        await ctx.channel.send(listmsg)
+    except Exception as error:
+        await _send_error_message(ctx.channel, error)
+
 
 async def _interest(ctx):
     ctx_maybecount = 0
@@ -7106,6 +7305,10 @@ async def _interest(ctx):
     listmsg = (_("Beep Beep! {trainer_count} interested{including_string}!").format(trainer_count=str(ctx_maybecount), including_string=maybe_exstr))
 
     return listmsg
+
+
+
+
 
 
 async def _otw(ctx):
@@ -7751,7 +7954,7 @@ async def print_roster(message, roster_message=None):
 
     roster_msg = get_roster_with_highlight(roster, roster_index)
 
-    raid_party_image_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
+    raid_party_image_url = "https://media.discordapp.net/attachments/419935483477622793/450201828802560010/latest.png"
 
     raid_img_url = raid_party_image_url
     # "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png".format(str(raid_number))
