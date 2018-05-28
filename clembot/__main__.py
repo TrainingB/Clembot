@@ -6776,9 +6776,10 @@ async def list(ctx):
     return
 
 
-@list.command()
+
+@list.command(pass_context=True, hidden=True, ailases=["research"])
 @checks.nonraidchannel()
-async def research(ctx):
+async def _list_research(ctx):
     """List the quests for the channel
 
     Usage: !list research"""
@@ -6810,7 +6811,7 @@ async def _researchlist(ctx):
             listmsg = _(" There are no reported research reports. Report one with **!research**")
         return listmsg
     except Exception as error:
-        print(error)
+        logger.error(error)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["remove-research"])
 async def _remove_research(ctx, research_id=None):
@@ -7176,56 +7177,12 @@ async def recover(ctx):
                         trainer_dict = _add_rsvp_to_dict(trainer_dict, message.author.id, rsvp_status, rsvp_count)
                         print(trainer_dict)
 
-                if message.embeds:
-                    embed = message.embeds[0]
-                    print(embed.description)
-                print(message.embeds)
-                if (_('is interested') in message.content) or (_('on the way') in message.content) or (_('at the raid') in message.content) or (_('no longer') in message.content) or (_('left the raid') in message.content):
-                    if message.raw_mentions:
-                        if message.raw_mentions[0] not in trainer_dict:
-                            trainerid = message.raw_mentions[0]
-                            status = {'maybe': 0, 'coming': 0, 'here': 0, 'lobby': 0}
-                            trainerstatus = None
-                            if _('is interested') in message.content:
-                                trainerstatus = 'maybe'
-                            if _('on the way') in message.content:
-                                trainerstatus = 'coming'
-                            if _('at the raid') in message.content:
-                                trainerstatus = 'here'
-                            if (_('no longer') in message.content) or (_('left the raid') in message.content):
-                                trainerstatus = None
-                            if _('trainers') in message.content:
-                                messagesplit = message.content.split()
-                                if messagesplit[-1].isdigit():
-                                    count = int(messagesplit[-13])
-                                    party = {'mystic': int(messagesplit[-10]), 'valor': int(messagesplit[-7]), 'instinct': int(messagesplit[-4]), 'unknown': int(messagesplit[-1])}
-                                else:
-                                    count = 1
-                                    party = {'mystic': 0, 'valor': 0, 'instinct': 0, 'unknown': count}
-                            else:
-                                count = 1
-                                user = ctx.guild.get_member(trainerid)
-                                for role in user.roles:
-                                    if role.name.lower() == 'mystic':
-                                        party = {'mystic': 1, 'valor': 0, 'instinct': 0, 'unknown': 0}
-                                        break
-                                    elif role.name.lower() == 'valor':
-                                        party = {'mystic': 0, 'valor': 1, 'instinct': 0, 'unknown': 0}
-                                        break
-                                    elif role.name.lower() == 'instinct':
-                                        party = {'mystic': 0, 'valor': 0, 'instinct': 1, 'unknown': 0}
-                                        break
-                                    else:
-                                        party = {'mystic': 0, 'valor': 0, 'instinct': 0, 'unknown': 1}
-                            if trainerstatus:
-                                status[trainerstatus] = count
-                            trainer_dict[trainerid] = {'status': status, 'count': count, 'party': party}
-                        else:
-                            continue
-                    else:
-                        continue
 
         output_message = await _send_message(ctx.message.channel, json.dumps(trainer_dict, indent=4))
+
+
+
+
         await asyncio.sleep(15)
         await output_message.delete()
 
