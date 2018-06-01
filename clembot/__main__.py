@@ -288,7 +288,7 @@ def get_type(guild, pkmn_number):
 
 
 def get_weather(guild, weather):
-    weather_emoji = parse_emoji(guild, config['weather_id_dict'][weather.lower()])
+    weather_emoji = parse_emoji(guild, config['weather_id_dict'].get(weather.lower(), ""))
     return weather_emoji
 
 def get_name(pkmn_number):
@@ -390,6 +390,8 @@ def sanitize_channel_name(name):
 # return the string <:emoji name:emoji id>. Otherwise,
 # just return the string unmodified.
 def parse_emoji(guild, emoji_string):
+    if len(emoji_string) == 0:
+        return ""
     if emoji_string[0] == ':' and emoji_string[-1] == ':':
         emoji = discord.utils.get(guild.emojis, name=emoji_string.strip(':'))
         if emoji:
@@ -963,7 +965,10 @@ async def message_cleanup(loop=True):
             for messageid in report_delete_dict.keys():
                 try:
                     report_message = await report_delete_dict[messageid]['channel'].get_message(messageid)
+                    logger.info('message_cleanup - DELETE ' + report_message)
+                    print(report_message)
                     await report_message.delete()
+
                 except discord.errors.NotFound:
                     pass
             for messageid in report_edit_dict.keys():
@@ -982,6 +987,9 @@ async def message_cleanup(loop=True):
         await asyncio.sleep(600)
         continue
 
+@Clembot.command(pass_context=True, hidden=True)
+async def timestamp(ctx):
+    await _send_message(ctx.channel, str(time.time()))
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.is_owner()
@@ -3311,6 +3319,7 @@ raid_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'timer', 'location']
 
 nest_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'link']
 
+rsvp_SYNTAX_ATTRIBUTE =['command', 'count', 'mentions']
 
 @checks.cityeggchannel()
 @Clembot.command(pass_context=True)
@@ -3461,7 +3470,7 @@ async def _newraid(message):
     raidmsg = _("""Beep Beep! {pokemon} raid reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
 This channel will be deleted five minutes after the timer expires.
 ** **
-Please type `!beep raid` if you need a refresher of Clembot commands! 
+Please type `!beep status` if you need a refresher of Clembot commands! 
 """).format(pokemon=raid_role, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
@@ -3667,7 +3676,7 @@ async def _raid(message):
     raidmsg = _("""Beep Beep! {pokemon} raid reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
 This channel will be deleted five minutes after the timer expires.
 ** **
-Please type `!beep raid` if you need a refresher of Clembot commands! 
+Please type `!beep status` if you need a refresher of Clembot commands! 
 """).format(pokemon=raid_role, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await raid_channel.send( content=raidmsg, embed=raid_embed)
@@ -4066,6 +4075,8 @@ async def research(ctx, *, args = None):
         author = message.author
         guild = message.guild
         timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset']))
+        print(message.created_at )
+        print(timestamp)
         to_midnight = 24*60*60 - ((timestamp-timestamp.replace(hour=0, minute=0, second=0, microsecond=0)).seconds)
         error = False
         research_id = '%04x' % randrange(16 ** 4)
@@ -4262,18 +4273,18 @@ async def timerset(ctx, timer):
             try:
                 end = datetime.datetime.strptime(" ".join(timer_split) + " " + str(now.year), '%m/%d %I:%M %p %Y')
             except ValueError:
-                await channel.send( _("Beep Beep! Your timer wasn't formatted correctly. Change your **!timerset** to match the format on your EX Raid invite and try again."))
+                return await _send_error_message(channel, _("Beep Beep! Your timer wasn't formatted correctly. **!timerset mm/dd HH:MM AM/PM** can be used to set the timer for the channel."))
             except Exception as error:
                 print(error)
-                await channel.send(_("Beep Beep! Your timer wasn't formatted correctly. Change your **!timerset** to match the format on your EX Raid invite and try again."))
+                return await _send_error_message(channel, _("Beep Beep! Your timer wasn't formatted correctly. **!timerset mm/dd HH:MM AM/PM** can be used to set the timer for the channel."))
             diff = convert_to_epoch(end) - convert_to_epoch(now)
             total = (diff / 60)
             if total > 0:
                 await _timerset(channel, int(total), end)
             elif now > end:
-                await channel.send( _("Beep Beep! Please enter a time in the future."))
+                return await _send_error_message(channel, _("Beep Beep! Please enter a time in the future."))
         else:
-            await channel.send( _("Beep Beep! Timerset isn't supported for exraids after they have hatched."))
+            return await _send_error_message(channel, _("Beep Beep! Timerset isn't supported for exraids after they have hatched."))
 
 
 def _timercheck(time, maxtime):
@@ -4551,6 +4562,13 @@ def _add_rsvp_to_dict(trainer_dict, member_id, status, count=None):
     return trainer_dict
 
 
+
+STATUS_MESSAGE = {}
+STATUS_MESSAGE['waiting'] = "at the raid"
+STATUS_MESSAGE['maybe'] = "interested"
+STATUS_MESSAGE['omw'] = "on the way"
+
+
 async def _maybe(message, count, member=None):
 
     if member:
@@ -4616,8 +4634,9 @@ async def _here(message, count):
     await message.channel.send( embed=channel_status_embed(message=message, embed_msg_desc=embed_msg, colour=discord.Colour.green()))
 
 
-def get_names_from_channel(message, status, mentions=False):
-    trainer_dict = copy.deepcopy(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
+def _get_trainer_names_from_dict(message, status, mentions=False, trainer_dict=None):
+    if not trainer_dict:
+        trainer_dict = copy.deepcopy(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
     name_list = []
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == status:
@@ -4640,13 +4659,16 @@ def get_names_from_channel(message, status, mentions=False):
     return None
 
 
-def get_count_from_channel(message, status):
-    rc_d = guild_dict[message.guild.id]['raidchannel_dict']
-    r = message.channel.id
+def get_count_from_channel(message, status, trainer_dict=None):
+    if not trainer_dict:
+        rc_d = guild_dict[message.guild.id]['raidchannel_dict']
+        r = message.channel.id
+        trainer_dict = rc_d[r]['trainer_dict']
+
     count = 0
-    for trainer in rc_d[r]['trainer_dict'].values():
+    for trainer in trainer_dict.values():
         if trainer['status'] == status:
-            count += trainer['count']
+            count += int(trainer['count'])
 
     return count
 
@@ -4713,22 +4735,23 @@ async def on_message(message):
 
             raid_status = guild_dict[message.guild.id]['raidchannel_dict'].get(message.channel.id, None)
             if raid_status is not None:
-                if guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['active']:
+                is_active_channel = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id].get('active',False)
+                if is_active_channel:
                     trainer_dict = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
-                    if message.author.id in trainer_dict:
-                        count = trainer_dict[message.author.id]['count']
-                    else:
-                        count = 1
-                    omw_emoji = parse_emoji(message.guild, config['omw_id'])
-                    if message.content.startswith(omw_emoji):
-                        emoji_count = message.content.count(omw_emoji)
-                        await _coming(message, emoji_count)
-                        return
-                    here_emoji = parse_emoji(message.guild, config['here_id'])
-                    if message.content.startswith(here_emoji):
-                        emoji_count = message.content.count(here_emoji)
-                        await _here(message, emoji_count)
-                        return
+                    # if message.author.id in trainer_dict:
+                    #     count = trainer_dict[message.author.id]['count']
+                    # else:
+                    #     count = 1
+                    # omw_emoji = parse_emoji(message.guild, config['omw_id'])
+                    # if message.content.startswith(omw_emoji):
+                    #     emoji_count = message.content.count(omw_emoji)
+                    #     await _coming(message, emoji_count)
+                    #     return
+                    # here_emoji = parse_emoji(message.guild, config['here_id'])
+                    # if message.content.startswith(here_emoji):
+                    #     emoji_count = message.content.count(here_emoji)
+                    #     await _here(message, emoji_count)
+                    #     return
                     if "/maps" in message.content:
                         if message.content.startswith("!update") == False:
                             await process_map_link(message)
@@ -4895,10 +4918,12 @@ async def __exraid(ctx):
         print(error)
     await asyncio.sleep(1)  # Wait for the channel to be created.
 
-    raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
+    raidmsg = _(
+"""
+Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
 When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.
 ** **
-Please type `!beep raid` if you need a refresher of Clembot commands! 
+Please type `!beep status` if you need a refresher of Clembot commands! 
 """).format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
     raidmessage = await raid_channel.send(content=raidmsg, embed=raid_embed)
@@ -5667,7 +5692,7 @@ async def status(ctx):
             await ctx.message.channel.send( content="Beep Beep! This channel is not active anymore, feel free to tag any admin to clean it up!")
             return
         status_map = copy.deepcopy(guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id])
-        exp = status_map.pop('exp')
+        exp = status_map.pop('exp',None)
         if exp:
             status_map['exp'] = exp.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -5763,6 +5788,11 @@ async def _send_error_message(channel, description):
 
 async def _send_message(channel, description):
     try:
+
+        error_message = "The output contains more than 2000 characters."
+        if len(description) >= 2000:
+            discord.Embed(description="{0}".format(error_message), colour=color)
+
         color = discord.Colour.green()
         message_embed = discord.Embed(description="{0}".format(description), colour=color)
 
@@ -6057,7 +6087,29 @@ beep_report = _(
 Also, see **!beep gym** for gym-code commands!
 """)
 
-beep_raid_status = _("""
+beep_raid = _("""
+**{member}** here are the commands for a raid channel:
+
+**!timer** - shows the expiry time for the raid.
+**!timerset <minutes>** - set the expiry time for the raid.
+
+**!raid <pokemon>** - to update egg channel into an open raid.
+
+**!start HH:MM AM/PM** - to **suggest** a start time.
+**!starting** - to clear the **here** list.
+
+**!weather** - to see the current weather or a list of weather options.
+**!weather <weather>** - to set the weather for the raid.
+
+**!counters** - to bring counters information from PokeBattler.
+
+**!mention [status] <message>** - to send a message to all trainers whose responded with status. If status is not given everyone in the channel is mentioend.
+
+Also, see **!beep status** for additional raid commands!
+""")
+
+
+beep_status = _("""
 **{member}** to update your status, choose from the following commands:
 
 **!interested** or **!i** - to mark your status as **interested** for the raid
@@ -6068,43 +6120,14 @@ beep_raid_status = _("""
 If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
 Example: **!coming 5** or **!c 5**
 
+If you are RSVP for another trainer just tag them.
+Example: **!c {bot} 2**
+
 **!list** or **!l** - lists status of all members for the raid.
 
-**!timer** - shows the expiry time for the raid.
-**!timerset <minutes>** - set the expiry time for the raid.
-
-**!start HH:MM AM/PM** - to **suggest** a start time.
-**!starting** - to clear the **here** list.
-
-**!raid <pokemon>** - to update egg channel into an open raid.
-
+Also, see **!beep raid** for additional raid commands!
 """)
 
-
-beep_raid = _("""
-{member} to update your status, choose from the following commands:
-** **
-`!interested`, `!coming`, `!here` or `!cancel`
-or alternatively use the shortcuts 
-`!i`, `!c`, `!h` or `!x`
-** **
-If you are bringing more than one trainer/account, add the number of accounts total on your first status update.
-Example: `!coming 5` or `!c 5`
-** **
-`!list` or `!l` will show the list of trainers who have given their status.
-** **
-*Sending a Google Maps link will update the raid location.*
-**New**
-`!gym gymcode` looks up gym location based upon gymcode, try `!beep gym` for more details!
-** **
-`!timer` will show the current raid time.
-`!timerset <minutes>` will let you correct the raid countdown time.
-** **
-`!raid <pokemon>` to update egg channel into an open raid.
-`!raid assume <pokemon>` to have the egg channel auto-update into an open raid.
-** **
-`!start HH:MM AM/PM` to suggest a start time.
-`!starting` when the raid is beginning to clear the raid's 'here' list.""")
 
 beep_raidparty = ("""
 **{member}** here are the commands to work with raid party. 
@@ -6112,17 +6135,17 @@ beep_raidparty = ("""
 **!roster** - to print the current roster
 **!where** - to see the pathshare path ( if applicable )
 **!where <location #>** will tell directions for location #
-`!current` will tell you current location of the raid party
-`!next` will tell you where the raid party is headed next.
+**!current** will tell you current location of the raid party
+**!next** will tell you where the raid party is headed next.
 ** ** 
 to update your status, choose from the following commands:
 ** **
-`!interested`, `!coming`, `!here` or `!cancel`
+**!interested**, **!coming**, **!here** or **!cancel**
 or alternatively use the shortcuts 
-`!i`, `!c`, `!h` or `!x`
+**!i**, **!c**, **!h** or **!x**
 ** **
 
-Also, see `!beep raidowner` for Raid Party management commands!
+Also, see **!beep raidowner** for Raid Party management commands!
 """)
 
 beep_raidowner = ("""**{member}** here are the commands to organize raid party:
@@ -6206,7 +6229,7 @@ beep_exraid = ("""**{member}** here are the commands for ex-raids.
 
 **!timerset mm/dd HH:MM AM/PM** can be used to set the timer for the channel.
 
-**!archive** marks a channel for archival and it's not deleted automatically. It's toggle command.
+**!archive** switches the archival mode for an ex-raid channel. When set the channel is not deleted automatically.
 """)
 
 # ---------------------------------------------------------------------------------------
@@ -6254,8 +6277,10 @@ async def beep(ctx):
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Nest", description=beep_nest.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'research':
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Research", description=beep_research.format(member=ctx.message.author.display_name), footer=footer))
-            elif args_split[0] == 'raid' or args_split[0] == 'status' :
-                await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Status Management", description = beep_raid_status.format(member=ctx.message.author.display_name), footer=footer))
+            elif args_split[0] == 'raid':
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Management", description=beep_raid.format(member=ctx.message.author.display_name), footer=footer))
+            elif args_split[0] == 'status' :
+                await ctx.message.channel.send( embed = get_beep_embed(title="Help - Status Management", description = beep_status.format(member=ctx.message.author.display_name, bot=ctx.guild.me.mention), footer=footer))
             elif args_split[0] == 'exraid' :
                 await ctx.message.channel.send( embed = get_beep_embed(title="Help - EX-Raid Reporting", description = beep_exraid.format(member=ctx.message.author.display_name), footer=footer))
     except Exception as error:
@@ -6269,24 +6294,28 @@ weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy', 'partlycloudy', 'c
 @checks.activeraidchannel()
 async def weather(ctx):
     "Sets the weather for the raid. \nUsage: !weather <weather> \nOnly usable in raid channels. \n Acceptable options: none, extreme, clear, rainy, partlycloudy, cloudy, windy, snowy, foggy"
+    try:
+        weather_split = ctx.message.clean_content.lower().split()
 
-    weather_split = ctx.message.clean_content.lower().split()
-
-    if len(weather_split) >= 2:
-        del weather_split[0]
-        weather = weather_split[0]
+        if len(weather_split) >= 2:
+            del weather_split[0]
+            weather = weather_split[0]
 
 
-        if weather.lower() not in weather_list:
-            return await ctx.channel.send("Beep Beep! valid weather conditions are : {}".format(", ".join(weather_list)))
+            if weather.lower() not in weather_list:
+                return await _send_error_message(ctx.channel, "Beep Beep! valid weather conditions are : {}".format(", ".join(weather_list)))
+            else:
+                guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]['weather'] = weather.lower()
+                emoji = get_weather(ctx.guild, weather)
+                return await _send_message(ctx.channel,"Beep Beep! The current weather is set to **{0}**{1}!".format(weather, emoji))
         else:
-            guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]['weather'] = weather.lower()
-            return await _send_message(ctx.channel,"Beep Beep! Weather set to **{0}**{1}!".format(weather, get_weather(ctx.guild, weather)))
-    else:
-        raid_weather = guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id].get('weather', None)
-        if raid_weather:
-            return await _send_message(ctx.channel,"Beep Beep! The current weather is **{0}**{1}!".format(weather, get_weather(ctx.guild, raid_weather)))
-        return await ctx.channel.send("Beep Beep! Please use **!weather <weather>** to set weather for the raid. valid weather conditions are : {}".format(", ".join(weather_list)))
+            raid_weather = guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id].get('weather', None)
+            if raid_weather:
+                return await _send_message(ctx.channel,"Beep Beep! The current weather is **{0}**{1}!".format(raid_weather, get_weather(ctx.guild, raid_weather)))
+            return await _send_error_message(ctx.channel, "Beep Beep! Please use **!weather <weather>** to set weather for the raid. valid weather conditions are : **{}**".format(", ".join(weather_list)))
+    except Exception as error:
+        await _send_error_message(ctx.channel, error)
+
 
 @Clembot.command()
 @checks.activeraidchannel()
@@ -6455,37 +6484,87 @@ async def countersold(ctx, *, entered_pkmn = None):
 
 
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["i", "maybe"])
-@checks.raidchannel()
-async def interested(ctx, *, count: str = None):
-    """Indicate you are interested in the raid.
 
-    Usage: !interested [message]
-    Works only in raid channels. If message is omitted, assumes you are a group of 1.
-    Otherwise, this command expects at least one word in your message to be a number,
-    and will assume you are a group with that many people."""
-    trainer_dict = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
-    if count:
-        if count.isdigit():
-            count = int(count)
-            if count > 20 or count < 1:
-                await ctx.message.channel.send( _("Beep Beep! Currently the group size is limited between 1 to 20."))
-                return
-        else:
-            await ctx.message.channel.send( _("Beep Beep! I can't understand how many are in your group. Just say **!interested** if you're by yourself, or **!interested 5** for example if there are 5 in your group."))
-            return
-    else:
-        if ctx.message.author.id in trainer_dict:
-            count = trainer_dict[ctx.message.author.id]['count']
-        else:
-            count = 1
 
-    await _maybe(ctx.message, count)
+def validate_count(count_value):
+
+    try:
+        count = int(count_value)
+    except Exception as error:
+        raise ValueError("I can't understand how many are in your group, please use a number to specify the party size.")
+
+    if 1 <= count <= 20:
+        return count
+    else :
+        raise ValueError("Group size is limited between 1-20.")
+
+
+
+
+
+async def _process_rsvp(message, status):
+    try:
+        arguments = message.content
+        trainer_dict = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
+
+        party_status = {}
+        mentions_list = []
+
+        args = arguments.split()
+        # if mentions are provided
+        if message.mentions:
+            for mention in message.mentions:
+                mentions_list.append(mention.mention)
+                arguments = arguments.replace(mention.mention,'#'+str(mention.id))
+
+            args = arguments.split()
+            del args[0]
+            last_mention = None
+            for arg in args:
+                if last_mention and arg.isdigit():
+                    party_status[last_mention] = validate_count(arg)
+                    last_mention = None
+                elif arg.startswith('#'):
+                    last_mention = arg
+                    existing_party_size = trainer_dict.setdefault(int(last_mention.replace('#', '')),{}).get('count', 1)
+                    party_status[last_mention] = existing_party_size
+                else:
+                    raise ValueError("Only accpetable options are group size or mentions of trainers in group.")
+
+        else:
+
+            last_mention = '#' + str(message.author.id)
+            mentions_list.append(message.author.mention)
+            if len(args) > 1:
+                party_status[last_mention] = validate_count(args[1])
+            else:
+                existing_party_size = trainer_dict.setdefault(int(last_mention.replace('#', '')),{}).get('count', 1)
+                party_status[last_mention] = existing_party_size
+
+        total_trainer_rsvp = 0
+        for user_id, party_size in party_status.items():
+            trainer_dict = _add_rsvp_to_dict(trainer_dict, int(user_id.replace('#','')), status, party_size)
+            total_trainer_rsvp += party_size
+
+        guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict'] = trainer_dict
+
+        trainer_count_message = "" if total_trainer_rsvp == 1 else " with a total of {trainer_count} trainers".format(trainer_count=total_trainer_rsvp)
+        conjuction = "is" if len(party_status) == 1 else "are"
+
+        embed_msg = _("{member} {conjuction} {status_message}{trainer_count_message}!").format(member=", ".join(mentions_list) , conjuction=conjuction, status_message=STATUS_MESSAGE[status], trainer_count_message=trainer_count_message)
+
+        await _send_rsvp_embed(message, trainer_dict, description=embed_msg)
+
+    except ValueError as valueerror:
+        await _send_error_message(message.channel, "Beep Beep! **{}** {}".format(message.author.display_name, valueerror))
+
+    except Exception as error:
+        print(error)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["c","o"])
 @checks.raidchannel()
-async def coming(ctx, *, count: str = None):
+async def coming(ctx):
     """Indicate you are on the way to a raid.
 
     Usage: !coming [message]
@@ -6494,35 +6573,8 @@ async def coming(ctx, *, count: str = None):
     of 1.
     Otherwise, this command expects at least one word in your message to be a number,
     and will assume you are a group with that many people."""
-    #    try:
-    #        if guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['type'] == "egg":
-    #           if guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['pokemon'] == "":
-    #                await ctx.message.channel.send( _("Beep Beep! Please wait until the raid egg has hatched before announcing you're coming or present."))
-    #                return
-    #    except:
-    #        pass
 
-    trainer_dict = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
-
-    print(ctx.message.mentions)
-
-
-    if count:
-        if count.isdigit():
-            count = int(count)
-            if count > 20 or count < 1:
-                await ctx.message.channel.send( _("Beep Beep! Currently the group size is limited between 1 to 20."))
-                return
-        else:
-            await ctx.message.channel.send( _("Beep Beep! I can't understand how many are in your group. Just say **!coming** if you're by yourself, or **!coming 5** for example if there are 5 in your group."))
-            return
-    else:
-        if ctx.message.author.id in trainer_dict:
-            count = trainer_dict[ctx.message.author.id]['count']
-        else:
-            count = 1
-
-    await _coming(ctx.message, count)
+    await _process_rsvp(ctx.message, "omw")
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["h"])
@@ -6536,32 +6588,21 @@ async def here(ctx, *, count: str = None):
     from that command. Otherwise, assumes you are a group of 1.
     Otherwise, this command expects at least one word in your message to be a number,
     and will assume you are a group with that many people."""
-    # try:
-    #     if guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['type'] == "egg":
-    #         if guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['pokemon'] == "":
-    #             await ctx.message.channel.send( _("Beep Beep! Please wait until the raid egg has hatched before announcing you're coming or present."))
-    #             return
-    # except:
-    #     pass
 
-    trainer_dict = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict']
+    await _process_rsvp(ctx.message, "waiting")
 
-    if count:
-        if count.isdigit():
-            count = int(count)
-            if count > 20 or count < 1:
-                await ctx.message.channel.send( _("Beep Beep! Currently the group size is limited between 1 to 20."))
-                return
-        else:
-            await ctx.message.channel.send( _("Beep Beep! I can't understand how many are in your group. Just say **!here** if you're by yourself, or **!coming 5** for example if there are 5 in your group."))
-            return
-    else:
-        if ctx.message.author.id in trainer_dict:
-            count = trainer_dict[ctx.message.author.id]['count']
-        else:
-            count = 1
 
-    await _here(ctx.message, count)
+@Clembot.command(pass_context=True, hidden=True, aliases=["i", "maybe"])
+@checks.raidchannel()
+async def interested(ctx, *, count: str = None):
+    """Indicate you are interested in the raid.
+
+    Usage: !interested [message]
+    Works only in raid channels. If message is omitted, assumes you are a group of 1.
+    Otherwise, this command expects at least one word in your message to be a number,
+    and will assume you are a group with that many people."""
+
+    await _process_rsvp(ctx.message, "maybe")
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["x"])
@@ -6608,6 +6649,12 @@ async def starting(ctx):
     await ctx.message.channel.send( starting_str)
 
 
+RAID_list_options = ['timer','rsvp','weather','interested','coming','here']
+
+RAID_PARTY_list_options = ['rsvp','interested','coming','here']
+
+RSVP_options = ['description','rsvp']
+
 @Clembot.group(pass_context=True, hidden=True, aliases=["lists, list"])
 async def list(ctx):
     """Lists all raid info for the current channel.
@@ -6618,6 +6665,7 @@ async def list(ctx):
     try:
         if ctx.invoked_subcommand is None:
             listmsg = ""
+            message = ctx.message
             guild = ctx.message.guild
             channel = ctx.message.channel
             args = ctx.message.clean_content.lower().split()
@@ -6715,65 +6763,19 @@ async def list(ctx):
 
             if checks.check_raidpartychannel(ctx):
                 if checks.check_raidactive(ctx):
-                    rc_d = guild_dict[guild.id]['raidchannel_dict'][channel.id]
-
-                    await _generate_list_embed(ctx.message)
-
+                    return await channel.send(embed=_generate_rsvp_embed_master(message, RAID_PARTY_list_options))
                     return
 
             if checks.check_raidchannel(ctx):
                 if checks.check_raidactive(ctx):
-                    rc_d = guild_dict[guild.id]['raidchannel_dict'][channel.id]
-                    embed_msg = ""
-
-                    embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
-                    raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%I:%M %p (%H:%M)")
-
-                    raid_time_label = "**Raid Expires At**"
-                    if rc_d['type'] == 'egg' :
-                        raid_time_label = "**Egg Hatches At**"
-                        if rc_d['egglevel'] == 'EX':
-                            raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%B %d %I:%M %p (%H:%M)")
-
-                    start_time = fetch_channel_start_time(ctx.message.channel.id)
-                    start_time_label = "None"
-                    if start_time:
-                        raid_time_label = raid_time_label + " **/ Suggested Start Time**"
-                        raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
-
-                    embed.add_field(name=raid_time_label, value=raid_time_value)
-
-                    embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(ctx.message, "waiting"), omw=get_count_from_channel(ctx.message, "omw"), maybe=get_count_from_channel(ctx.message, "maybe")), inline=True)
-
-                    weather = rc_d.get('weather', None)
-                    if weather:
-                        embed.add_field(name="Weather", value="{0} ({1})".format(get_weather(ctx.guild,weather), weather.capitalize()))
-
-                    maybe = get_names_from_channel(ctx.message, "maybe")
-                    if maybe:
-                        embed.add_field(name="**Interested**", value=maybe)
-
-                    omw = get_names_from_channel(ctx.message, "omw")
-                    if omw:
-                        embed.add_field(name="**On the way**", value=omw)
-
-                    waiting = get_names_from_channel(ctx.message, "waiting")
-                    if waiting:
-                        embed.add_field(name="**At the raid**", value=waiting)
-
-                    await channel.send( embed=embed)
-
-                    listmsg += await _interest(ctx)
-                    listmsg += "\n" + await _otw(ctx)
-                    listmsg += "\n" + await _waiting(ctx)
-                    if rc_d['type'] != 'exraid':
-                        listmsg += "\n" + await print_raid_timer(channel.id)
-                    listmsg += "\n" + await print_start_time(channel.id)
-
+                    return await channel.send(embed=_generate_rsvp_embed_master(message, RAID_list_options))
 
     except Exception as error:
         print(error)
     return
+
+
+
 
 
 
@@ -6789,22 +6791,29 @@ async def research(ctx):
 
 async def _researchlist(ctx):
     try:
+        args = ctx.message.clean_content.lower().split()
+        filter = None if len(args) < 3 else args[2]
+
         research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict',{}))
         questmsg = ""
         for questid in research_dict:
             if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
-                try:
-                    questreportmsg = await ctx.message.channel.get_message(questid)
-                    questauthor = ctx.channel.guild.get_member(research_dict[questid]['reportauthor'])
-                    if questauthor :
-                        author_display_name = questauthor.display_name
-                    else:
-                        author_display_name = "N/A"
-                    research_id = research_dict[questid]['research_id']
-                    questmsg += _('\n🔰')
-                    questmsg += _("**[{research_id}]** - **Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(research_id=research_id,location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title(), author=author_display_name))
-                except discord.errors.NotFound:
-                    pass
+                if filter in research_dict[questid]['quest'].title().lower():
+                    try:
+                        questreportmsg = await ctx.message.channel.get_message(questid)
+                        questauthor = ctx.channel.guild.get_member(research_dict[questid]['reportauthor'])
+                        if questauthor :
+                            author_display_name = questauthor.display_name
+                        else:
+                            author_display_name = "N/A"
+                        research_id = research_dict[questid]['research_id']
+                        questmsg += _('\n🔰')
+                        if ctx.message.author.bot:
+                            questmsg += _("**[{research_id}]** - {location} / {quest} / {reward}".format(research_id=research_id,location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title()))
+                        else:
+                            questmsg += _("**[{research_id}]** - **Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(research_id=research_id, location=research_dict[questid]['location'].title(), quest=research_dict[questid]['quest'].title(), reward=research_dict[questid]['reward'].title(), author=author_display_name))
+                    except discord.errors.NotFound:
+                        pass
         if questmsg:
             listmsg = _(' **Here\'s the current research reports for {channel}**\n{questmsg}').format(channel=ctx.message.channel.name.capitalize(),questmsg=questmsg)
         else:
@@ -6838,6 +6847,58 @@ async def _remove_research(ctx, research_id=None):
                 pass
     return await _send_error_message(ctx.channel, "**{0}** No Research found with **{1}** .".format(ctx.message.author.display_name, research_id))
 
+@Clembot.command(pass_context=True, hidden=True, aliases=["research-status"])
+async def _research_status(ctx, research_id=None):
+    if research_id is None:
+        return await _send_error_message(ctx.channel, "Please provide the 4 char code for the research quest!")
+
+
+    questmsg = ""
+    delete_quest_id = None
+    research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict', {}))
+    for questid in research_dict:
+        if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
+            try:
+                quest_research_id = research_dict[questid]['research_id']
+                quest_reported_by = research_dict[questid]['reportauthor']
+                if quest_research_id == research_id:
+                    quest_research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict', {})).get(questid,{})
+                    return await _send_message(ctx.channel, json.dumps(quest_research_dict, indent=2))
+
+            except discord.errors.NotFound:
+                pass
+    return await _send_error_message(ctx.channel, "**{0}** No Research found with **{1}** .".format(ctx.message.author.display_name, research_id))
+
+async def _send_rsvp_embed(message, trainer_dict, description = None):
+
+
+
+
+
+    return await message.channel.send(embed=_generate_rsvp_embed_master(message, options=RSVP_options, trainer_dict=trainer_dict, description=description))
+
+def _generate_rsvp_embed(message, trainer_dict):
+    embed_msg = ""
+
+    embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
+
+    embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(message, "waiting", trainer_dict=trainer_dict), omw=get_count_from_channel(message, "omw",trainer_dict=trainer_dict), maybe=get_count_from_channel(message, "maybe", trainer_dict=trainer_dict)), inline=True)
+
+    maybe = _get_trainer_names_from_dict(message, "maybe", trainer_dict=trainer_dict)
+    if maybe:
+        embed.add_field(name="**Interested**", value=maybe)
+
+    omw = _get_trainer_names_from_dict(message, "omw", trainer_dict=trainer_dict)
+    if omw:
+        embed.add_field(name="**On the way**", value=omw)
+
+    waiting = _get_trainer_names_from_dict(message, "waiting", trainer_dict=trainer_dict)
+    if waiting:
+        embed.add_field(name="**At the raid**", value=waiting)
+
+    return embed
+
+
 
 async def _generate_list_embed(message):
     embed_msg = ""
@@ -6846,19 +6907,150 @@ async def _generate_list_embed(message):
 
     embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(message, "waiting"), omw=get_count_from_channel(message, "omw"), maybe=get_count_from_channel(message, "maybe")), inline=True)
 
-    maybe = get_names_from_channel(message, "maybe")
+    maybe = _get_trainer_names_from_dict(message, "maybe")
     if maybe:
         embed.add_field(name="**Interested**", value=maybe)
 
-    omw = get_names_from_channel(message, "omw")
+    omw = _get_trainer_names_from_dict(message, "omw")
     if omw:
         embed.add_field(name="**On the way**", value=omw)
 
-    waiting = get_names_from_channel(message, "waiting")
+    waiting = _get_trainer_names_from_dict(message, "waiting")
     if waiting:
         embed.add_field(name="**At the raid**", value=waiting)
 
     await message.channel.send( embed=embed)
+
+
+def _generate_rsvp_embed_master(message, options = RAID_list_options, trainer_dict = None, description=None):
+    trainer_dict = None
+
+    if not trainer_dict:
+        trainer_dict = copy.deepcopy(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
+
+    additional_fields = {}
+
+    rc_d = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]
+    for option in options:
+        if option == 'timer':
+            raid_time_value = fetch_channel_expire_time(message.channel.id).strftime("%I:%M %p (%H:%M)")
+            raid_time_label = "Raid Expires At"
+            if rc_d['type'] == 'egg' :
+                raid_time_label = "Egg Hatches At"
+                if rc_d['egglevel'] == 'EX':
+                    raid_time_value = fetch_channel_expire_time(message.channel.id).strftime("%B %d %I:%M %p (%H:%M)")
+
+            start_time = fetch_channel_start_time(message.channel.id)
+            start_time_label = "None"
+            if start_time:
+                raid_time_label = raid_time_label + " / Suggested Start Time"
+                raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
+
+            additional_fields[raid_time_label] = raid_time_value
+
+        if option == 'rsvp':
+            aggregated_label = "Interested / On the way / At the raid"
+            aggregated_status = "{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(message, "waiting"), omw=get_count_from_channel(message, "omw"), maybe=get_count_from_channel(message, "maybe"))
+            additional_fields[aggregated_label] = aggregated_status
+        elif option == 'interested':
+            trainer_names = _get_trainer_names_from_dict(message, "maybe")
+            if trainer_names:
+                additional_fields['Interested'] = trainer_names
+        elif option == 'coming':
+            trainer_names = _get_trainer_names_from_dict(message, "omw")
+            if trainer_names:
+                additional_fields['On the way'] = trainer_names
+        elif option == 'here':
+            trainer_names = _get_trainer_names_from_dict(message, "waiting")
+            if trainer_names:
+                additional_fields['At the raid'] = trainer_names
+    footer = None
+
+    return _create_rsvp_embed(message, description, additional_fields, footer)
+
+
+def _create_rsvp_embed(message, description=None, additional_fields = {}, footer = None):
+
+    embed = discord.Embed(description=description, colour=discord.Colour.gold())
+
+    for label, value in additional_fields.items():
+        embed.add_field(name="**{0}**".format(label), value= value, inline=True)
+
+    if footer:
+        embed.set_footer(text=footer)
+
+    return embed
+
+
+
+#------------------
+    # raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%I:%M %p (%H:%M)")
+    #
+    # raid_time_label = "**Raid Expires At**"
+    # if rc_d['type'] == 'egg' :
+    #     raid_time_label = "**Egg Hatches At**"
+    #     if rc_d['egglevel'] == 'EX':
+    #         raid_time_value = fetch_channel_expire_time(ctx.message.channel.id).strftime("%B %d %I:%M %p (%H:%M)")
+    #
+    # start_time = fetch_channel_start_time(ctx.message.channel.id)
+    # start_time_label = "None"
+    # if start_time:
+    #     raid_time_label = raid_time_label + " **/ Suggested Start Time**"
+    #     raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
+    #
+    # embed.add_field(name=raid_time_label, value=raid_time_value)
+    #
+    # embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(ctx.message, "waiting"), omw=get_count_from_channel(ctx.message, "omw"), maybe=get_count_from_channel(ctx.message, "maybe")), inline=True)
+    #
+    # weather = rc_d.get('weather', None)
+    # if weather:
+    #     embed.add_field(name="Weather", value="{0} ({1})".format(get_weather(ctx.guild,weather), weather.capitalize()))
+    #
+    # maybe = _get_trainer_names_from_dict(ctx.message, "maybe")
+    # if maybe:
+    #     embed.add_field(name="**Interested**", value=maybe)
+    #
+    # omw = _get_trainer_names_from_dict(ctx.message, "omw")
+    # if omw:
+    #     embed.add_field(name="**On the way**", value=omw)
+    #
+    # waiting = _get_trainer_names_from_dict(ctx.message, "waiting")
+    # if waiting:
+    #     embed.add_field(name="**At the raid**", value=waiting)
+    #
+    # await channel.send( embed=embed)
+    #
+    # listmsg += await _interest(ctx)
+    # listmsg += "\n" + await _otw(ctx)
+    # listmsg += "\n" + await _waiting(ctx)
+    # if rc_d['type'] != 'exraid':
+    #     listmsg += "\n" + await print_raid_timer(channel.id)
+    # listmsg += "\n" + await print_start_time(channel.id)
+
+
+#-------------------
+
+    return embed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -6931,8 +7123,14 @@ async def ask_confirmation(message, rusure_message, yes_message, no_message, tim
         return True
 
     # res = await Clembot.wait_for_reaction(reaction_list, message=rusure, check=check, timeout=60)
-
-    reaction, user = await Clembot.wait_for('reaction_add', check=check, timeout=60)
+    try:
+        reaction, user = await Clembot.wait_for('reaction_add', check=check, timeout=10)
+    except asyncio.TimeoutError:
+        await rusure.delete()
+        confirmation = await channel.send(_("Beep Beep! {message}".format(message=timed_out_message)))
+        await asyncio.sleep(3)
+        await confirmation.delete()
+        return False
 
     if reaction.emoji == "❎":
         await rusure.delete()
@@ -6947,11 +7145,7 @@ async def ask_confirmation(message, rusure_message, yes_message, no_message, tim
         await confirmation.delete()
         return True
 
-    await rusure.delete()
-    confirmation = await channel.send( _("Beep Beep! {message}".format(message=timed_out_message)))
-    await asyncio.sleep(3)
-    await confirmation.delete()
-    return False
+
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -7133,100 +7327,89 @@ def convert_command_to_status(text):
     command_text = text.replace('!','')
 
     if command_text in coming_list:
-        status = "coming"
+        status = "omw"
     elif command_text in cancel_list:
         status = "cancel"
     elif command_text in maybe_list:
         status = "maybe"
     elif command_text in here_list:
-        status = "here"
+        status = "waiting"
+
     return status
 
 
-@Clembot.command(pass_context=True, hidden=True)
-async def recover(ctx):
+@Clembot.command(pass_context=True, hidden=True, aliases=["recover-rsvp"])
+async def _recover_rsvp(ctx):
     try:
+        message = ctx.message
         channel = ctx.message.channel
         guild = ctx.message.guild
-        await ctx.message.delete()
+
         trainer_dict = {}
         async for message in channel.history(limit=500, reverse=True):
             if message.author.id != guild.me.id:
-                print("{0} {1}".format(message.author,message.content))
-
                 if message.content.startswith('!'):
-                    rsvp_command = convert_command_to_status(message.content.split()[0])
+                    rsvp_status = convert_command_to_status(message.content.split()[0])
                     try:
-                        rsvp_count = message.content.split()[1]
+                        rsvp_count = int(message.content.split()[1])
                     except Exception:
                         rsvp_count = None
                         pass
-                    print(rsvp_command)
-                    if rsvp_command in coming_list:
-                        rsvp_status = 'coming'
-                    elif rsvp_command in cancel_list:
-                        rsvp_status = 'cancel'
-                    elif rsvp_command in maybe_list:
-                        rsvp_status = 'maybe'
-                    elif rsvp_command in here_list:
-                        rsvp_status = 'here'
-                    else:
-                        rsvp_status = None
 
                     if rsvp_status:
                         trainer_dict = _add_rsvp_to_dict(trainer_dict, message.author.id, rsvp_status, rsvp_count)
                         print(trainer_dict)
 
+        output_message = None
+        if trainer_dict:
+            output_message = await _send_rsvp_embed(ctx.message, trainer_dict)
+            replace_dict = await ask_confirmation(ctx.message, "Replace the RSVP for the channel?", "Thanks for confirmation.", "No changes done!", "Request Timed out!")
 
-        output_message = await _send_message(ctx.message.channel, json.dumps(trainer_dict, indent=4))
+            if replace_dict:
+                add_to_raidchannel_dict(ctx.message)
+                guild_dict[message.guild.id]['raidchannel_dict'][channel.id]['trainer_dict'] = trainer_dict
 
+            await _send_message(channel, "Beep Beep! **{0}** the RSVP has been updated successfully!".format(message.author.display_name))
 
-
+        else:
+            output_message = await _send_error_message(ctx.message.channel, "No RSVP Detected!")
 
         await asyncio.sleep(15)
+        await message.delete()
         await output_message.delete()
 
-        # guild_dict[channel.guild.id]['raidchannel_dict'][channel.id] = {'reportcity': reportchannel, 'trainer_dict': trainer_dict, 'exp': exp, 'manual_timer': manual_timer, 'active': True, 'raidmessage': raidmessage.id, 'raidreport': None, 'address': raid_details, 'type': raidtype, 'pokemon': pokemon, 'egglevel': egglevel}
-        # await _edit_party(channel, message.author)
-        # recovermsg = _("Meowth! This channel has been recovered! However, there may be some inaccuracies in what I remembered! Here's what I have:")
-        # bulletpoint = '🔹'
-        # recovermsg += ('\n' + bulletpoint) + (await _interest(ctx))
-        # recovermsg += ('\n' + bulletpoint) + (await _otw(ctx))
-        # recovermsg += ('\n' + bulletpoint) + (await _waiting(ctx))
-        # if (not manual_timer):
-        #     if raidtype == 'egg':
-        #         action = _('hatch')
-        #         type = _('egg')
-        #     elif raidtype == 'raid':
-        #         action = _('end')
-        #         type = _('raid')
-        #     recovermsg += _("\nI'm not sure when this {raidtype} will {action}, so please use **!timerset** if you can!").format(raidtype=type, action=action)
-        # else:
-        #     recovermsg += ('\n' + bulletpoint) + (await print_raid_timer(channel))
-        # await _edit_party(channel, ctx.message.author)
-        # await channel.send(recovermsg)
-        # event_loop.create_task(expiry_check(channel))
     except Exception as error:
         print(error)
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["mention"])
+@Clembot.command(pass_context=True, hidden=True, aliases=["mention","m"])
 async def _mention(ctx):
 
+    allowed = checks.check_raidchannel(ctx) or checks.check_exraidchannel(ctx) or checks.check_raidpartychannel(ctx) or checks.check_eggchannel(ctx)
     try:
-        status_to_check = "omw"
+        if not allowed:
+            raise ValueError("Beep Beep! **{}**, **mention** can't be used in this channel.".format(ctx.message.author.display_name))
+
+        args = ctx.message.clean_content.split()
+
+        status_to_check = None if len(args) < 2 else convert_command_to_status(args[1])
+
+        message_to_say = None if len(args) < 2 else args[2:] if status_to_check else args[1:]
 
         trainer_dict = copy.deepcopy(guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict'])
 
-        message_to_say = ctx.message.clean_content.split()[2:]
+        if not message_to_say:
+            raise ValueError("Beep Beep! **{}**, please use **!mention [status] <message>**.".format(ctx.message.author.display_name))
 
         name_list = []
         for trainer in trainer_dict.keys():
-            if trainer_dict[trainer]['status'] == status_to_check:
+            if status_to_check == None or trainer_dict[trainer]['status'] == status_to_check:
                 user = await Clembot.get_user_info(trainer)
                 name_list.append(user.mention)
 
-        listmsg = (_("Beep Beep! {trainer_list} {message}").format(trainer_list=", ".join(name_list), message=" ".join(message_to_say)))
+        if len(name_list) == 0:
+            raise ValueError("Beep Beep! **{}**, No trainers found to mention.".format(ctx.message.author.display_name))
 
+        listmsg = (_("Beep Beep! {trainer_list} {message}").format(trainer_list=", ".join(name_list), message=" ".join(message_to_say)))
 
         await ctx.channel.send(listmsg)
     except Exception as error:
@@ -7722,6 +7905,43 @@ async def current(ctx):
 
     await print_roster_with_highlight(ctx.message, roster_index, roster_message)
     return
+
+def add_to_raidchannel_dict(message):
+
+    existing_dict = guild_dict[message.guild.id]['raidchannel_dict'].get(message.channel.id, {})
+
+    reportcity = existing_dict.get('reportcity', message.channel.id)
+    trainer_dict = existing_dict.get('trainer_dict', {})
+    exp = existing_dict.get('exp', None)
+    manual_timer = existing_dict.get('manual_timer', False)
+    active = existing_dict.get('active', True)
+    raidmessage = existing_dict.get('raidmessage', None)
+    type = existing_dict.get('type', 'raidparty')
+    pokemon = existing_dict.get('pokemon', None)
+    egglevel = existing_dict.get('egglevel', -1)
+    suggested_start = existing_dict.get('suggested_start', False)
+    roster = existing_dict.get('roster', [])
+    roster_index = existing_dict.get('roster_index', None)
+    started_by = existing_dict.get('started_by', message.author.id)
+
+    new_dict = {
+        'reportcity': reportcity,
+        'trainer_dict': trainer_dict,
+        'exp': exp,
+        'manual_timer': manual_timer,
+        'active': active,
+        'raidmessage': raidmessage,
+        'type': type,
+        'pokemon': pokemon,
+        'egglevel': egglevel,
+        'suggested_start': suggested_start,
+        'roster': roster,
+        'roster_index': roster_index,
+        'started_by' : started_by
+    }
+
+    guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id] = new_dict
+
 
 
 @Clembot.command(pass_context=True, hidden=True)
