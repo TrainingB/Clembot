@@ -6792,13 +6792,13 @@ async def research(ctx):
 async def _researchlist(ctx):
     try:
         args = ctx.message.clean_content.lower().split()
-        filter = None if len(args) < 3 else args[2]
+        filter_text = None if len(args) < 3 else args[2]
 
         research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict',{}))
         questmsg = ""
         for questid in research_dict:
             if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
-                if filter in research_dict[questid]['quest'].title().lower():
+                if not filter_text or filter_text in research_dict[questid]['quest'].title().lower():
                     try:
                         questreportmsg = await ctx.message.channel.get_message(questid)
                         questauthor = ctx.channel.guild.get_member(research_dict[questid]['reportauthor'])
@@ -6817,7 +6817,10 @@ async def _researchlist(ctx):
         if questmsg:
             listmsg = _(' **Here\'s the current research reports for {channel}**\n{questmsg}').format(channel=ctx.message.channel.name.capitalize(),questmsg=questmsg)
         else:
-            listmsg = _(" There are no reported research reports. Report one with **!research**")
+            if len(args) < 3 :
+                listmsg = _(" There are no research reports. Report one with **!research**")
+            else:
+                listmsg = _(" There are no research reports with **{quest}**. Report one with **!research**".format(quest=filter_text))
         return listmsg
     except Exception as error:
         logger.error(error)
