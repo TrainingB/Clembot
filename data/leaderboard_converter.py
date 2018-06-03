@@ -15,7 +15,7 @@ print(old_guild_dict)
 
 for guild_id in old_guild_dict:
 
-	for author_id in old_guild_dict[guild_id]['trainers']:
+	for author_id in old_guild_dict[guild_id].setdefault('trainers',{}):
 		print(old_guild_dict[guild_id]['trainers'][author_id])
 
 		leaderboard_status = copy.deepcopy(old_guild_dict[guild_id]['trainers'][author_id])
