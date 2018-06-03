@@ -6862,13 +6862,16 @@ async def _remove_research(ctx, research_id=None):
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["research-status"])
 async def _research_status(ctx, research_id=None):
-    if research_id is None:
-        return await _send_error_message(ctx.channel, "Please provide the 4 char code for the research quest!")
-
 
     questmsg = ""
     delete_quest_id = None
     research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict', {}))
+
+    print(json.dumps(research_dict, indent=2))
+
+    if research_id is None:
+        return await _send_error_message(ctx.channel, "Please provide the 4 char code for the research quest!")
+
     for questid in research_dict:
         if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
             try:
@@ -8785,7 +8788,7 @@ def record_error_reported_by(guild_id, author_id, report_type):
         leaderboard_list.append(addtional_leaderboard)
 
     for leaderboard in leaderboard_list:
-        existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) + 1
+        existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) - 1
         guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
 
 
