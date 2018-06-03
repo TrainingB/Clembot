@@ -965,7 +965,7 @@ async def message_cleanup(loop=True):
             for messageid in report_delete_dict.keys():
                 try:
                     report_message = await report_delete_dict[messageid]['channel'].get_message(messageid)
-                    logger.info('message_cleanup - DELETE ' + report_message)
+                    logger.info('message_cleanup - DELETE ' + report_message.content)
                     print(report_message)
                     await report_message.delete()
 
@@ -4167,6 +4167,7 @@ async def research(ctx, *, args = None):
                 'reportmessage':message.id,
                 'reportchannel':channel.id,
                 'reportauthor':author.id,
+                'reportauthorname':author.name,
                 'location':location,
                 'quest':quest,
                 'reward':reward
@@ -5446,6 +5447,13 @@ async def _eggtoraid(entered_raid, channel):
 
 
 
+def get_guild_local_leaderboard(guild_id):
+    configuration = gymsql.read_guild_configuration(guild_id=guild_id)
+
+    if configuration:
+        leaderboard_type = configuration.get('leaderboard-type',None)
+
+    return leaderboard_type
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -6514,8 +6522,10 @@ async def _process_rsvp(message, status):
         # if mentions are provided
         if message.mentions:
             for mention in message.mentions:
-                mentions_list.append(mention.mention)
-                arguments = arguments.replace(mention.mention,'#'+str(mention.id))
+                mention_text = mention.mention.replace('!','')
+                mentions_list.append(mention_text)
+                arguments = arguments.replace("<@!","<@")
+                arguments = arguments.replace(mention_text,'#'+str(mention.id))
 
             args = arguments.split()
             del args[0]
@@ -6529,7 +6539,7 @@ async def _process_rsvp(message, status):
                     existing_party_size = trainer_dict.setdefault(int(last_mention.replace('#', '')),{}).get('count', 1)
                     party_status[last_mention] = existing_party_size
                 else:
-                    raise ValueError("Only accpetable options are group size or mentions of trainers in group.")
+                    raise ValueError("Only acceptable options are group size or mentions of trainers in group.")
 
         else:
 
@@ -6805,11 +6815,11 @@ async def _researchlist(ctx):
                         if questauthor :
                             author_display_name = questauthor.display_name
                         else:
-                            author_display_name = "N/A"
+                            author_display_name = research_dict[questid]['reportauthorname']
                         research_id = research_dict[questid]['research_id']
                         questmsg += _('\n🔰')
                         if ctx.message.author.bot:
-                            questmsg += _("**[{research_id}]** - {location} / {quest} / {reward}".format(research_id=research_id,location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title()))
+                            questmsg += _("**[{research_id}]** - {location} / {quest} / {reward} / {author}".format(research_id=research_id,location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title(), author=author_display_name))
                         else:
                             questmsg += _("**[{research_id}]** - **Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(research_id=research_id, location=research_dict[questid]['location'].title(), quest=research_dict[questid]['quest'].title(), reward=research_dict[questid]['reward'].title(), author=author_display_name))
                     except discord.errors.NotFound:
@@ -8563,42 +8573,98 @@ async def profile(ctx, user: discord.Member = None):
         silph = f"[Traveler Card](https://sil.ph/{silph.lower()})"
     embed = discord.Embed(title=f"{user.display_name}\'s Trainer Profile", colour=user.colour)
     embed.set_thumbnail(url=user.avatar_url)
+
     embed.add_field(name="Silph Road", value=f"{silph}", inline=True)
     embed.add_field(name="Pokebattler Id", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('pokebattlerid',None)}", inline=True)
-    embed.add_field(name="Raid Reports", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('raid_reports',0)}", inline=True)
-    embed.add_field(name="Egg Reports", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('egg_reports',0)}", inline=True)
-    # embed.add_field(name="EX Raid Reports", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('ex_reports',0)}", inline=True)
-    embed.add_field(name="Wild Reports", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('wild_reports',0)}", inline=True)
-    embed.add_field(name="Research Reports", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('research_reports',0)}", inline=True)
+
+    trainer_profile=guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{})
+
+    leaderboard_list = ['lifetime']
+    addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
+    if addtional_leaderboard :
+        leaderboard_list.append(addtional_leaderboard)
+
+    for leaderboard in leaderboard_list:
+
+        reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault(leaderboard,{}).get('raid_reports',0) ,
+                                                                                        trainer_profile.setdefault(leaderboard, {}).get('egg_reports',0) ,
+                                                                                        trainer_profile.setdefault(leaderboard, {}).get('wild_reports',0),
+                                                                                        trainer_profile.setdefault(leaderboard, {}).get('research_reports',0) )
+
+        embed.add_field(name="Leaderboard : {}".format(leaderboard.capitalize()), value=f"{reports_text}", inline=True)
+
     await ctx.send(embed=embed)
 
-@Clembot.command()
-async def leaderboard(ctx, type="total"):
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["reset-leaderboard"])
+@checks.is_owner()
+async def _reset_leaderboard(ctx, leaderboard_type=None):
     """Displays the top ten reporters of a server.
 
     Usage: !leaderboard [type]
     Accepted types: raids, eggs, exraids, wilds, research"""
+
+    leaderboard_list = []
+
+    addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
+    if addtional_leaderboard :
+        leaderboard_list.append(addtional_leaderboard)
+
+    if not leaderboard_type:
+        return await _send_error_message(ctx.channel, "Beep Beep! **{}**, please provide leaderboard to be cleared.".format(ctx.author.mention))
+
+    if leaderboard_type not in leaderboard_list:
+        return await _send_error_message(ctx.message.channel, _("Beep Beep! **{0}** Leaderboard type not supported. Please select from: **{1}**").format(ctx.message.author.display_name, ", ".join(leaderboard_list)))
     trainers = copy.deepcopy(guild_dict[ctx.guild.id]['trainers'])
+
+    for trainer in trainers.keys():
+        guild_dict[ctx.guild.id]['trainers'][trainer][leaderboard_type] = {}
+
+    await _send_message(ctx.channel, "Beep Beep! **{}**, **{}** has been cleared.".format(ctx.author.mention, leaderboard_type))
+
+
+@Clembot.command()
+async def leaderboard(ctx, lb_type="lifetime" , r_type="total"):
+    """Displays the top ten reporters of a server.
+
+    Usage: !leaderboard [type]
+    Accepted types: raids, eggs, exraids, wilds, research"""
+
     leaderboard = []
     rank = 1
     typelist = ["total", "raids", "wilds", "research", "eggs"]
-    type = type.lower()
-    if type not in typelist:
-        await _send_error_message(ctx.message.channel, _("Beep Beep! **{0}** Leaderboard type not supported. Please select from: **{1}**").format(ctx.message.author.display_name, ", ".join(typelist)))
-        return
+    type = r_type.lower()
+
+    leaderboard_list = ['lifetime']
+    addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
+    if addtional_leaderboard :
+        leaderboard_list.append(addtional_leaderboard)
+
+    leaderboard_type = lb_type if lb_type in leaderboard_list else 'lifetime'
+
+    report_type = r_type if r_type in typelist else 'total'
+
+    if leaderboard_type != lb_type and report_type == 'total':
+        report_type = lb_type if lb_type in typelist else 'total'
+
+    if r_type != type and leaderboard != leaderboard_type and leaderboard != type:
+        return await _send_error_message(ctx.message.channel, _("Beep Beep! **{0}** Leaderboard type not supported. Please select from: **{1}**").format(ctx.message.author.display_name, ", ".join(typelist)))
+
+    trainers = copy.deepcopy(guild_dict[ctx.guild.id]['trainers'])
+
     for trainer in trainers.keys():
-        raids = trainers[trainer].setdefault('raid_reports', 0)
-        wilds = trainers[trainer].setdefault('wild_reports', 0)
-        exraids = trainers[trainer].setdefault('ex_reports', 0)
-        eggs = trainers[trainer].setdefault('egg_reports', 0)
-        research = trainers[trainer].setdefault('research_reports', 0)
+        raids = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('raid_reports', 0)
+        wilds = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('wild_reports', 0)
+        exraids = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('ex_reports', 0)
+        eggs = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('egg_reports', 0)
+        research = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('research_reports', 0)
         total_reports = raids + wilds + exraids + eggs + research
         trainer_stats = {'trainer':trainer, 'total':total_reports, 'raids':raids, 'wilds':wilds, 'research':research, 'eggs':eggs}
         if trainer_stats[type] > 0:
             leaderboard.append(trainer_stats)
     leaderboard = sorted(leaderboard,key= lambda x: x[type], reverse=True)[:10]
     embed = discord.Embed(colour=ctx.guild.me.colour)
-    embed.set_author(name=_("Reporting Leaderboard ({type})").format(type=type.title()), icon_url=Clembot.user.avatar_url)
+    embed.set_author(name=_("Leaderboard Type: {leaderboard_type} ({report_type})").format(leaderboard_type=leaderboard_type.title(), report_type=report_type.title()), icon_url=Clembot.user.avatar_url)
     for trainer in leaderboard:
         user = ctx.guild.get_member(trainer['trainer'])
         if user:
@@ -8701,20 +8767,26 @@ async def _wildlist(ctx):
 
 def record_reported_by(guild_id, author_id, report_type):
 
-    existing_reports = guild_dict[guild_id].setdefault('trainers',{}).setdefault(author_id, {}).setdefault(report_type, 0) + 1
-    guild_dict[guild_id]['trainers'][author_id][report_type] = existing_reports
+    leaderboard_list = ['lifetime']
+    addtional_leaderboard = get_guild_local_leaderboard(guild_id)
+    if addtional_leaderboard :
+        leaderboard_list.append(addtional_leaderboard)
+
+    for leaderboard in leaderboard_list:
+        existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) + 1
+        guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
 
 
 def record_error_reported_by(guild_id, author_id, report_type):
 
-    existing_reports = guild_dict[guild_id].setdefault('trainers',{}).setdefault(author_id, {}).setdefault(report_type, 0) - 1
-    guild_dict[guild_id]['trainers'][author_id][report_type] = existing_reports
+    leaderboard_list = ['lifetime']
+    addtional_leaderboard = get_guild_local_leaderboard(guild_id)
+    if addtional_leaderboard :
+        leaderboard_list.append(addtional_leaderboard)
 
-
-
-
-
-
+    for leaderboard in leaderboard_list:
+        existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) + 1
+        guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
 
 
 try:
