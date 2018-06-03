@@ -5449,7 +5449,7 @@ async def _eggtoraid(entered_raid, channel):
 
 def get_guild_local_leaderboard(guild_id):
     configuration = gymsql.read_guild_configuration(guild_id=guild_id)
-
+    leaderboard_type = None
     if configuration:
         leaderboard_type = configuration.get('leaderboard-type',None)
 
