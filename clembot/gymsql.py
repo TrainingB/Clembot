@@ -212,6 +212,16 @@ def convert_row_to_dict(row, col_names)-> {}:
 
     return gym_info_dict
 
+def convert_to_dict(row, col_names)-> {}:
+
+    gym_info_dict = {}
+
+    for onerow in row:
+        gym_info_dict[onerow[0]] = onerow[1]
+
+    return gym_info_dict
+
+
 def find_gym(city_state_key, gym_code_key):
     try:
         print("find_gym({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key.upper(), city_state_key=city_state_key.upper()))
@@ -577,7 +587,6 @@ def find_clembot_config(config_key):
     print("find_clembot_config ({0})".format(config_key))
 
     try:
-
         global cursor
         if cursor == None:
             connect()
@@ -603,6 +612,33 @@ def find_clembot_config(config_key):
 
     return None
 
+
+def find_all_clembot_config():
+    print("find_all_clembot_config()")
+
+    try:
+
+        global cursor
+        if cursor == None:
+            connect()
+
+        cursor.execute("select config_key , config_value from clembot_config order by id desc", ())
+
+        all_rows = cursor.fetchall()
+
+        col_names = [cn[0] for cn in cursor.description]
+
+        config_dict = {}
+
+        if len(all_rows) > 0:
+            config_dict.update(convert_to_dict(all_rows, col_names))
+
+        return config_dict
+
+    except Exception as error:
+        print(error)
+
+    return None
 
 def save_clembot_config(config_key, config_value):
     print("save_clembot_config ({0}, {1})".format(config_key, config_value))
@@ -709,12 +745,13 @@ def test_config():
 
     map = find_clembot_config("bingo-event-title")
     print(map)
-    print(map['mareep'])
+
 
 
 def main():
     set_db_name(SQLITE_DB)
     test_config()
-    print(find_gym('EASTPEORIAIL','JOTJO'))
 
-# main()
+    print(find_all_clembot_config())
+
+main()

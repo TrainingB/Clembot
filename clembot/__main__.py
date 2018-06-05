@@ -742,7 +742,7 @@ async def expire_channel(channel):
                             maybe_list.append(user.mention)
                     new_name = 'hatched-' + channel.name
                     await channel.edit(name=new_name)
-                    await channel.send( _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**. This channel will be deactivated until I get an update and I'll delete it in 15 minutes if I don't hear anything.""").format(trainer_list=", ".join(maybe_list)))
+                    await channel.send( _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**.""").format(trainer_list=", ".join(maybe_list)))
                 delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=45).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
                 expiremsg = _("**This level {level} raid egg has expired!**").format(level=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'])
             else:
@@ -1311,12 +1311,13 @@ async def _set_config(ctx):
     try:
         message = ctx.message
         args = ctx.message.content
-        args_split = args.split()
+        args_split = args.split(" ")
         del args_split[0]
+        key = args_split[1]
 
         if len(args_split) == 3:
             key = args_split[1]
-            value = args_split[2]
+            value = "".join(args_split[2:])
             gymsql.save_clembot_config(key,value)
 
         content = "Beep Beep! **{0}** has been set as **{1}**.".format(key, gymsql.find_clembot_config(key))
@@ -1332,13 +1333,18 @@ async def _get_config(ctx):
         message = ctx.message
         args = ctx.message.content
         args_split = args.split()
-        del args_split[0]
-        key = args_split[1]
-        content = "Beep Beep! **{0}**, **{1}** has the current value as **{2}**.".format(ctx.message.author.display_name, key, gymsql.find_clembot_config(key))
 
+        if len(args_split) > 2 :
+            key = args_split[1]
+            content = "Beep Beep! **{0}**, **{1}** has the current value as **{2}**.".format(ctx.message.author.display_name, key, gymsql.find_clembot_config(key))
+        else:
+            content = "Beep Beep! **{0}**, current values are :\n{1}".format(ctx.message.author.display_name, json.dumps(gymsql.find_all_clembot_config(), indent =2 ))
+        del args_split[0]
         await _send_message(ctx.message.channel, content)
     except Exception as error:
         print(error)
+
+
 
 @_get.command(pass_context=True, hidden=True, aliases=["configuration"])
 @checks.is_owner()
@@ -4922,7 +4928,6 @@ async def __exraid(ctx):
     raidmsg = _(
 """
 Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
-When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.
 ** **
 Please type `!beep status` if you need a refresher of Clembot commands! 
 """).format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
@@ -5256,10 +5261,8 @@ async def _raidegg(message):
             await asyncio.sleep(1)  # Wait for the channel to be created.
 
             raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
-    When this egg raid expires, there will be 15 minutes to update it into an open raid before it'll be deleted.
-    ** **
-    Please type `!beep raid` if you need a refresher of Clembot commands! 
-    """).format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
+Please type `!beep status` if you need a refresher of Clembot commands! 
+""").format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
             raidmessage = await raid_channel.send(content=raidmsg, embed=raid_embed)
 
@@ -7425,7 +7428,7 @@ async def _mention(ctx):
         if len(name_list) == 0:
             raise ValueError("Beep Beep! **{}**, No trainers found to mention.".format(ctx.message.author.display_name))
 
-        listmsg = (_("Beep Beep! {trainer_list} {message}").format(trainer_list=", ".join(name_list), message=" ".join(message_to_say)))
+        listmsg = (_("Beep Beep! {trainer_list} \n **{member}** said : {message}").format(member=ctx.message.author.mention, trainer_list=", ".join(name_list), message=" ".join(message_to_say)))
 
         await ctx.channel.send(listmsg)
     except Exception as error:
@@ -8421,7 +8424,7 @@ async def _bingo_card(ctx):
 
         if len(ctx.message.mentions) > 0:
             author = ctx.message.mentions[0]
-
+        print("calling")
         event_title_map = gymsql.find_clembot_config("bingo-event-title")
         logger.info(event_title_map)
         event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")

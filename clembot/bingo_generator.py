@@ -25,6 +25,11 @@ def load_data():
     with open(os.path.join(directory, "bulbasaur.json"), "r") as fd:
         pokemon_cp_level['bulbasaur_cp'] = json.load(fd)
 
+    with open(os.path.join(directory, "charmander.json"), "r") as fd:
+        pokemon_cp_level['charmander_cp'] = json.load(fd)
+
+    with open(os.path.join(directory, "larvitar.json"), "r") as fd:
+        pokemon_cp_level['larvitar_cp'] = json.load(fd)
 
 load_data()
 
@@ -52,9 +57,9 @@ gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2
 
 
 
-def generate_card(event_pokemon="charmander"):
+def generate_card(event_pokemon="larvitar"):
 
-    pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level['bulbasaur_cp'])
+    pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level['larvitar_cp'])
 
 
     MALE_SIGN = u"\u2642"
@@ -64,7 +69,7 @@ def generate_card(event_pokemon="charmander"):
 
     category = []
     size = ['XL','XL','XL','XL','XS','XS','XS','XS']
-    gender = gender_master.get(event_pokemon,[u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2640",u"\u2640"])
+    gender = gender_master.get(event_pokemon,[u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"])
 
     bingo_card = {}
 
@@ -96,7 +101,7 @@ def generate_card(event_pokemon="charmander"):
     cell_4_range = keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP'])
     cell_4_value = ["CP : {0} ".format(cell_4_range), "{0}".format(gender[randint(0,7)])]
 
-    cell_5_value = ["{0}".format(event_pokemon.capitalize()), "✩"]
+    cell_5_value = ["{0}".format(event_pokemon.capitalize().center(15, ' ')), "✩"]
 
     cell_6_level = randint(22, 25)
     cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
@@ -198,4 +203,4 @@ def main():
     print(print_card_as_text(generate_card()))
 
 
-#main()
+main()
