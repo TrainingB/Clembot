@@ -8635,54 +8635,57 @@ async def leaderboard(ctx, lb_type="lifetime" , r_type="total"):
 
     Usage: !leaderboard [type]
     Accepted types: raids, eggs, exraids, wilds, research"""
+    try:
+        leaderboard = []
+        rank = 1
+        typelist = ["total", "raids", "wilds", "research", "eggs"]
+        type = r_type.lower()
 
-    leaderboard = []
-    rank = 1
-    typelist = ["total", "raids", "wilds", "research", "eggs"]
-    type = r_type.lower()
+        leaderboard_list = ['lifetime']
+        addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
+        if addtional_leaderboard :
+            leaderboard_list.append(addtional_leaderboard)
 
-    leaderboard_list = ['lifetime']
-    addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
-    if addtional_leaderboard :
-        leaderboard_list.append(addtional_leaderboard)
+        leaderboard_type = lb_type if lb_type in leaderboard_list else 'lifetime'
 
-    leaderboard_type = lb_type if lb_type in leaderboard_list else 'lifetime'
+        report_type = r_type if r_type in typelist else 'total'
 
-    report_type = r_type if r_type in typelist else 'total'
+        if leaderboard_type != lb_type and report_type == 'total':
+            report_type = lb_type if lb_type in typelist else 'total'
 
-    if leaderboard_type != lb_type and report_type == 'total':
-        report_type = lb_type if lb_type in typelist else 'total'
+        if r_type != type and leaderboard != leaderboard_type and leaderboard != type:
+            return await _send_error_message(ctx.message.channel, _("Beep Beep! **{0}** Leaderboard type not supported. Please select from: **{1}**").format(ctx.message.author.display_name, ", ".join(typelist)))
 
-    if r_type != type and leaderboard != leaderboard_type and leaderboard != type:
-        return await _send_error_message(ctx.message.channel, _("Beep Beep! **{0}** Leaderboard type not supported. Please select from: **{1}**").format(ctx.message.author.display_name, ", ".join(typelist)))
+        trainers = copy.deepcopy(guild_dict[ctx.guild.id]['trainers'])
 
-    trainers = copy.deepcopy(guild_dict[ctx.guild.id]['trainers'])
+        for trainer in trainers.keys():
+            raids = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('raid_reports', 0)
+            wilds = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('wild_reports', 0)
+            exraids = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('ex_reports', 0)
+            eggs = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('egg_reports', 0)
+            research = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('research_reports', 0)
+            total_reports = raids + wilds + exraids + eggs + research
+            trainer_stats = {'trainer':trainer, 'total':total_reports, 'raids':raids, 'wilds':wilds, 'research':research, 'eggs':eggs}
+            if trainer_stats[type] > 0:
+                leaderboard.append(trainer_stats)
 
-    for trainer in trainers.keys():
-        raids = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('raid_reports', 0)
-        wilds = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('wild_reports', 0)
-        exraids = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('ex_reports', 0)
-        eggs = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('egg_reports', 0)
-        research = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('research_reports', 0)
-        total_reports = raids + wilds + exraids + eggs + research
-        trainer_stats = {'trainer':trainer, 'total':total_reports, 'raids':raids, 'wilds':wilds, 'research':research, 'eggs':eggs}
-        if trainer_stats[type] > 0:
-            leaderboard.append(trainer_stats)
-    leaderboard = sorted(leaderboard,key= lambda x: x[type], reverse=True)[:10]
-    embed = discord.Embed(colour=ctx.guild.me.colour)
-    embed.set_author(name=_("Leaderboard Type: {leaderboard_type} ({report_type})").format(leaderboard_type=leaderboard_type.title(), report_type=report_type.title()), icon_url=Clembot.user.avatar_url)
-    for trainer in leaderboard:
-        user = ctx.guild.get_member(trainer['trainer'])
-        if user:
-            embed.add_field(name=f"{rank}. {user.display_name} - {type.title()}: **{trainer[type]}**", value=f"Raids: **{trainer['raids']}** | Eggs: **{trainer['eggs']}** | Wilds: **{trainer['wilds']}** | Research: **{trainer['research']}**", inline=False)
-            rank += 1
-    await ctx.send(embed=embed)
+        leaderboard = sorted(leaderboard, key=lambda x: x[report_type], reverse=True)[:10]
+        embed = discord.Embed(colour=ctx.guild.me.colour)
+        embed.set_author(name=_("Leaderboard Type: {leaderboard_type} ({report_type})").format(leaderboard_type=leaderboard_type.title(), report_type=report_type.title()), icon_url=Clembot.user.avatar_url)
+        for trainer in leaderboard:
+            user = ctx.guild.get_member(trainer['trainer'])
+            if user:
+                embed.add_field(name=f"{rank}. {user.display_name} - {type.title()}: **{trainer[type]}**", value=f"Raids: **{trainer['raids']}** | Eggs: **{trainer['eggs']}** | Wilds: **{trainer['wilds']}** | Research: **{trainer['research']}**", inline=False)
+                rank += 1
+        await ctx.send(embed=embed)
+    except Exception as error:
+        print(error)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["pokedex"])
 @checks.is_owner()
 async def _pokedex(ctx, pokemon=None):
     if pokemon:
-        return await _send_message(ctx.channel, get_number(pokemon.lower()))
+        return await _send_message(ctx.channel, "{}".format(get_number(pokemon.lower())))
     else:
         return await _send_error_message(ctx.channel, "!pokedex <pokemon>")
 
