@@ -51,9 +51,10 @@ from random import *
 import pytz
 from pytz import timezone
 import jsonpickle
-import argparser
 import bingo_generator
 from WowBingo import WowBingo
+from exts.argparser import ArgParser
+
 
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
@@ -183,6 +184,49 @@ Clembot.config = config
 
 poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
 floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png"
+
+
+
+
+default_exts = ['silph']
+
+for ext in default_exts:
+    try:
+        print(f"clembot.exts.{ext}")
+        Clembot.load_extension(f"clembot.exts.{ext}")
+    except Exception as e:
+        print(f'**Error when loading extension {ext}:**\n{type(e).__name__}: {e}')
+    else:
+        if 'debug' in sys.argv[1:]:
+            print(f'Loaded {ext} extension.')
+
+@Clembot.command(name='load')
+@checks.is_owner()
+async def _load(ctx, *extensions):
+    for ext in extensions:
+        try:
+            ctx.bot.unload_extension(f"clembot.exts.{ext}")
+            ctx.bot.load_extension(f"clembot.exts.{ext}")
+        except Exception as e:
+            error_title = _('**Error when loading extension')
+            await ctx.send(f'{error_title} {ext}:**\n'
+                           f'{type(e).__name__}: {e}')
+        else:
+            await ctx.send(_('**Extension {ext} Loaded.**\n').format(ext=ext))
+
+@Clembot.command(name='unload')
+@checks.is_owner()
+async def _unload(ctx, *extensions):
+    exts = [e for e in extensions if f"exts.{e}" in Clembot.extensions]
+    for ext in exts:
+        ctx.bot.unload_extension(f"exts.{ext}")
+    s = 's' if len(exts) > 1 else ''
+    await ctx.send(_("**Extension{plural} {est} unloaded.**\n").format(plural=s, est=', '.join(exts)))
+
+
+Parser = ArgParser()
+
+
 """
 
 ======================
@@ -1512,55 +1556,52 @@ async def prefix(ctx):
     await ctx.message.channel.send( "Prefix for this guild is: `{}`".format(prefix))
 
 
+
 @_set.command()
-async def silph(ctx, silphid: str = ''):
+async def silph(ctx, silph_user: str = None):
     """Links a server member to a Silph Road Travelers Card."""
-    if not silphid:
+    if not silph_user:
         await ctx.send(_('Silph Road Travelers Card cleared!'))
         try:
             del guild_dict[ctx.guild.id]['trainers'][ctx.author.id]['silphid']
         except:
             pass
         return
-    url = f'https://sil.ph/{silphid}.json'
+
+    silph_cog = ctx.bot.cogs.get('Silph')
+    if not silph_cog:
+        return await ctx.send(
+            _("The Silph Extension isn't accessible at the moment, sorry!"))
+
     async with ctx.typing():
-        async with aiohttp.ClientSession() as sess:
-            async with sess.get(url) as resp:
-                data = await resp.json()
-        if data.get('error', None):
-            if data['error']=="Private Travelers Card":
-                await ctx.send(_('This Travelers Card is private and cannot be linked!'))
-                return
-            elif data['error']=='Card not found':
-                await ctx.send(_('Travelers Card not found!'))
-                return
-        else:
-            socials = data['data'].get('socials', None)
-            if not socials:
-                await ctx.send(_('No Discord account found linked to this Travelers Card!'))
-                return
-            else:
-                disuser = ''
-                for social in socials:
-                    if social['vendor'] == "Discord":
-                        disuser = social['username']
-                        break
-                    else:
-                        continue
-                if not disuser:
-                    await ctx.send(_('No Discord account found linked to this Travelers Card!'))
-                    return
-                elif disuser != str(ctx.author):
-                    await ctx.send(_('This Travelers Card is linked to another Discord account!'))
-                    return
-                else:
-                    embed = _get_silph(ctx,data)
-                    trainers = guild_dict[ctx.guild.id].get('trainers', {})
-                    author = trainers.get(ctx.author.id,{})
-                    author['silphid'] = silphid
-                    trainers[ctx.author.id] = author
-                    guild_dict[ctx.guild.id]['trainers'] = trainers
-                    await ctx.send(_('This Travelers Card has been successfully linked to you!'),embed=embed)
+        card = await silph_cog.get_silph_card(silph_user)
+        if not card:
+            return await ctx.send(_('Silph Card for {silph_user} not found.').format(silph_user=silph_user))
+
+    if not card.discord_name:
+        return await ctx.send(
+            _('No Discord account found linked to this Travelers Card!'))
+
+    if card.discord_name != str(ctx.author):
+        return await ctx.send(
+            _('This Travelers Card is linked to another Discord account!'))
+
+    try:
+        offset = ctx.bot.guild_dict[ctx.guild.id]['configure_dict']['settings']['offset']
+    except KeyError:
+        offset = None
+
+    trainers = guild_dict[ctx.guild.id].get('trainers', {})
+    author = trainers.get(ctx.author.id,{})
+    author['silphid'] = silph_user
+    trainers[ctx.author.id] = author
+    guild_dict[ctx.guild.id]['trainers'] = trainers
+
+    await ctx.send(
+        _('This Travelers Card has been successfully linked to you!'), embed=card.embed(offset))
+
+
+
 
 @_set.command()
 async def pokebattler(ctx, pbid: int = 0):
@@ -3355,7 +3396,7 @@ async def _newraid(message):
 
 
     argument_text = message.clean_content.lower()
-    parameters = argparser.parse_arguments(argument_text, raid_SYNTAX_ATTRIBUTE, {'pokemon' : is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
+    parameters = Parser.parse_arguments(argument_text, raid_SYNTAX_ATTRIBUTE, {'pokemon' : is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
     logger.info(parameters)
 
     if fromegg and parameters['length'] > 2:
@@ -4852,7 +4893,7 @@ async def exraid(ctx):
 async def __exraid(ctx):
     message = ctx.message
     argument_text = ctx.message.clean_content.lower()
-    parameters = argparser.parse_arguments(argument_text, exraid_SYNTAX_ATTRIBUTE, {'gym_info' : get_gym_by_code_message}, {'message' : ctx.message})
+    parameters = Parser.parse_arguments(argument_text, exraid_SYNTAX_ATTRIBUTE, {'gym_info' : get_gym_by_code_message}, {'message' : ctx.message})
     logger.info(parameters)
     print(parameters)
 
@@ -5176,7 +5217,7 @@ async def _raidegg(message):
             await _send_error_message(message.channel, "Please use this command in a region channel.")
             return
         argument_text = message.clean_content.lower()
-        parameters = argparser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
+        parameters = Parser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
         logger.info(parameters)
         print(parameters)
         if parameters['length'] <= 2:
@@ -5914,7 +5955,7 @@ async def nest(ctx):
         message=ctx.message
 
         argument_text = message.clean_content
-        parameters = argparser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
+        parameters = Parser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
 
         if parameters.get('length') <= 2:
             return await _send_error_message(ctx.message.channel, "**{0}**, Please use **!beep nest** to see the correct usage.".format(message.author.display_name))
@@ -8489,82 +8530,6 @@ async def get_repository_channel(message):
 
     except Exception as error:
         logger.error(error)
-
-
-@Clembot.command()
-async def silphcard(ctx, user: str = None):
-    try:
-        if not user:
-            user = guild_dict[ctx.guild.id].get('trainers',{}).get(ctx.author.id,{}).get('silphid', None)
-        else:
-            if ctx.message.mentions:
-                user = guild_dict[ctx.guild.id].get('trainers', {}).get(ctx.message.mentions[0].id,{}).get('silphid', None)
-        if not user:
-            await _send_error_message(ctx.channel,_(f'Beep Beep! **{ctx.message.author.display_name}** you did not provide a known Silph Road Traveler!'))
-            return
-        else:
-            url = 'https://sil.ph/{user}.json'.format(user=user)
-            async with ctx.typing():
-                async with aiohttp.ClientSession() as sess:
-                    async with sess.get(url) as resp:
-                        data = await resp.json()
-            if data.get('error', None):
-                await _send_error_message(ctx.channel,_(f"Beep Beep! **{user}**  does not have a public Travelers Card!"))
-                return
-            embed = _get_silph(ctx,data)
-            await ctx.send(embed=embed)
-    except Exception as error:
-        print(error)
-
-
-def _get_silph(ctx,data):
-    hyperlink_icon = "https://i.imgur.com/fn9E5nb.png"
-    silph_icon = "https://assets.thesilphroad.com/img/snoo_sr_icon.png"
-    card_id = data['data']['card_id']
-    home_region = data['data']['home_region']
-    pokedex_count = data['data']['pokedex_count']
-    raid_average = data['data']['raid_average']
-    team = data['data']['team']
-    playstyle = data['data']['playstyle']
-    modified = data['data']['modified']
-    modified_datetime = dateparser.parse(modified, settings={'TIMEZONE': 'UTC'})
-    local_datetime = modified_datetime + datetime.timedelta(hours=guild_dict[ctx.guild.id]['offset'])
-    local_date = local_datetime.date().isoformat()
-    goal = data['data']['goal']
-    trainer_level = data['data']['trainer_level']
-    nest_migrations = data['data']['nest_migrations']
-    title = data['data']['title']
-    avatar = data['data']['avatar']
-    ign = data['data']['in_game_username']
-    joined = data['data']['joined']
-    joined_datetime = datetime.datetime.strptime(joined, "%Y-%m-%d %H:%M:%S")
-    local_joined = joined_datetime + datetime.timedelta(hours=guild_dict[ctx.guild.id]['offset'])
-    joined_date = local_joined.date().isoformat()
-    badge_count = len(data['data']['badges'])
-    checkins = len(data['data']['checkins'])
-    handshakes = data['data']['handshakes']
-    socials = data['data']['socials']
-    disuser = ''
-    for social in socials:
-        if social['vendor'] == "Discord":
-            disuser = social['username']
-            break
-        else:
-            continue
-    if not disuser:
-        disstring = ":grey_question: **Discord Not Provided**"
-    else:
-        disstring = ":ballot_box_with_check: **Connected to Discord:**"
-
-    embed = discord.Embed(title="Playstyle", colour=discord.Colour(0xe8c13c), description=f"{playstyle}, working on {goal.lower()}.\nActive around {home_region}.\n\n{disstring} {disuser}")
-
-    embed.set_thumbnail(url=avatar)
-    embed.set_author(name=f"{title} {ign} - Level {trainer_level} {team}", url=f"https://sil.ph/{ign.lower()}", icon_url=hyperlink_icon)
-    embed.set_footer(text=f"Silph Road Travelers Card - ID{card_id} - Updated {local_date}", icon_url=silph_icon)
-
-    embed.add_field(name="__Silph Stats__", value=f"**Joined:** {joined_date}\n**Badges:** {badge_count}\n**Check-ins:** {checkins}\n**Handshakes:** {handshakes}\n**Migrations:** {nest_migrations}", inline=True)
-    embed.add_field(name="__Game Stats__", value=f"**Name:** {ign}\n**Team:** {team}\n**Level:** {trainer_level}\n**Pokedex:** {pokedex_count}\n**Raids:** {raid_average}/week", inline=True)
-    return embed
 
 
 @Clembot.command(hidden=True)
