@@ -754,4 +754,4 @@ def main():
 
     print(find_all_clembot_config())
 
-main()
+#main()
