@@ -188,25 +188,23 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 
-default_exts = ['silph']
+default_exts = ['exts.silph']
 
 for ext in default_exts:
     try:
-        print(f"clembot.exts.{ext}")
-        Clembot.load_extension(f"clembot.exts.{ext}")
+        Clembot.load_extension(ext)
     except Exception as e:
         print(f'**Error when loading extension {ext}:**\n{type(e).__name__}: {e}')
     else:
-        if 'debug' in sys.argv[1:]:
-            print(f'Loaded {ext} extension.')
+        print(f'Loaded {ext} extension.')
 
 @Clembot.command(name='load')
 @checks.is_owner()
 async def _load(ctx, *extensions):
     for ext in extensions:
         try:
-            ctx.bot.unload_extension(f"clembot.exts.{ext}")
-            ctx.bot.load_extension(f"clembot.exts.{ext}")
+            ctx.bot.unload_extension(f"exts.{ext}")
+            ctx.bot.load_extension(f"exts.{ext}")
         except Exception as e:
             error_title = _('**Error when loading extension')
             await ctx.send(f'{error_title} {ext}:**\n'
@@ -1995,7 +1993,7 @@ async def configure(ctx):
                 continue
     # configure main-channels
     if (configcancel == False) and (guild_dict_temp['other'] == True) and ((guild_dict_temp['wildset'] == True) or (guild_dict_temp['raidset'] == True)) and ((firstconfig == True) or (configgoto == 'all') or (configgoto == 'regions') or (configgoto == 'allmain')):
-        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="Pokemon raid or wild reports are contained within one or more channels. Each channel will be able to represent different areas/communities. I'll need you to provide a list of channels in your server you will allow reports from in this format: `channel-name, channel-name, channel-name`\n\nIf you do not require raid and wild reporting, you may want to disable this function.\n\nRespond with: **N** to disable, or the **channel-name** list to enable, each seperated with a comma and space:").set_author(name='Reporting Channels', icon_url=Clembot.user.avatar_url))
+        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="Pokemon raid or wild reports are contained within one or more channels. Each channel will be able to represent different areas/communities. I'll need you to provide a list of channels in your server you will allow reports from in this format: `channel-name, channel-name, channel-name`\n\nIf you do not require raid and wild reporting, you may want to disable this function.\n\n**Current Reporting Channels : **`{current_regions}` \n\n**New Reporting Channels** (Respond with: **N** to disable, or the **channel-name** list to enable, each seperated with a comma and space):".format(current_regions=", ".join(guild_dict[guild.id]['city_channels'].keys()))).set_author(name='Reporting Channels', icon_url=Clembot.user.avatar_url))
         citychannel_dict = {
 
         }
@@ -2023,7 +2021,7 @@ async def configure(ctx):
                     await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("The channel list you provided doesn't match with your servers channels.\n\nThe following aren't in your server: {invalid_channels}\n\nPlease double check your channel list and resend your reponse.").format(invalid_channels=', '.join(diff))))
                     continue
     if (configcancel == False) and (guild_dict_temp['other'] == True) and ((guild_dict_temp['wildset'] == True) or (guild_dict_temp['raidset'] == True)) and ((firstconfig == True) or (configgoto == 'all') or (configgoto == 'regions') or (configgoto == 'allmain')):
-        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description='For each report, I generate Google Maps links to give people directions to raids and spawns! To do this, I need to know which suburb/town/region each report channel represents, to ensure we get the right location in the map. For each report channel you provided, I will need its corresponding general location using only letters and spaces, with each location seperated by a comma and space.\n\nExample: `kansas city mo, hull uk, sydney nsw australia`\n\nEach location will have to be in the same order as you provided the channels in the previous question.\n\nRespond with: **location info, location info, location info** each matching the order of the previous channel list:').set_author(name='Report Locations', icon_url=Clembot.user.avatar_url))
+        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description='For each report, I generate Google Maps links to give people directions to raids and spawns! To do this, I need to know which suburb/town/region each report channel represents, to ensure we get the right location in the map. For each report channel you provided, I will need its corresponding general location using only letters and spaces, with each location seperated by a comma and space.\n\nExample: `kansas city mo, hull uk, sydney nsw australia`\n\nEach location will have to be in the same order as you provided the channels in the previous question.\n\n**Current Reporting Cities : **`{current_cities}` \n\n**New Reporting Cities** (Respond with: **location info, location info, location info** each matching the order of the previous channel list):'.format(current_cities=", ".join(guild_dict[guild.id]['city_channels'].values()))).set_author(name='Report Locations', icon_url=Clembot.user.avatar_url))
         while True:
             cities = await Clembot.wait_for('message', check=(lambda message: (message.guild == None) and message.author == owner))
             if cities.content.lower() == 'cancel':
@@ -2109,7 +2107,16 @@ async def configure(ctx):
             break
         guild_dict_temp['category_dict'] = category_dict
     if (configcancel == False) and (guild_dict_temp['other'] == True) and ((firstconfig == True) or (configgoto == 'all') or (configgoto == 'want') or (configgoto == 'allmain')):
-        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="The **!want** and **!unwant** commands let you add or remove roles for Pokemon that will be mentioned in reports. This let you get notifications on the Pokemon you want to track. I just need to know what channels you want to allow people to manage their pokemon with the **!want** and **!unwant** command. If you pick a channel that doesn't exist, I'll make it for you.\n\nIf you don't want to allow the management of tracked Pokemon roles, then you may want to disable this feature.\n\nRepond with: **N** to disable, or the **channel-name** list to enable, each seperated by a comma and space.").set_author(name='Pokemon Notifications', icon_url=Clembot.user.avatar_url))
+
+        existing_want_channel_list = []
+        for channel_id in guild_dict_temp['want_channel_list']:
+            try:
+                want_channel = discord.utils.get(guild.channels, id=channel_id)
+                existing_want_channel_list.append(want_channel.name)
+            except:
+                pass
+            await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="The **!want** and **!unwant** commands let you add or remove roles for Pokemon that will be mentioned in reports. This let you get notifications on the Pokemon you want to track. I just need to know what channels you want to allow people to manage their pokemon with the **!want** and **!unwant** command. If you pick a channel that doesn't exist, I'll make it for you.\n\nIf you don't want to allow the management of tracked Pokemon roles, then you may want to disable this feature.\n\n**Current Want Channels : **`{current_regions}` \n\n**New Want Channels** (Respond with: **N** to disable, or the **channel-name** list to enable, each seperated by a comma and space) :".format(current_regions=', '.join(existing_want_channel_list))).set_author(name='Pokemon Notifications', icon_url=Clembot.user.avatar_url))
+
         while True:
             wantchs = await Clembot.wait_for('message', check=(lambda message: (message.guild == None) and message.author == owner))
             if wantchs.content.lower() == 'n':
@@ -5436,10 +5443,10 @@ async def _eggtoraid(entered_raid, channel):
         except Exception as error:
             print(error)
         raidmsg = _("""
-    Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
-    This channel will be deleted five minutes after the timer expires.
-    ** **
-    Please type `!beep raid` if you need a refresher of Clembot commands! 
+Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
+This channel will be deleted five minutes after the timer expires.
+** **
+Please type `!beep raid` if you need a refresher of Clembot commands! 
     """).format(member=raid_messageauthor.mention, citychannel=reportcitychannel.mention, pokemon=raid_role, location_details=egg_address)
 
         try:
@@ -6130,7 +6137,9 @@ beep_report = _(
 
 **!raid <pokemon> <place or gym-code> [timer]** - to create a channel for pokemon raid at place with timer remaining.
 
-**!raidegg <level> <place or gym-code> [timer]** - to create a channel for specified level egg at place with timer remaining.
+**!raid <level> <place or gym-code> [timer]** - to create a channel for specified level egg at place with timer remaining.
+
+*Note: **!r** can be used in place of **!raid***
 
 **!raidparty <raid-party-channel-name>** - to create a channel for raid party where multiple raids are done by a group back to back. 
 
@@ -6670,7 +6679,7 @@ async def cancel(ctx):
     await _cancel(ctx.message)
 
 
-@Clembot.command(pass_context=True, hidden=True)
+@Clembot.command(pass_context=True, hidden=True, aliases=["s"])
 @checks.activeraidchannel()
 async def starting(ctx):
     """Signal that a raid is starting.
@@ -6776,7 +6785,7 @@ async def list(ctx):
                         assumed_str = " (assumed)"
                     else:
                         assumed_str = ""
-                    if rc_d[r]['egglevel'].isdigit() and int(rc_d[r]['egglevel']) > 0:
+                    if rc_d[r]['type'] == 'egg' and rc_d[r]['egglevel'].isdigit() and int(rc_d[r]['egglevel']) > 0:
                         expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
                     elif rc_d[r]['egglevel'] == "EX" or rc_d[r]['type'] == "exraid":
                         expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%B %d at %I:%M %p (%H:%M)"), is_assumed=assumed_str)
@@ -8477,6 +8486,7 @@ async def _bingo_card(ctx):
 
         if is_option_new:
             existing_bingo_card_record = None
+
 
         if existing_bingo_card_record:
             bingo_card = json.loads(existing_bingo_card_record['bingo_card'])
