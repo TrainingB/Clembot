@@ -2433,7 +2433,7 @@ def _want_roles(guild):
     cleancount = 0
     allowed_want_list = []
     for role in guild.roles:
-        if role.name in get_raidlist():
+        if role.name in pkmn_info['pokemon_list']:
             allowed_want_list.append(role.name)
     return allowed_want_list
 
