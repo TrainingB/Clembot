@@ -2494,7 +2494,7 @@ async def want(ctx):
             if entered_want not in pkmn_info['pokemon_list']:
                 await _send_error_message(channel, _("Beep Beep! **{member}** {entered_want} is not a pokemon. Please use a valid pokemon name.").format(member=ctx.message.author.mention, entered_want=edisplay_name))
             else:
-                await _send_error_message(channel, _("Beep Beep! **{member}** only specific pokemon are allowed to be notified! Please contact an admin if you want **{entered_want}** to be included.").format(member=ctx.message.author.display_name, entered_want=entered_want))
+                await _send_error_message(channel, _("Beep Beep! **{member}** only specific pokemon are allowed to be notified!\nYou can type **!want** to see available pokemon for subscription. Please contact an admin if you want **{entered_want}** to be included.").format(member=ctx.message.author.display_name, entered_want=entered_want))
             return
         role = await guild.create_role(name=entered_want, hoist=False, mentionable=True)
         await asyncio.sleep(0.5)
