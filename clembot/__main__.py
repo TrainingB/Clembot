@@ -2429,6 +2429,16 @@ async def sprite(ctx):
     want_embed.set_thumbnail(url=want_img_url)
     await channel.send( embed=want_embed)
 
+def _want_roles(guild):
+    cleancount = 0
+    allowed_want_list = []
+    for role in guild.roles:
+        if role.name in get_raidlist():
+            allowed_want_list.append(role.name)
+    return allowed_want_list
+
+
+
 @Clembot.command()
 @commands.has_permissions(manage_guild=True)
 async def cleanroles(ctx):
@@ -2438,6 +2448,7 @@ async def cleanroles(ctx):
             await role.delete()
             cleancount += 1
     await ctx.message.channel.send("Removed {cleancount} empty roles".format(cleancount=cleancount))
+
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -2459,6 +2470,14 @@ async def want(ctx):
     channel = message.channel
     want_split = message.clean_content.lower().split()
     del want_split[0]
+
+    if len(want_split) < 1:
+        help_embed = get_help_embed("Subscribe for Pokemon notifications.", "!want pokemon", "Available Roles: ", _want_roles(ctx.message.guild), "message")
+        await message.channel.send(embed=help_embed)
+
+        return
+
+
     entered_want = " ".join(want_split)
     old_entered_want = entered_want
     if entered_want not in pkmn_info['pokemon_list']:
@@ -2881,7 +2900,8 @@ def _get_subscription_roles(guild):
 
     for role_id in notifications['roles']:
         role = discord.utils.get(guild.roles, id=role_id)
-        role_list.append(role.name)
+        if role:
+            role_list.append(role.name)
 
     return role_list
 
@@ -3113,7 +3133,7 @@ async def _subscribe(ctx):
 
         if len(args) < 1:
 
-            help_embed = get_help_embed("Subscribe to roles for notifications.", "!subscribe role", "Available Roles: ", _get_subscription_roles(ctx.message.guild), message)
+            help_embed = get_help_embed("Subscribe to roles for notifications.", "!subscribe role", "Available Roles: ", _get_subscription_roles(ctx.message.guild), "message")
             await message.channel.send(embed=help_embed)
 
             return
@@ -6790,7 +6810,7 @@ async def list(ctx):
                     elif rc_d[r]['egglevel'] == "EX" or rc_d[r]['type'] == "exraid":
                         expirytext = " - Hatches: {expiry}{is_assumed}".format(expiry=end.strftime("%B %d at %I:%M %p (%H:%M)"), is_assumed=assumed_str)
                     else:
-                        expirytext = " - Expiry: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
+                        expirytext = " - Expires at: {expiry}{is_assumed}".format(expiry=end.strftime("%I:%M %p (%H:%M)"), is_assumed=assumed_str)
                     output += (_("    {raidchannel}{expiry_text}\n").format(raidchannel=rchan.mention, expiry_text=expirytext))
                     output += (_("    {interestcount} interested, {comingcount} coming, {herecount} here.\n").format(raidchannel=rchan.mention, interestcount=ctx_maybecount, comingcount=ctx_omwcount, herecount=ctx_waitingcount))
                     return output
