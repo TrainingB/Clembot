@@ -2833,6 +2833,22 @@ def _reset_role_notification_map(guild_id):
     guild_dict[guild_id].update(notifications_map)
 
 
+async def _get_roles_mention_for_notifications(guild, gym_code):
+    role_ids = []
+
+    channel_mentions = []
+
+    if 'notifications' in guild_dict[guild.id]:
+        role_id = guild_dict[guild.id]['notifications']['gym_role_map'].get(gym_code, None)
+
+        if role_id in guild_dict[guild.id]['notifications']['roles']:
+            role = discord.utils.get(guild.roles, id=role_id)
+            if role:
+                channel_mentions.append(role.mention)
+
+    return channel_mentions
+
+
 def _get_role_for_notification(guild_id, gym_code):
     role_id = None
     if 'notifications' in guild_dict[guild_id]:
@@ -2870,6 +2886,15 @@ async def _reset_register(ctx):
 @commands.has_permissions(manage_guild=True)
 async def _show_register(ctx):
 
+    message = ctx.message
+    role_split = message.clean_content.lower().split()
+    del role_split[0]
+
+
+    role_for = None
+    if len(role_split) >= 1:
+        role_for = role_split[0]
+
     add_notifications_guild_dict(ctx.guild.id)
 
     notifications = copy.deepcopy(guild_dict[ctx.guild.id]['notifications'])
@@ -2879,7 +2904,8 @@ async def _show_register(ctx):
 
     for role_id in notifications['roles']:
         role = discord.utils.get(ctx.message.guild.roles, id=role_id)
-        if role:
+
+        if (not role_for and role) or (role_for and role.name == role_for):
             new_notifications_map['notifications']['roles'].append(role.name)
             role_map[role_id] = role.name
 
@@ -2887,8 +2913,7 @@ async def _show_register(ctx):
         role_name = role_map[notifications['gym_role_map'][gym_code]]
         new_notifications_map['notifications']['gym_role_map'][gym_code] = role_name
 
-    await ctx.message.channel.send( content=json.dumps(new_notifications_map, indent=4, sort_keys=True))
-
+    await _send_message(ctx.message.channel, json.dumps(new_notifications_map, indent=4, sort_keys=True))
 
 
 def _get_subscription_roles(guild):
@@ -3778,6 +3803,12 @@ Please type `!beep status` if you need a refresher of Clembot commands!
 
     if channel_role:
         await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+        # channel_mentions = _get_roles_mention_for_notifications(message.guild,gym_info['gym_code'])
+        # if channel_mentions:
+        #     await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_mentions))
+
+
+
 
     if raidexp is not False:
         await _timerset(raid_channel, raidexp)
