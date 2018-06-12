@@ -2886,15 +2886,6 @@ async def _reset_register(ctx):
 @commands.has_permissions(manage_guild=True)
 async def _show_register(ctx):
 
-    message = ctx.message
-    role_split = message.clean_content.lower().split()
-    del role_split[0]
-
-
-    role_for = None
-    if len(role_split) >= 1:
-        role_for = role_split[0]
-
     add_notifications_guild_dict(ctx.guild.id)
 
     notifications = copy.deepcopy(guild_dict[ctx.guild.id]['notifications'])
@@ -2902,18 +2893,24 @@ async def _show_register(ctx):
     print(notifications)
     role_map = {}
 
+
     for role_id in notifications['roles']:
         role = discord.utils.get(ctx.message.guild.roles, id=role_id)
-
-        if (not role_for and role) or (role_for and role.name == role_for):
+        if role:
             new_notifications_map['notifications']['roles'].append(role.name)
             role_map[role_id] = role.name
 
+    await _send_message(ctx.message.channel, "**Registered Roles**\n{}".format(json.dumps(new_notifications_map['notifications']['roles'], indent=4, sort_keys=True)))
+
+    role_gym_map = {}
+
+
     for gym_code in notifications['gym_role_map'].keys():
         role_name = role_map[notifications['gym_role_map'][gym_code]]
-        new_notifications_map['notifications']['gym_role_map'][gym_code] = role_name
 
-    await _send_message(ctx.message.channel, json.dumps(new_notifications_map, indent=4, sort_keys=True))
+        role_gym_map.setdefault(role_name, []).append(gym_code)
+
+    await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, sort_keys=True)))
 
 
 def _get_subscription_roles(guild):
