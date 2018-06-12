@@ -2058,7 +2058,7 @@ async def configure(ctx):
             elif categories.content.lower() == 'region':
                 while True:
                     guild_dict_temp['categories'] = 'region'
-                    await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(),description="You have configured the following channels as raid reporting channels: {citychannel_list}\n\nIn the same order as they appear above, please give the names of the categories you would like raids reported in each channel to appear in. You do not need to use different categories for each channel, but they do need to be pre-existing categories. Separate each category name with a comma.".format(citychannel_list=citychannels.content.lower())))
+                    await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(),description="You have configured the following channels as raid reporting channels: {citychannel_list}\n\n**Current Regions : **`{current_regions}` \n\nIn the same order as they appear above, please give the names of the categories you would like raids reported in each channel to appear in. You do not need to use different categories for each channel, but they do need to be pre-existing categories. Separate each category name with a comma.".format(citychannel_list=citychannels.content.lower(), current_regions=", ".join(guild_dict[guild.id]['category_dict'].values()))))
                     regioncats = await Clembot.wait_for('message', check=lambda message: message.guild == None and message.author == owner)
                     if regioncats.content.lower() == "cancel":
                         configcancel = True
