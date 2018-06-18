@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Meowth - A Discord helper bot for Pokemon Go communities.
+"""Clembot - A Discord helper bot for Pokemon Go communities.
 
 Clembot is a Discord bot written in Python 3.5 using version 0.16.12 of the discord.py library.
 It assists with the organisation of local Pokemon Go Discord servers and their members."""

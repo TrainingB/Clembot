@@ -54,8 +54,8 @@ import jsonpickle
 import bingo_generator
 from WowBingo import WowBingo
 from exts.argparser import ArgParser
-
-
+from exts.propertieshandler import PropertiesHandler
+from exts.utilities import Utilities
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -188,7 +188,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 
-default_exts = ['exts.silph']
+default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
 
 for ext in default_exts:
     try:
@@ -223,7 +223,6 @@ async def _unload(ctx, *extensions):
 
 
 Parser = ArgParser()
-
 
 """
 
@@ -2910,7 +2909,8 @@ async def _show_register(ctx):
 
         role_gym_map.setdefault(role_name, []).append(gym_code)
 
-    await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, sort_keys=True)))
+    await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, separators=[',',':'],sort_keys=True)))
+
 
 
 def _get_subscription_roles(guild):
@@ -3104,18 +3104,24 @@ registers a role and a gym
         await channel.send( content=_("Beep Beep! Please provide a gym-code to register. `!register role-name gym-code`"))
         return
 
-    gym_code = args[0].upper()
-    gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
+    list_of_accepted_gyms = []
 
-    if gym_info == None:
-        await channel.send( content=_("Beep Beep! Hmmm... I could not find this gym code!"))
-        return
+    for gym_code in args:
+        gym_code = args[0].upper()
+        gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
 
-    # {'notifications': {'roles': [], 'gym_role_map': {}}}
-    gym_role_map = {gym_code: role.id}
-    guild_dict[message.guild.id]['notifications']['gym_role_map'].update(gym_role_map)
+        if gym_info == None:
+            await channel.send( content=_("Beep Beep! Hmmm... I could not find this gym code!"))
+            return
 
-    await channel.send( content=_("Beep Beep! Any raid at {gym_code} will send out a notification for {role}!").format(gym_code=gym_code.upper(), role=role.mention))
+        # {'notifications': {'roles': [], 'gym_role_map': {}}}
+        gym_role_map = {gym_code: role.id}
+        guild_dict[message.guild.id]['notifications']['gym_role_map'].update(gym_role_map)
+
+        list_of_accepted_gyms.append(gym_info['gym-name'])
+
+
+    await _send_message(ctx.message.channel, _("Beep Beep! **{member}**, {role} will be notified for any raid reported at : {gym_names}!").format(gym_code=gym_code.upper(), role=role.mention, gym_names=", ".join(list_of_accepted_gyms)))
 
     return
 
@@ -3130,12 +3136,6 @@ def get_gym_info_wrapper(message, gym_code):
 
     if gym_info_new_format:
         return gymsql.convert_into_gym_info(gym_info_new_format)
-
-    # city_state_list = get_city_list(message)
-    # gym_info = gymutil.get_gym_info(gym_code, city_state=city_state_list)
-    #
-    # if gym_info:
-    #     return gym_info
 
     return None
 
@@ -3676,7 +3676,6 @@ async def _raid(message):
 
     gym_code = raid_split[-1].upper()
 
-    # gym_info = gymutil.get_gym_info(gym_code, city_state=get_city_list(message))
     gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
 
     if gym_info:
@@ -5435,6 +5434,7 @@ async def _eggtoraid(entered_raid, channel):
         manual_timer = eggdetails['manual_timer']
         trainer_dict = eggdetails['trainer_dict']
         egg_address = eggdetails['address']
+        notes = eggdetails.get('notes', [])
         archive = eggdetails.get('archive',False)
         try:
             egg_report = await reportcitychannel.get_message(eggdetails['raidreport'])
@@ -5523,6 +5523,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
             'type': hatchtype,
             'pokemon': entered_raid,
             'egglevel': egglevel,
+            'notes' : notes,
             'suggested_start': suggested_start
         }
 
@@ -5663,9 +5664,9 @@ async def _get_guild_config(message):
 
     configuration = gymsql.read_guild_configuration(message.guild.id)
     if configuration:
-        content = "Beep Beep! Server Configuration : \n{configuration}".format(configuration=configuration)
+        content = "Beep Beep! Server Configuration : \n{configuration}".format(configuration=json.dumps(configuration, indent=2, sort_keys=True))
 
-    await message.channel.send(content=content)
+    await _send_message(message.channel, content)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["get-guild-config"])
@@ -5922,7 +5923,7 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
     return help_embed
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["import-gym"])
-@commands.has_permissions(manage_guild=True)
+@commands.has_permissions(manage_channel=True)
 async def _import(ctx):
     try:
 
@@ -6392,6 +6393,9 @@ async def beep(ctx):
                 await ctx.message.channel.send( embed = get_beep_embed(title="Help - Status Management", description = beep_status.format(member=ctx.message.author.display_name, bot=ctx.guild.me.mention), footer=footer))
             elif args_split[0] == 'exraid' :
                 await ctx.message.channel.send( embed = get_beep_embed(title="Help - EX-Raid Reporting", description = beep_exraid.format(member=ctx.message.author.display_name), footer=footer))
+            elif args_split[0] == 'notes' :
+                await PropertiesHandler(Clembot)._help(ctx)
+
     except Exception as error:
         print(error)
 

@@ -208,7 +208,7 @@ def custom_error_handling(bot, logger):
         elif isinstance(error, RegionEggChannelCheckFail):
             guild = ctx.guild
             msg = 'Beep Beep! Please use **!{cmd_name}** in either a Raid Egg channel or '.format(cmd_name=ctx.command.name)
-            city_channels = bot.guild_dict[guild.id]['city_channels']
+            city_channels = bot.guild_dict[guild.id].get('city_channels',[])
             if len(city_channels) > 10:
                 msg += 'a Region report channel.'
             else:
@@ -221,7 +221,7 @@ def custom_error_handling(bot, logger):
         elif isinstance(error, RegionExRaidChannelCheckFail):
             guild = ctx.guild
             msg = 'Beep Beep! Please use **!{cmd_name}** in either a EX Raid channel or one of the following region channels:'.format(cmd_name=ctx.command.name)
-            city_channels = bot.guild_dict[guild.id]['city_channels']
+            city_channels = bot.guild_dict[guild.id].get('city_channels', [])
             if len(city_channels) > 10:
                 msg += 'a Region report channel.'
             else:

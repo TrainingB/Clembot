@@ -262,9 +262,12 @@ class SilphCard:
     @classmethod
     async def get_trainer_card(cls, silph_user):
         url = f'https://sil.ph/{silph_user}.json'
-        async with aiohttp.ClientSession() as sess:
-            async with sess.get(url) as resp:
-                data = await resp.json()
+        try:
+            async with aiohttp.ClientSession() as sess:
+                async with sess.get(url) as resp:
+                    data = await resp.json()
+        except TimeoutError as error:
+            print(error)
         if data.get('error', None):
             return None
         return cls(silph_user, data)
