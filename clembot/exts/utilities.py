@@ -1,6 +1,5 @@
 from discord.ext import commands
 import discord
-from clembot import checks
 
 class Utilities:
     def __init__(self, bot):
