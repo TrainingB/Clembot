@@ -189,7 +189,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
-
+#default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager']
 for ext in default_exts:
     try:
         Clembot.load_extension(ext)
@@ -4174,6 +4174,7 @@ async def research(ctx, *, args = None):
         message = ctx.message
         channel = message.channel
         author = message.author
+
         guild = message.guild
         timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset']))
         print(message.created_at )
@@ -5923,7 +5924,7 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
     return help_embed
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["import-gym"])
-@commands.has_permissions(manage_channel=True)
+@commands.has_permissions(manage_channels=True)
 async def _import(ctx):
     try:
 
