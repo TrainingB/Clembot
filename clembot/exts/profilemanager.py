@@ -14,6 +14,41 @@ class ProfileManager:
         self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
 
+    @commands.group(pass_context=True, hidden=True, aliases=["tc","trainer-code"])
+    async def trainer_code(self, ctx):
+
+        if ctx.invoked_subcommand is None:
+            trainer_code = None
+            if len(ctx.message.mentions) > 0:
+                user = ctx.message.mentions[0]
+            else:
+                user = ctx.message.author
+
+            trainer_code = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trainer_code', '')
+            if trainer_code:
+                await ctx.send(f"**{trainer_code}**")
+                # await self.utilities._send_message(ctx.channel, f"Beep Beep! **{user.display_name}**'s trainer code is : **{trainer_code}**.", footer=f"Use `!trainer-code copy @{user.display_name}` if you wish to copy the trainer-code.")
+                return
+            else:
+                return await self.utilities._send_error_message(ctx.channel, "Beep Beep! **{}**, **{}** hasn't share the trainer-code with me yet.".format(ctx.author.display_name, user.display_name))
+
+    @trainer_code.command(aliases=["copy"])
+    async def _trainer_code_copy(self, ctx):
+
+        trainer_code = None
+        if len(ctx.message.mentions) > 0:
+            user = ctx.message.mentions[0]
+        else:
+            user = ctx.message.author
+
+        trainer_code = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trainer_code', '')
+        if trainer_code:
+            await ctx.send(f"**{trainer_code}**")
+            return
+        else:
+            return await self.utilities._send_error_message(ctx.channel, "Beep Beep! **{}**, **{}** hasn't share the trainer-code with me yet.".format(ctx.author.display_name, user.display_name))
+
+
     @commands.group(pass_context=True, hidden=True)
     async def profile(self, ctx):
 
@@ -76,7 +111,9 @@ class ProfileManager:
         await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** Pokebattler ID set to {pbid}!')))
 
     @profile.command(aliases=["trainer-code","code"])
-    async def _trainer_code(self, ctx, trainer_code = None):
+    async def _trainer_code(self, ctx, *parameters):
+
+        trainer_code = "".join(parameters)
         if not trainer_code:
             await self.utilities._send_message(ctx, _(f'Beep Beep! **{ctx.message.author.display_name}**, Trainer code has been cleared.'))
             try:
@@ -154,7 +191,9 @@ class ProfileManager:
 
 **!profile** - brings up your profile.
 
-""")
+**!trainer-code** - to see your trainer code.
+**!trainer-code @user** - to see trainer code for any user.
+    """)
 
     def get_beep_embed(self, title, description, usage=None, available_value_title=None, available_values=None, footer=None, mode="message"):
 
@@ -170,6 +209,11 @@ class ProfileManager:
 
     @classmethod
     async def _help(self, ctx):
+        footer = "Tip: < > denotes required and [ ] denotes optional arguments."
+        await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Profile Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
+
+    @classmethod
+    async def _help_tc(self, ctx):
         footer = "Tip: < > denotes required and [ ] denotes optional arguments."
         await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Profile Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 

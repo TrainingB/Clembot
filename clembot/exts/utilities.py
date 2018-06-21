@@ -29,7 +29,7 @@ class Utilities:
         return await channel.send(embed=error_embed)
 
     @classmethod
-    async def _send_message(self, channel, description):
+    async def _send_message(self, channel, description, footer=None):
         try:
 
             error_message = "The output contains more than 2000 characters."
@@ -38,7 +38,8 @@ class Utilities:
 
             color = discord.Colour.green()
             message_embed = discord.Embed(description="{0}".format(description), colour=color)
-
+            if footer:
+                message_embed.set_footer(text=footer)
             return await channel.send(embed=message_embed)
         except Exception as error:
             print(error)
