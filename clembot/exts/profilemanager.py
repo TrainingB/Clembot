@@ -16,28 +16,29 @@ class ProfileManager:
 
     @commands.group(pass_context=True, hidden=True)
     async def profile(self, ctx):
-        # , user: discord.Member = None
-        user = None
+
+        if len(ctx.message.mentions) > 0:
+            user = ctx.message.mentions[0]
+        else:
+            user = ctx.message.author
 
         print(ctx.invoked_subcommand)
 
         if ctx.invoked_subcommand is None:
 
-            if not user:
-                user = ctx.message.author
             silph = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('silphid', None)
             if silph:
                 silph = f"[Traveler Card](https://sil.ph/{silph.lower()})"
             embed = discord.Embed(title=f"{user.display_name}\'s Trainer Profile", colour=user.colour)
             embed.set_thumbnail(url=user.avatar_url)
 
-            trainer_code = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('trainer_code','')
-            if trainer_code:
-                embed.add_field(name="**Trainer Code**", value=f"**{trainer_code.upper()}**", inline=False)
-            else:
-                embed.add_field(name="**Trainer Code**", value="Set with **!profile trainer-code**", inline=False)
-
             trainer_profile = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {})
+
+            trainer_code = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trainer_code', '')
+            if trainer_code:
+                embed.add_field(name="**Trainer Code**", value=f"**{trainer_code}**", inline=False)
+            else:
+                embed.add_field(name="**Trainer Code**", value="Set with **!profile trainer-code <code>**", inline=False)
 
             embed.add_field(name="**Silph Road**", value=f"{silph}", inline=True)
             embed.add_field(name="**Pokebattler Id**", value=f"{ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('pokebattlerid',None)}", inline=True)
