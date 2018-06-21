@@ -55,6 +55,7 @@ import bingo_generator
 from WowBingo import WowBingo
 from exts.argparser import ArgParser
 from exts.propertieshandler import PropertiesHandler
+from exts.profilemanager import ProfileManager
 from exts.utilities import Utilities
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
@@ -99,6 +100,8 @@ except OSError:
         logger.info("Serverdict Created")
 
 guild_dict = Clembot.guild_dict
+
+
 
 bingo_template = {}
 config = {}
@@ -179,7 +182,7 @@ def load_config():
 load_config()
 
 Clembot.config = config
-
+Clembot.pkmn_info = pkmn_info
 
 
 poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
@@ -188,8 +191,8 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 
-default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
-#default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager']
+#default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
+default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager']
 for ext in default_exts:
     try:
         Clembot.load_extension(ext)
@@ -1570,7 +1573,7 @@ async def silph(ctx, silph_user: str = None):
         return await ctx.send(
             _("The Silph Extension isn't accessible at the moment, sorry!"))
 
-    async with ctx.typing():
+    async with ctx.message.channel.typing():
         card = await silph_cog.get_silph_card(silph_user)
         if not card:
             return await ctx.send(_('Silph Card for {silph_user} not found.').format(silph_user=silph_user))
@@ -3118,10 +3121,10 @@ registers a role and a gym
         gym_role_map = {gym_code: role.id}
         guild_dict[message.guild.id]['notifications']['gym_role_map'].update(gym_role_map)
 
-        list_of_accepted_gyms.append(gym_info['gym-name'])
+        list_of_accepted_gyms.append(gym_info['gym_name'])
 
 
-    await _send_message(ctx.message.channel, _("Beep Beep! **{member}**, {role} will be notified for any raid reported at : {gym_names}!").format(gym_code=gym_code.upper(), role=role.mention, gym_names=", ".join(list_of_accepted_gyms)))
+    await _send_message(ctx.message.channel, _("Beep Beep! **{member}**, Any raid reported at **{gym_names}** will notify {role}").format(member=ctx.message.author.display_name, gym_code=gym_code.upper(), role=role.mention, gym_names=", ".join(list_of_accepted_gyms)))
 
     return
 
@@ -6396,6 +6399,8 @@ async def beep(ctx):
                 await ctx.message.channel.send( embed = get_beep_embed(title="Help - EX-Raid Reporting", description = beep_exraid.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'notes' :
                 await PropertiesHandler(Clembot)._help(ctx)
+            elif args_split[0] == 'profile' :
+                await ProfileManager(Clembot)._help(ctx)
 
     except Exception as error:
         print(error)
@@ -8596,7 +8601,7 @@ async def get_repository_channel(message):
 
 
 @Clembot.command(hidden=True)
-async def profile(ctx, user: discord.Member = None):
+async def profilex(ctx, user: discord.Member = None):
     """Displays a user's social and reporting profile.
 
     Usage:!profile [user]"""

@@ -8,7 +8,7 @@ def set_list(word_list):
     WORDS = word_list
 
 def get_pkmn(word):
-    result = process.extractOne(word, WORDS, scorer=fuzz.ratio, score_cutoff = 50)
+    result = process.extractOne(word, WORDS, scorer=fuzz.ratio, score_cutoff = 60)
     if result is None:
         index = None
     else:

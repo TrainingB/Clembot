@@ -2,42 +2,25 @@ from discord.ext import commands
 import discord
 
 class Utilities:
-    def __init__(self, bot):
-        self.bot = bot
-    #
-    # async def _send_error_message(channel, description):
-    #
-    #     color = discord.Colour.red()
-    #     error_embed = discord.Embed(description="{0}".format(description), colour=color)
-    #     return await channel.send(embed=error_embed)
-    #
-    # async def _send_message(channel, description):
-    #     try:
-    #
-    #         error_message = "The output contains more than 2000 characters."
-    #         if len(description) >= 2000:
-    #             discord.Embed(description="{0}".format(error_message), colour=color)
-    #
-    #         color = discord.Colour.green()
-    #         message_embed = discord.Embed(description="{0}".format(description), colour=color)
-    #
-    #         return await channel.send(embed=message_embed)
-    #     except Exception as error:
-    #         print(error)
-    #
-    #
-    # @commands.command(name='embed')
-    # @checks.serverowner_or_permissions(manage_message=True)
-    # async def _embed(self, ctx, title, content=None, colour=None,
-    #                  icon_url=None, image_url=None, thumbnail_url=None,
-    #                  plain_msg=''):
-    #     """Build and post an embed in the current channel.
-    #
-    #     Note: Always use quotes to contain multiple words within one argument.
-    #     """
-    #     await ctx.embed(title=title, description=content, colour=colour,
-    #                     icon=icon_url, image=image_url,
-    #                     thumbnail=thumbnail_url, plain_msg=plain_msg)
+    def __init__(self):
+        return
+
+    numbers = {"0": ":zero:", "1": ":one:", "2": ":two:", "3": ":three:", "4": ":four:", "5": ":five:", "6": ":six:", "7": ":seven:", "8": ":eight:", "9": ":nine:"}
+
+    def emojify_numbers(self, number):
+        number_emoji = ""
+
+        reverse = "".join(reversed(str(number)))
+
+        for digit in reverse[::-1]:
+
+            emoji = self.numbers.get(digit)
+            if not emoji:
+                emoji = ":regional_indicator_"+digit.lower()+":"
+
+            number_emoji = number_emoji + emoji
+
+        return number_emoji
 
     async def _send_error_message(self, channel, description):
 
@@ -45,6 +28,7 @@ class Utilities:
         error_embed = discord.Embed(description="{0}".format(description), colour=color)
         return await channel.send(embed=error_embed)
 
+    @classmethod
     async def _send_message(self, channel, description):
         try:
 
@@ -79,4 +63,4 @@ class Utilities:
 
 
 def setup(bot):
-    bot.add_cog(Utilities(bot))
+    bot.add_cog(Utilities())
