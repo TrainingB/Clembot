@@ -161,7 +161,7 @@ class TradeManager:
 
 **!trade search <pokemon>** - brings up a list of 10 users who are offering pokemon with their pokemon request as well.
 
-**Note:** *<pokemon> can only the name of the pokemon. The qualifiers like shiny, perfect, mini or anything else will be ignored.*
+**Note:** *<pokemon> can only be the name of the pokemon. The qualifiers like shiny, perfect, mini or anything else will be ignored.*
 
 """)
 
