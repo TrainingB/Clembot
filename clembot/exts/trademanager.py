@@ -138,7 +138,10 @@ class TradeManager:
             for trainer_id in  trainers_with_pokemon:
 
                 trainer_trade_requests = guild_trainer_dict.setdefault(trainer_id, {}).get('trade_requests', [])
-                additional_fields[ctx.guild.get_member(trainer_id).display_name] =  ', '.join(trainer_trade_requests)
+                if len(trainer_trade_requests) > 0:
+                    additional_fields[ctx.guild.get_member(trainer_id).display_name] = ', '.join(trainer_trade_requests)
+                else:
+                    additional_fields[ctx.guild.get_member(trainer_id).display_name] = 'No Requests yet!'
 
         trainer_search_result = "\n ".join(trainer_list)
 
