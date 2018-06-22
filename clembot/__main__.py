@@ -56,6 +56,7 @@ from WowBingo import WowBingo
 from exts.argparser import ArgParser
 from exts.propertieshandler import PropertiesHandler
 from exts.profilemanager import ProfileManager
+from exts.trademanager import TradeManager
 from exts.utilities import Utilities
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
@@ -226,6 +227,8 @@ async def _unload(ctx, *extensions):
 
 
 Parser = ArgParser()
+MyTradeManager = TradeManager(Clembot)
+
 
 """
 
@@ -6401,6 +6404,8 @@ async def beep(ctx):
                 await PropertiesHandler(Clembot)._help(ctx)
             elif args_split[0] == 'profile' :
                 await ProfileManager(Clembot)._help(ctx)
+            elif args_split[0] == 'trade' :
+                await MyTradeManager._help(ctx)
 
     except Exception as error:
         print(error)

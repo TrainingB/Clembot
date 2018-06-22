@@ -14,8 +14,9 @@ class ProfileManager:
         self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
 
+
     @commands.group(pass_context=True, hidden=True, aliases=["tc","trainer-code"])
-    async def trainer_code(self, ctx):
+    async def _trainer_code(self, ctx):
 
         if ctx.invoked_subcommand is None:
             trainer_code = None
@@ -32,21 +33,29 @@ class ProfileManager:
             else:
                 return await self.utilities._send_error_message(ctx.channel, "Beep Beep! **{}**, **{}** hasn't share the trainer-code with me yet.".format(ctx.author.display_name, user.display_name))
 
-    @trainer_code.command(aliases=["copy"])
-    async def _trainer_code_copy(self, ctx):
+    @_trainer_code.command(aliases=["all"])
+    async def _trainer_code_all(self, ctx):
 
         trainer_code = None
-        if len(ctx.message.mentions) > 0:
-            user = ctx.message.mentions[0]
-        else:
-            user = ctx.message.author
+        user = ctx.message.author
 
-        trainer_code = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trainer_code', '')
-        if trainer_code:
-            await ctx.send(f"**{trainer_code}**")
-            return
+        trainers_dict = ctx.bot.guild_dict[ctx.guild.id]['trainers']
+
+        text = []
+
+        for trainer_id, trainer_dict in trainers_dict.items():
+            t_c = trainer_dict.get('trainer_code',None)
+            if t_c:
+                trainer = ctx.guild.get_member(trainer_id)
+                if trainer:
+                    text.append(f"{trainer.mention} - {t_c}")
+
+        trainer_code_list = "\n".join(text)
+
+        if text:
+            return await self.utilities._send_message(ctx.message.channel, f"**{trainer_code_list}**", title="**Following trainers have shared trainer-codes:**")
         else:
-            return await self.utilities._send_error_message(ctx.channel, "Beep Beep! **{}**, **{}** hasn't share the trainer-code with me yet.".format(ctx.author.display_name, user.display_name))
+            return await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, No trainer code has been set yet.")
 
 
     @commands.group(pass_context=True, hidden=True)
@@ -75,9 +84,14 @@ class ProfileManager:
             else:
                 embed.add_field(name="**Trainer Code**", value="Set with **!profile trainer-code <code>**", inline=False)
 
+            ign = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('ign', '')
+            if ign:
+                embed.add_field(name="**IGN**", value=f"**{ign}**", inline=True)
+            else:
+                embed.add_field(name="**IGN**", value="Set with **!profile ign <ign>**", inline=False)
+
             embed.add_field(name="**Silph Road**", value=f"{silph}", inline=True)
             embed.add_field(name="**Pokebattler Id**", value=f"{ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('pokebattlerid',None)}", inline=True)
-
 
             leaderboard_list = ['lifetime']
             # addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
@@ -94,7 +108,7 @@ class ProfileManager:
 
 
     @profile.command(aliases=["pokebattler","pb"])
-    async def _pokebattler(self, ctx, pbid: int = 0):
+    async def _profile_pokebattler(self, ctx, pbid: int = 0):
         if not pbid:
             await self.utilities._send_message(ctx, _(f'Beep Beep! **{ctx.message.author.display_name}**, Pokebattler ID has been cleared.'))
             try:
@@ -110,8 +124,28 @@ class ProfileManager:
 
         await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** Pokebattler ID set to {pbid}!')))
 
+
+    @profile.command(aliases=["ign"])
+    async def _profile_ign(self, ctx, ign=None):
+
+        if not ign:
+            await self.utilities._send_message(ctx, _(f'Beep Beep! **{ctx.message.author.display_name}**, IGN has been cleared.'))
+            try:
+                del ctx.bot.guild_dict[ctx.guild.id]['trainers'][ctx.author.id]['ign']
+            except:
+                pass
+            return
+        trainers = ctx.bot.guild_dict[ctx.guild.id].get('trainers', {})
+        author = trainers.get(ctx.author.id, {})
+        author['ign'] = ign
+        trainers[ctx.author.id] = author
+        ctx.bot.guild_dict[ctx.guild.id]['trainers'] = trainers
+
+        await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** your IGN is set to **{ign}**!')))
+
+
     @profile.command(aliases=["trainer-code","code"])
-    async def _trainer_code(self, ctx, *parameters):
+    async def _profile_trainer_code(self, ctx, *parameters):
 
         trainer_code = "".join(parameters)
         if not trainer_code:
@@ -130,7 +164,7 @@ class ProfileManager:
         await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** your trainer code is set to **{trainer_code}**!')))
 
     @profile.command(aliases=["silph"])
-    async def _silph(self, ctx, silph_user: str = None):
+    async def _profile_silph(self, ctx, silph_user: str = None):
         """Links a server member to a Silph Road Travelers Card."""
         try:
             if not silph_user:
@@ -188,6 +222,7 @@ class ProfileManager:
 **!profile silph <traveler-card-id>** - to set silph card username in your profile.
 **!profile pokebattler <pokebattler-id>** - to set pokebattler id in your profile.
 **!profile trainer-code <code>** - to set the Pokemon Go trainer code in your profile.
+**!profile ign <ign>** - to set the Pokemon Go Name (IGN) in your profile.
 
 **!profile** - brings up your profile.
 

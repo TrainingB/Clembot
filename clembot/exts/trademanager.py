@@ -2,6 +2,7 @@ import re
 import discord
 import time_util
 from discord.ext import commands
+from exts.utilities import Utilities
 from random import *
 
 import json
@@ -11,60 +12,99 @@ class TradeManager:
     def __init__(self, bot):
         self.bot = bot
         self.guild_dict = bot.guild_dict
+        self.utilities = Utilities()
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["trade"])
+    @commands.group(pass_context=True, hidden=True, aliases=["trade","t"])
     async def _trade(self, ctx):
 
         if ctx.invoked_subcommand is None:
-            await self._send_message(ctx.channel, "trade has been called ")
-
-    @_trade.command(aliases=["clear"])
-    async def _trade_clear(self, ctx):
-        ctx.bot.guild_dict[ctx.guild.id]['trade_dict'] = {}
-
-    @_trade.command(aliases=["status"])
-    async def _trade_status(self, ctx, *pokemon):
-        try:
-
-            trade_dict = ctx.bot.guild_dict[ctx.guild.id].setdefault('trade_dict', {})
-
-            await self._send_message(ctx.channel, json.dumps(trade_dict, indent=2))
-        except Exception as error:
-            print(error)
-
-    @_trade.command(aliases=["offer","have"])
-    async def _trade_offer(self, ctx, *pokemon):
-
-        pokemon_list = [e for e in pokemon if e in ctx.bot.pkmn_info['pokemon_list'] ]
-
-        pokemon_offer_trade_dict={}
-
-        for pokemon_offer in pokemon_list:
-
-            pokemon_offer_trade_dict = ctx.bot.guild_dict[ctx.guild.id].setdefault('trade_dict', {}).get(pokemon_offer, {})
-
-            if pokemon_offer_trade_dict:
-                pokemon_offer_trade_dict['trainer_id'].append(ctx.message.author.id)
-            else:
-
-                trade_id = '%04x' % randrange(16 ** 4)
-                pokemon_offer_trade_dict['trade_id'] = trade_id
-                pokemon_offer_trade_dict.setdefault('trainer_id',[]).append(ctx.message.author.id)
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!trade** can be used with various options. See **!beep trade** for more details.")
 
 
-                ctx.bot.guild_dict[ctx.guild.id]['trade_dict'][pokemon_offer] = pokemon_offer_trade_dict
+    async def _trade_add_to_list(self, ctx, *pokemon, list_name):
 
-        await self._send_message(ctx.channel, json.dumps(ctx.bot.guild_dict[ctx.guild.id]['trade_dict'], indent=2))
+        user = ctx.message.author
+        pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] ]
+
+        trainer_trade_pokemon = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get(list_name,[])
+
+        if len(pokemon) > 0:
+
+            for pokemon_offered in pokemon_list:
+
+                if pokemon_offered not in trainer_trade_pokemon:
+                    trainer_trade_pokemon.append(pokemon_offered)
+
+                ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {})[list_name] = trainer_trade_pokemon
+
+        pokemon_request_message = ", ".join(ctx.bot.guild_dict[ctx.guild.id]['trainers'][user.id].get(list_name,[]))
+
+        return pokemon_request_message
 
 
-    @_trade.command(aliases=["request","want"])
+    @_trade.command(aliases=["request","r"])
     async def _trade_request(self, ctx, *pokemon):
 
-        pokemon_list = [e for e in pokemon if e in ctx.bot.pkmn_info['pokemon_list'] ]
+        pokemon_request_message = await self._trade_add_to_list(ctx, *pokemon, list_name='trade_requests')
 
-        if ctx.invoked_subcommand is None:
-            await self._send_message(ctx.channel, "Beep Beep! **{member}** is looking for following Pokemon : {pokemon_list}".format(member=ctx.message.author.display_name, pokemon_list=", ".join(pokemon_list)))
+
+        if len(pokemon_request_message) > 0:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** is looking for : **{pokemon_request_message}**")
+        else:
+            await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has no pokemon requests registered with me yet!")
+
+
+    @_trade.command(aliases=["offer","have","o","h"])
+    async def _trade_offer(self, ctx, *pokemon):
+
+        pokemon_request_message = await self._trade_add_to_list(ctx, *pokemon, list_name='trade_offers')
+
+        if len(pokemon_request_message) > 0:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has following Pokemon for trade : **{pokemon_request_message}**")
+        else:
+            await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has no pokemon for trade registered with me yet!")
+
+    @_trade.command(aliases=["clear","c"])
+    async def _trade_clear(self, ctx, *pokemon):
+
+        user = ctx.message.author
+        pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] ]
+
+        if len(pokemon_list) > 0:
+
+            trainer_trade_offers = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_offers', [])
+            trainer_trade_requests = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_requests', [])
+
+            for pokemon_offered in pokemon_list:
+
+                if pokemon_offered in trainer_trade_offers:
+                    trainer_trade_offers.remove(pokemon_offered)
+
+                if pokemon_offered in trainer_trade_requests:
+                    trainer_trade_requests.remove(pokemon_offered)
+
+        pokemon_request_message = ", ".join(pokemon_list)
+        await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, following pokemon are removed from your trade lists : **{pokemon_request_message}**")
+
+
+    @_trade.command(aliases=["list"])
+    async def _trade_list(self, ctx, *parameters):
+
+        if len(ctx.message.mentions) > 0:
+            user = ctx.message.mentions[0]
+            msg = f"for **{user.display_name}** "
+        else:
+            user = ctx.message.author
+            msg = ""
+        trainer_trade_offers = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_offers', [])
+        trainer_trade_requests = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_requests', [])
+
+        additional_fields = {}
+        additional_fields['Requests (Wants)'] = ", ".join(trainer_trade_requests) if len(trainer_trade_requests) > 0 else "No requests yet!"
+        additional_fields['Offers (Have)'] = ", ".join(trainer_trade_offers) if len(trainer_trade_offers) > 0 else "No offers yet!"
+
+        await self.utilities._send_embed(ctx.channel, f"**{ctx.message.author.display_name}** The current trade options {msg}are:", additional_fields=additional_fields)
 
 
     @_trade.command(aliases=["search"])
@@ -72,43 +112,56 @@ class TradeManager:
 
         pokemon_list = [e for e in pokemon if e in ctx.bot.pkmn_info['pokemon_list'] ]
 
-        for pokemon_search in pokemon_list:
-            available = ctx.bot.guild_dict[ctx.guild.id]['trade_dict'].get(pokemon_search)
+        user = ctx.message.author
 
-            text = "!@{}{}\n".format(available['trainer_id'], available['trade_id'])
+        trainers_with_pokemon = []
 
-            await self._send_message(ctx.channel, text)
+        if len(pokemon_list) > 0:
 
-        if ctx.invoked_subcommand is None:
-            await self._send_message(ctx.channel, "Beep Beep! **{member}** Here is your search result for : {pokemon_list}".format(member=ctx.message.author.display_name, pokemon_list=", ".join(pokemon_list)))
+            guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id]['trainers']
 
 
-    async def _send_error_message(self, channel, description):
+            for trainer_id, trainer_dict in guild_trainer_dict.items():
 
-        color = discord.Colour.red()
-        error_embed = discord.Embed(description="{0}".format(description), colour=color)
-        return await channel.send(embed=error_embed)
+                trainer_trade_offers = trainer_dict.get('trade_offers', [])
 
-    async def _send_message(self, channel, description):
-        try:
+                for pokemon_searched_for in pokemon_list:
+                    if pokemon_searched_for in trainer_trade_offers:
+                        trainers_with_pokemon.append(trainer_id)
+                        if len(trainers_with_pokemon) > 10 :
+                            break
 
-            error_message = "The output contains more than 2000 characters."
-            if len(description) >= 2000:
-                discord.Embed(description="{0}".format(error_message), colour=color)
+        trainer_list = []
+        additional_fields = {}
+        if len(trainers_with_pokemon) > 0:
 
-            color = discord.Colour.green()
-            message_embed = discord.Embed(title="Trade",   description="{0}".format(description), colour=color)
+            for trainer_id in  trainers_with_pokemon:
 
-            return await channel.send(embed=message_embed)
-        except Exception as error:
-            print(error)
+                trainer_trade_requests = guild_trainer_dict.setdefault(trainer_id, {}).get('trade_requests', [])
+                additional_fields[ctx.guild.get_member(trainer_id).display_name] =  ', '.join(trainer_trade_requests)
+
+        trainer_search_result = "\n ".join(trainer_list)
+
+        if len(additional_fields) > 0:
+            await self.utilities._send_embed(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** Following trainers are offering **{', '.join(pokemon_list)}** for trade and here is what they are looking for:", additional_fields=additional_fields)
+        else:
+            await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No trainer is offering **{', '.join(pokemon_list)}** for trading yet!")
 
 
-    beep_notes = ("""**{member}** here are the commands for notes management. 
 
-**!notes ** - to list all the notes from a channel.
-**!notes add <note>** - to add a note to the current channel.
-**!notes clear** - to clear the note(s) for the current channel.
+    beep_notes = ("""**{member}** here are the commands for trade management. 
+
+**!trade offer <pokemon>** - to add pokemon to your offers list.
+**!trade request <pokemon>** - to add pokemon to your requests list.
+
+**!trade clear <pokemon>** - to remove pokemon from your trade offer or request list.
+
+**!trade list** - brings up pokemon in your trade offer/request list.
+**!trade list @user** - brings up pokemon in user's trade offer/request list.
+
+**!trade search <pokemon>** - brings up a list of 10 users who are offering pokemon with their pokemon request as well.
+
+**Note:** *<pokemon> can only the name of the pokemon. The qualifiers like shiny, perfect, mini or anything else will be ignored.*
 
 """)
 
@@ -127,7 +180,7 @@ class TradeManager:
     @classmethod
     async def _help(self, ctx):
         footer = "Tip: < > denotes required and [ ] denotes optional arguments."
-        await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Note(s) Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
+        await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Trade Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 
 
 def setup(bot):

@@ -29,7 +29,7 @@ class Utilities:
         return await channel.send(embed=error_embed)
 
     @classmethod
-    async def _send_message(self, channel, description, footer=None):
+    async def _send_message(self, channel, description, title=None, footer=None):
         try:
 
             error_message = "The output contains more than 2000 characters."
@@ -37,12 +37,27 @@ class Utilities:
                 discord.Embed(description="{0}".format(error_message), colour=color)
 
             color = discord.Colour.green()
-            message_embed = discord.Embed(description="{0}".format(description), colour=color)
+            message_embed = discord.Embed(description="{0}".format(description), colour=color, title=title)
             if footer:
                 message_embed.set_footer(text=footer)
             return await channel.send(embed=message_embed)
         except Exception as error:
             print(error)
+
+    @classmethod
+    async def _send_embed(message, channel, description=None, title=None, additional_fields={}, footer=None):
+
+        embed = discord.Embed(description=description, colour=discord.Colour.gold(), title=title)
+
+        for label, value in additional_fields.items():
+            embed.add_field(name="**{0}**".format(label), value=value)
+
+        if footer:
+            embed.set_footer(text=footer)
+
+        return await channel.send(embed=embed)
+
+
 
     @commands.command(name="export")
     async def _export(self, ctx):
