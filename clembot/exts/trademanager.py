@@ -1,9 +1,11 @@
 import re
 import discord
+import os
 import time_util
 from discord.ext import commands
 from exts.utilities import Utilities
 from random import *
+
 
 import json
 
@@ -13,6 +15,64 @@ class TradeManager:
         self.bot = bot
         self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
+        self.pokemon_forms = []
+        with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
+            data = json.load(fd)
+
+        self.pokemon_forms = data['pokemon_forms']
+
+    @commands.group(pass_context=True, hidden=True, aliases=["poke-form","pokeform"])
+    async def _poke_form(self, ctx):
+
+        if ctx.invoked_subcommand is None:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+
+    async def poke_form_listed(self, ctx):
+        additional_fields = {}
+        additional_fields['Available Pokemon Forms'] = f"**{', '.join(self.pokemon_forms)}**"
+        await self.utilities._send_embed(ctx.channel, additional_fields=additional_fields)
+
+    @_poke_form.command(aliases=["list"])
+    async def _poke_form_list(self, ctx):
+        await self.poke_form_listed(ctx)
+
+
+    @_poke_form.command(aliases=["save"])
+    async def _poke_form_save(self, ctx):
+        with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
+            data = json.load(fd)
+
+        tmp = data['pokemon_forms']
+        data['pokemon_forms'] = self.pokemon_forms
+
+        with open(os.path.join('data', 'pokemon_forms.json'), 'w') as fd:
+            json.dump(data, fd, indent=2, separators=(', ', ': '))
+
+
+    @_poke_form.command(aliases=["load"])
+    async def _poke_form_load(self, ctx):
+        with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
+            data = json.load(fd)
+
+        self.pokemon_forms = data['pokemon_forms']
+
+    @_poke_form.command(aliases=["add"])
+    async def _poke_form_add(self, ctx, *pokemon_form_list):
+
+        for pokemon_form in pokemon_form_list:
+            if pokemon_form not in self.pokemon_forms:
+                self.pokemon_forms.append(pokemon_form)
+
+        await self.poke_form_listed(ctx)
+
+    @_poke_form.command(aliases=["remove"])
+    async def _poke_form_remove(self, ctx, *pokemon_form_list):
+
+        for pokemon_form in pokemon_form_list:
+            if pokemon_form in self.pokemon_forms:
+                self.pokemon_forms.remove(pokemon_form)
+
+        await self.poke_form_listed(ctx)
 
 
     @commands.group(pass_context=True, hidden=True, aliases=["trade","t"])
@@ -25,7 +85,7 @@ class TradeManager:
     async def _trade_add_to_list(self, ctx, *pokemon, list_name):
 
         user = ctx.message.author
-        pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] ]
+        pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
 
         trainer_trade_pokemon = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get(list_name,[])
 
@@ -69,7 +129,7 @@ class TradeManager:
     async def _trade_clear(self, ctx, *pokemon):
 
         user = ctx.message.author
-        pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] ]
+        pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
 
         if len(pokemon_list) > 0:
 
@@ -110,7 +170,7 @@ class TradeManager:
     @_trade.command(aliases=["search"])
     async def _trade_search(self, ctx, *pokemon):
 
-        pokemon_list = [e for e in pokemon if e in ctx.bot.pkmn_info['pokemon_list'] ]
+        pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
 
         user = ctx.message.author
 
@@ -149,7 +209,6 @@ class TradeManager:
             await self.utilities._send_embed(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** Following trainers are offering **{', '.join(pokemon_list)}** for trade and here is what they are looking for:", additional_fields=additional_fields)
         else:
             await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No trainer is offering **{', '.join(pokemon_list)}** for trading yet!")
-
 
 
     beep_notes = ("""**{member}** here are the commands for trade management. 
