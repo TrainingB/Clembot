@@ -87,6 +87,8 @@ class TradeManager:
         user = ctx.message.author
         pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
 
+        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)] for e in pokemon if e.isdigit()])
+
         trainer_trade_pokemon = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get(list_name,[])
 
         if len(pokemon) > 0:
@@ -129,7 +131,16 @@ class TradeManager:
     async def _trade_clear(self, ctx, *pokemon):
 
         user = ctx.message.author
+
+        if 'all' in pokemon:
+            ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {})['trade_offers']=[]
+            ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {})['trade_requests'] = []
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, your request & offer list has been cleared!")
+            return
+
         pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
+
+        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)] for e in pokemon if e.isdigit()])
 
         if len(pokemon_list) > 0:
 
@@ -171,25 +182,26 @@ class TradeManager:
     async def _trade_search(self, ctx, *pokemon):
 
         pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
+        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)] for e in pokemon if e.isdigit()])
 
         user = ctx.message.author
 
         trainers_with_pokemon = []
 
-        if len(pokemon_list) > 0:
+        if len(pokemon_list) == 0:
+            return await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No valid pokemon found to search!")
 
-            guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id]['trainers']
+        guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id]['trainers']
 
+        for trainer_id, trainer_dict in guild_trainer_dict.items():
 
-            for trainer_id, trainer_dict in guild_trainer_dict.items():
+            trainer_trade_offers = trainer_dict.get('trade_offers', [])
 
-                trainer_trade_offers = trainer_dict.get('trade_offers', [])
-
-                for pokemon_searched_for in pokemon_list:
-                    if pokemon_searched_for in trainer_trade_offers:
-                        trainers_with_pokemon.append(trainer_id)
-                        if len(trainers_with_pokemon) > 10 :
-                            break
+            for pokemon_searched_for in pokemon_list:
+                if pokemon_searched_for in trainer_trade_offers:
+                    trainers_with_pokemon.append(trainer_id)
+                    if len(trainers_with_pokemon) > 10 :
+                        break
 
         trainer_list = []
         additional_fields = {}
