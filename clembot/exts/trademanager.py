@@ -140,7 +140,7 @@ class TradeManager:
 
         pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
 
-        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)] for e in pokemon if e.isdigit()])
+        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e) - 1] for e in pokemon if e.isdigit()])
 
         if len(pokemon_list) > 0:
 
@@ -182,7 +182,7 @@ class TradeManager:
     async def _trade_search(self, ctx, *pokemon):
 
         pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
-        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)] for e in pokemon if e.isdigit()])
+        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e) - 1] for e in pokemon if e.isdigit()])
 
         user = ctx.message.author
 

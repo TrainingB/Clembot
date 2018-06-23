@@ -847,8 +847,8 @@ async def _archive(ctx):
 
     egg_level = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('egglevel',0)
 
-    if egg_level != 'EX':
-        return await _send_error_message(channel, "Beep Beep! **{0}** Only EX raids can be **Archived**.".format(message.author.display_name))
+    # if egg_level != 'EX':
+    #     return await _send_error_message(channel, "Beep Beep! **{0}** Only EX raids can be **Archived**.".format(message.author.display_name))
 
     is_archived = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('archive', False)
 
