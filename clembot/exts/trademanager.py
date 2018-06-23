@@ -87,7 +87,7 @@ class TradeManager:
         user = ctx.message.author
         pokemon_list = [e.lower() for e in pokemon if e.lower() in ctx.bot.pkmn_info['pokemon_list'] or e.lower() in self.pokemon_forms]
 
-        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)] for e in pokemon if e.isdigit()])
+        pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)-1] for e in pokemon if e.isdigit()])
 
         trainer_trade_pokemon = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get(list_name,[])
 
