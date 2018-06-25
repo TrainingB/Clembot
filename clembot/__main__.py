@@ -192,8 +192,8 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 
+default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager','exts.teammanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
-default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager']
 for ext in default_exts:
     try:
         Clembot.load_extension(ext)
@@ -6677,6 +6677,7 @@ async def _process_rsvp(message, status):
         trainer_count_message = "" if total_trainer_rsvp == 1 else " with a total of {trainer_count} trainers".format(trainer_count=total_trainer_rsvp)
         conjuction = "is" if len(party_status) == 1 else "are"
 
+
         embed_msg = _("{member} {conjuction} {status_message}{trainer_count_message}!").format(member=", ".join(mentions_list) , conjuction=conjuction, status_message=STATUS_MESSAGE[status], trainer_count_message=trainer_count_message)
 
         await _send_rsvp_embed(message, trainer_dict, description=embed_msg)
@@ -7084,6 +7085,9 @@ def _generate_rsvp_embed_master(message, options = RAID_list_options, trainer_di
             aggregated_label = "Interested / On the way / At the raid"
             aggregated_status = "{maybe} / {omw} / {waiting}".format(waiting=get_count_from_channel(message, "waiting"), omw=get_count_from_channel(message, "omw"), maybe=get_count_from_channel(message, "maybe"))
             additional_fields[aggregated_label] = aggregated_status
+
+
+
         elif option == 'interested':
             trainer_names = _get_trainer_names_from_dict(message, "maybe")
             if trainer_names:

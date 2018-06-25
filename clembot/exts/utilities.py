@@ -1,6 +1,11 @@
 from discord.ext import commands
 import discord
 
+
+class RemoveComma(commands.Converter):
+    async def convert(self, ctx, argument):
+        return argument.replace(","," ").strip()
+
 class Utilities:
     def __init__(self):
         return
@@ -44,8 +49,12 @@ class Utilities:
         except Exception as error:
             print(error)
 
+
+
+
+
     @classmethod
-    async def _send_embed(message, channel, description=None, title=None, additional_fields={}, footer=None):
+    async def _send_embed(self, channel, description=None, title=None, additional_fields={}, footer=None):
 
         embed = discord.Embed(description=description, colour=discord.Colour.gold(), title=title)
 
@@ -55,8 +64,10 @@ class Utilities:
         if footer:
             embed.set_footer(text=footer)
 
-        return await channel.send(embed=embed)
-
+        try:
+            return await channel.send(embed=embed)
+        except Exception as error:
+            return await channel.send(error)
 
 
     @commands.command(name="export")
