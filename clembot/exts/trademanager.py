@@ -164,7 +164,7 @@ class TradeManager:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, your request & offer list has been cleared!")
             return
 
-            pokemon_list = self.extract_pokemon(ctx, pokemon)
+        pokemon_list = self.extract_pokemon(ctx, pokemon)
 
         if len(pokemon_list) > 0:
 
