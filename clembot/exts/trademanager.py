@@ -154,7 +154,7 @@ class TradeManager:
             await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has no pokemon for trade registered with me yet!")
 
     @_trade.command(aliases=["clear","c"])
-    async def _trade_clear(self, ctx, *pokemon):
+    async def _trade_clear(self, ctx, *pokemon: RemoveComma):
 
         user = ctx.message.author
 
@@ -182,7 +182,6 @@ class TradeManager:
         pokemon_request_message = ", ".join(pokemon_list)
         await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, following pokemon are removed from your trade lists : **{pokemon_request_message}**")
 
-
     @_trade.command(aliases=["list"])
     async def _trade_list(self, ctx, *parameters):
 
@@ -192,14 +191,68 @@ class TradeManager:
         else:
             user = ctx.message.author
             msg = ""
+
+
         trainer_trade_offers = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_offers', [])
         trainer_trade_requests = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_requests', [])
 
+        for parameter in parameters:
+            filter_text = parameter
+            if filter_text:
+                filtered_trainer_trade_offers = [ form for form in trainer_trade_offers if filter_text and form.__contains__(filter_text)]
+                filtered_trainer_trade_requests = [ form for form in trainer_trade_requests if filter_text and form.__contains__(filter_text)]
+            else:
+                filtered_trainer_trade_offers = trainer_trade_offers
+                filtered_trainer_trade_requests = trainer_trade_requests
+
+        trainer_trade_requests_text = self.utilities.trim_to(", ".join(filtered_trainer_trade_offers), 990)
+        trainer_trade_offers_text= self.utilities.trim_to(", ".join(filtered_trainer_trade_offers), 990)
+
         additional_fields = {}
-        additional_fields['Requests (Wants)'] = ", ".join(trainer_trade_requests) if len(trainer_trade_requests) > 0 else "No requests yet!"
-        additional_fields['Offers (Have)'] = ", ".join(trainer_trade_offers) if len(trainer_trade_offers) > 0 else "No offers yet!"
+        additional_fields['Requests (Wants)'] = trainer_trade_requests_text if len(trainer_trade_requests_text) > 0 else "No requests yet!"
+        additional_fields['Offers (Have)'] = trainer_trade_offers_text if len(trainer_trade_offers_text) > 0 else "No requests yet!"
 
         await self.utilities._send_embed(ctx.channel, f"**{ctx.message.author.display_name}** The current trade options {msg}are:", additional_fields=additional_fields)
+
+    @commands.command(pass_context=True, hidden=True, aliases=["x_x"])
+    async def xx(self, ctx, *parameters):
+        message = ctx.message
+        arguments = message.content
+
+
+        party_status = {}
+        mentions_list = []
+
+        args = arguments.split()
+        # if mentions are provided
+        if message.mentions:
+            for mention in message.mentions:
+                mention_text = mention.mention.replace('!','')
+                mentions_list.append(mention_text)
+                arguments = arguments.replace("<@!","<@")
+                arguments = arguments.replace(mention_text,'#'+str(mention.id))
+
+        only_arguments = [arg for arg in args if arg not in message.mentions]
+
+
+        additional_fields = {}
+        additional_fields['parameters'] = "|".join(parameters) if len(parameters) > 0 else "None"
+
+        additional_fields['mentions'] = [xm.mention for xm in message.mentions]
+        additional_fields['arguments'] = arguments if len(arguments) >0 else "None"
+
+        additional_fields['mentions_list'] = mentions_list
+
+        additional_fields['message.content'] = message.content
+
+        additional_fields['only_arguments'] = only_arguments
+
+
+
+
+        await self.utilities._send_embed(ctx.channel, additional_fields=additional_fields)
+
+
 
 
     @_trade.command(aliases=["search"])

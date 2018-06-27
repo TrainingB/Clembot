@@ -4,13 +4,19 @@ import discord
 
 class RemoveComma(commands.Converter):
     async def convert(self, ctx, argument):
-        return argument.replace(","," ").strip()
+        return argument.replace(",", " ").strip()
+
 
 class Utilities:
     def __init__(self):
         return
 
     numbers = {"0": ":zero:", "1": ":one:", "2": ":two:", "3": ":three:", "4": ":four:", "5": ":five:", "6": ":six:", "7": ":seven:", "8": ":eight:", "9": ":nine:"}
+
+    def trim_to(self, text, length, delimiter=","):
+        if text and delimiter:
+            return text[:text.rfind(delimiter, 0, length)] + "** and more.**" if len(text) > length else text
+        return text
 
     def emojify_numbers(self, number):
         number_emoji = ""
@@ -21,7 +27,7 @@ class Utilities:
 
             emoji = self.numbers.get(digit)
             if not emoji:
-                emoji = ":regional_indicator_"+digit.lower()+":"
+                emoji = ":regional_indicator_" + digit.lower() + ":"
 
             number_emoji = number_emoji + emoji
 
@@ -49,10 +55,6 @@ class Utilities:
         except Exception as error:
             print(error)
 
-
-
-
-
     @classmethod
     async def _send_embed(self, channel, description=None, title=None, additional_fields={}, footer=None):
 
@@ -69,7 +71,6 @@ class Utilities:
         except Exception as error:
             return await channel.send(error)
 
-
     @commands.command(name="export")
     async def _export(self, ctx):
 
@@ -77,16 +78,12 @@ class Utilities:
 
         print("_export() called!")
 
-
         raid_dict = ctx.bot.guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]
 
         channel_mentions = ctx.message.raw_channel_mentions
 
         if len(channel_mentions) < 1:
             await self._send_error_message(ctx.channel, "Beep Beep! **{}**, Please provide the channel reference to export the details!".format(ctx.message.author.display_name))
-
-
-
 
 
 def setup(bot):
