@@ -106,6 +106,10 @@ class TradeManager:
         pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)-1] for e in list_of_pokemon if e.isdigit()])
         return pokemon_list
 
+    def print_pokemon(self, list_of_pokemon):
+        escaped_list = ['"%s"' % e if re.search('[^A-Za-z0-9-]', e) else e for e in list_of_pokemon]
+        return " ".join(escaped_list)
+
     async def _trade_add_to_list(self, ctx, *pokemon, list_name):
 
         user = ctx.message.author
@@ -123,7 +127,7 @@ class TradeManager:
 
                 ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {})[list_name] = trainer_trade_pokemon
 
-        pokemon_request_message = ", ".join(ctx.bot.guild_dict[ctx.guild.id]['trainers'][user.id].get(list_name,[]))
+        pokemon_request_message = self.print_pokemon(ctx.bot.guild_dict[ctx.guild.id]['trainers'][user.id].get(list_name,[]))
 
         return pokemon_request_message
 
