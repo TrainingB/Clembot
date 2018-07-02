@@ -1355,7 +1355,7 @@ async def _get(ctx):
 
 @_set.command(pass_context=True, hidden=True, aliases=["config"])
 @checks.is_owner()
-async def _set_config(ctx):
+async def _set_config(ctx, ):
     try:
         message = ctx.message
         args = ctx.message.content
@@ -1363,7 +1363,7 @@ async def _set_config(ctx):
         del args_split[0]
         key = args_split[1]
 
-        if len(args_split) == 3:
+        if len(args_split) >= 3:
             key = args_split[1]
             value = "".join(args_split[2:])
             gymsql.save_clembot_config(key,value)
@@ -5659,9 +5659,9 @@ def _get_guild_config_for(guild_id, config_key):
 
 
 def _get_bingo_event_pokemon(guild_id, config_key):
-    bingo_event_pokemon = _get_guild_config_for(guild_id,config_key)
-    if bingo_event_pokemon:
-        return bingo_event_pokemon
+    # bingo_event_pokemon = _get_guild_config_for(guild_id,config_key)
+    # if bingo_event_pokemon:
+    #     return bingo_event_pokemon
 
     bingo_event_pokemon = gymsql.find_clembot_config(config_key)
     return bingo_event_pokemon

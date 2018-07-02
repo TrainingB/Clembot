@@ -31,6 +31,9 @@ def load_data():
     with open(os.path.join(directory, "larvitar.json"), "r") as fd:
         pokemon_cp_level['larvitar_cp'] = json.load(fd)
 
+    with open(os.path.join(directory, "squirtle.json"), "r") as fd:
+        pokemon_cp_level['squirtle_cp'] = json.load(fd)
+
 load_data()
 
 
@@ -52,14 +55,15 @@ def keep_number_in_range(number, spread, min_cp, max_cp):
 
 
 gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"] ,
-                  'charmander' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
+                  'charmander' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                  'squirtle' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
                   }
 
 
 
-def generate_card(event_pokemon="larvitar"):
+def generate_card(event_pokemon="squirtle"):
 
-    pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level['larvitar_cp'])
+    pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level[f'{event_pokemon}_cp'])
 
 
     MALE_SIGN = u"\u2642"
@@ -203,4 +207,4 @@ def main():
     print(print_card_as_text(generate_card()))
 
 
-# main()
+main()
