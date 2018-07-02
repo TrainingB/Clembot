@@ -222,8 +222,8 @@ class TradeManager:
             filtered_trainer_trade_offers = trainer_trade_offers
             filtered_trainer_trade_requests = trainer_trade_requests
 
-        trainer_trade_requests_text = self.utilities.trim_to(", ".join(filtered_trainer_trade_requests), 990)
-        trainer_trade_offers_text= self.utilities.trim_to(", ".join(filtered_trainer_trade_offers), 990)
+        trainer_trade_requests_text = self.utilities.trim_to(self.print_pokemon(filtered_trainer_trade_requests), 990)
+        trainer_trade_offers_text= self.utilities.trim_to(self.print_pokemon(filtered_trainer_trade_offers), 990)
 
         additional_fields = {}
         additional_fields['Requests (Wants)'] = trainer_trade_requests_text if len(trainer_trade_requests_text) > 0 else "No requests yet!"
@@ -311,9 +311,9 @@ class TradeManager:
 
                 trainer_trade_requests = guild_trainer_dict.setdefault(trainer_id, {}).get('trade_requests', [])
                 if len(trainer_trade_requests) > 10:
-                    additional_fields[ctx.guild.get_member(trainer_id).display_name] = f"{', '.join(trainer_trade_requests[:10])} and more."
+                    additional_fields[ctx.guild.get_member(trainer_id).display_name] = f"{self.print_pokemon(trainer_trade_requests[:10])} and more."
                 elif len(trainer_trade_requests) > 0:
-                    additional_fields[ctx.guild.get_member(trainer_id).display_name] = ', '.join(trainer_trade_requests)
+                    additional_fields[ctx.guild.get_member(trainer_id).display_name] = self.print_pokemon(trainer_trade_requests)
                 else:
                     additional_fields[ctx.guild.get_member(trainer_id).display_name] = 'No Requests yet!'
 

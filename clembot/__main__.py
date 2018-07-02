@@ -6801,7 +6801,7 @@ async def list(ctx):
             channel = ctx.message.channel
             args = ctx.message.clean_content.lower().split()
             if len(args) > 1:
-                return await _send_error_message(ctx.message.channel, "**{0}** Please use **!beep list** to see various usage of list command.".format(ctx.message.author.display_name))
+                return await _send_error_message(ctx.message.channel, "Beep Beep! **{0}**, Please use **!list**.".format(ctx.message.author.display_name))
             exp = None
             if checks.check_citychannel(ctx):
                 activeraidnum = 0

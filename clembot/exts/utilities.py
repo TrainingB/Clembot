@@ -14,6 +14,8 @@ class Utilities:
     numbers = {"0": ":zero:", "1": ":one:", "2": ":two:", "3": ":three:", "4": ":four:", "5": ":five:", "6": ":six:", "7": ":seven:", "8": ":eight:", "9": ":nine:"}
 
     def trim_to(self, text, length, delimiter=","):
+        if len(text) == 0:
+            return "None"
         if text and delimiter:
             return text[:text.rfind(delimiter, 0, length)] + "** and more.**" if len(text) > length else text
         return text
