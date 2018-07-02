@@ -58,6 +58,7 @@ from exts.propertieshandler import PropertiesHandler
 from exts.profilemanager import ProfileManager
 from exts.trademanager import TradeManager
 from exts.utilities import Utilities
+from exts.reactrolemanager import ReactRoleManager
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -192,7 +193,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 
-default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager','exts.teammanager']
+default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager','exts.reactrolemanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
 for ext in default_exts:
     try:
@@ -2478,8 +2479,6 @@ async def want(ctx):
 
     if len(want_split) < 1:
         help_embed = get_help_embed("Subscribe for Pokemon notifications.", "!want pokemon", "Available Roles: ", _want_roles(ctx.message.guild), "message")
-        await message.channel.send(embed=help_embed)
-
         return
 
 
@@ -2693,6 +2692,7 @@ async def _wild(message):
 
 @Clembot.event
 async def on_raw_reaction_add(emoji, message_id, channel_id, user_id):
+
     channel = Clembot.get_channel(channel_id)
     message = await channel.get_message(message_id)
     guild = message.guild
@@ -6406,6 +6406,10 @@ async def beep(ctx):
                 await ProfileManager(Clembot)._help(ctx)
             elif args_split[0] == 'trade' :
                 await MyTradeManager._help(ctx)
+            elif args_split[0] == 'react-role' :
+                await ReactRoleManager(Clembot)._help(ctx)
+
+
 
     except Exception as error:
         print(error)
@@ -6818,8 +6822,11 @@ async def list(ctx):
                         level = rc_d[r]['egglevel']
                         if type == 'egg' and level.isdigit():
                             egg_dict[r] = exp
-                        elif type == 'exraid' or level == "EX":
-                            exraid_list.append(r)
+                        elif type == 'exraid' or level == "EX" :
+                            if convert_to_epoch(fetch_channel_expire_time(r)) > convert_to_epoch(fetch_current_time(reportcity.guild.id)):
+                                exraid_list.append(r)
+                            else:
+                                activeraidnum -= 1
                         elif type == 'raidparty':
                             activeraidnum -= 1
                             # ignore raid party

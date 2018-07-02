@@ -253,6 +253,8 @@ class ProfileManager:
         await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Profile Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 
 
+
+
 def setup(bot):
     bot.add_cog(ProfileManager(bot))
 
