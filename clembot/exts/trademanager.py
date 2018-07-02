@@ -31,7 +31,7 @@ class TradeManager:
 
     def print_pokemon(self, list_of_pokemon):
         escaped_list = ['"%s"' % e if re.search('[^A-Za-z0-9-]', e) else e for e in list_of_pokemon]
-        return " ".join(escaped_list)
+        return ", ".join(escaped_list)
 
     async def poke_form_listed(self, ctx, filter_text=None):
         additional_fields = {}
@@ -118,7 +118,7 @@ class TradeManager:
 
         trainer_trade_pokemon = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get(list_name,[])
 
-        if len(pokemon) > 0:
+        if len(pokemon_list) > 0:
 
             for pokemon_offered in pokemon_list:
 
@@ -137,12 +137,15 @@ class TradeManager:
 
         pokemon_request_message = await self._trade_add_to_list(ctx, *pokemon, list_name='trade_requests')
 
+        pokemon_list = self.extract_poke_form(ctx, pokemon)
+
         additional_fields= {}
-        additional_fields['Request List'] = pokemon_request_message
+        additional_fields['Accepted Input'] = self.utilities.trim_to(self.print_pokemon(pokemon_list), 900)
+        additional_fields['Request (Wants)'] = self.utilities.trim_to(pokemon_request_message, 980)
 
         if len(pokemon_request_message) > 0:
-            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** is looking for : **{pokemon_request_message}**")
-            # await self.utilities._send_embed(ctx.channel, title=f"**{ctx.message.author.display_name}** Here are your trade options:", additional_fields=additional_fields)
+            # await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** is looking for : **{pokemon_request_message}**")
+            await self.utilities._send_embed(ctx.channel, title=f"**{ctx.message.author.display_name}** Here are your trade options:", additional_fields=additional_fields)
         else:
             await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has no pokemon requests registered with me yet!")
 
@@ -152,8 +155,14 @@ class TradeManager:
 
         pokemon_request_message = await self._trade_add_to_list(ctx, *pokemon, list_name='trade_offers')
 
+        pokemon_list = self.extract_poke_form(ctx, pokemon)
+        additional_fields= {}
+        additional_fields['Accepted Input'] = self.utilities.trim_to(self.print_pokemon(pokemon_list), 900)
+        additional_fields['Offer (Have)'] = self.utilities.trim_to(pokemon_request_message, 980)
+
         if len(pokemon_request_message) > 0:
-            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has following Pokemon for trade : **{pokemon_request_message}**")
+            #await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has following Pokemon for trade : **{pokemon_request_message}**")
+            await self.utilities._send_embed(ctx.channel, title=f"**{ctx.message.author.display_name}** Here are your trade options:", additional_fields=additional_fields)
         else:
             await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has no pokemon for trade registered with me yet!")
 
@@ -270,14 +279,15 @@ class TradeManager:
     @_trade.command(aliases=["search"])
     async def _trade_search(self, ctx, *pokemon: RemoveComma):
 
-        pokemon_list = self.extract_poke_form(ctx, pokemon)
+        pokemon_list = pokemon
+        # self.extract_poke_form(ctx, pokemon)
 
         user = ctx.message.author
 
         trainers_with_pokemon = []
 
-        if len(pokemon_list) == 0:
-            return await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No valid pokemon found to search!")
+        # if len(pokemon_list) == 0:
+        #     return await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No valid pokemon found to search!")
 
         guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id]['trainers']
 
