@@ -310,7 +310,11 @@ class TradeManager:
     @_trade.command(aliases=["search"])
     async def _trade_search(self, ctx, *pokemon: RemoveComma):
 
-        pokemon_list = pokemon
+
+        pokemon_list = self.extract_poke_form(ctx, pokemon)
+        if len(pokemon_list) == 0:
+            pokemon_list = pokemon
+
         # self.extract_poke_form(ctx, pokemon)
 
         user = ctx.message.author
