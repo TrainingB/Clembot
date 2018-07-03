@@ -71,6 +71,7 @@ class TradeManager:
         with open(os.path.join('data', 'pokemon_forms.json'), 'w') as fd:
             json.dump(data, fd, indent=2, separators=(', ', ': '))
 
+        await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, saved pokemon-forms successfully. See the complete list using **!poke-form list**.")
 
     @_poke_form.command(aliases=["load"])
     async def _poke_form_load(self, ctx):
@@ -78,25 +79,37 @@ class TradeManager:
             data = json.load(fd)
 
         self.pokemon_forms = data['pokemon_forms']
+        await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, loaded pokemon-forms successfully. See the complete list using **!poke-form list**.")
 
     @_poke_form.command(aliases=["add"])
     async def _poke_form_add(self, ctx, *pokemon_form_list: RemoveComma):
 
+        added_poke_form_list = []
+
         for pokemon_form in pokemon_form_list:
             if pokemon_form not in self.pokemon_forms:
                 self.pokemon_forms.append(pokemon_form)
+                added_poke_form_list.append(pokemon_form)
 
-        await self.poke_form_listed(ctx)
+        if len(added_poke_form_list) > 0:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **{self.print_pokemon(added_poke_form_list)}** has been added successfully. See the complete list using **!poke-form list**.")
+        else:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, No changes were made. See the complete list using **!poke-form list**.")
 
     @_poke_form.command(aliases=["remove"])
     async def _poke_form_remove(self, ctx, *pokemon_form_list: RemoveComma):
 
+        removed_poke_form_list = []
+
         for pokemon_form in pokemon_form_list:
             if pokemon_form in self.pokemon_forms:
                 self.pokemon_forms.remove(pokemon_form)
+                removed_poke_form_list.append(pokemon_form)
 
-        await self.poke_form_listed(ctx)
-
+        if len(removed_poke_form_list) > 0:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **{self.print_pokemon(removed_poke_form_list)}** has been removed successfully. See the complete list using **!poke-form list**.")
+        else:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, No changes were made. See the complete list using **!poke-form list**.")
 
     @commands.group(pass_context=True, hidden=True, aliases=["trade","t"])
     async def _trade(self, ctx):
@@ -110,11 +123,9 @@ class TradeManager:
         pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)-1] for e in list_of_pokemon if e.isdigit()])
         return pokemon_list
 
-    async def _trade_add_to_list(self, ctx, *pokemon, list_name):
+    async def _trade_add_to_list(self, ctx, pokemon_list, list_name):
 
         user = ctx.message.author
-
-        pokemon_list = self.extract_poke_form(ctx, pokemon)
 
         trainer_trade_pokemon = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get(list_name,[])
 
@@ -135,9 +146,13 @@ class TradeManager:
     @_trade.command(aliases=["request","r"])
     async def _trade_request(self, ctx, *pokemon: RemoveComma):
 
-        pokemon_request_message = await self._trade_add_to_list(ctx, *pokemon, list_name='trade_requests')
-
         pokemon_list = self.extract_poke_form(ctx, pokemon)
+
+        footer=None
+        if len(pokemon_list) < len(pokemon):
+            footer = "Tip: You can use Pokedex # instead of pokemon name. To see available options use !poke-form list <filter>"
+
+        pokemon_request_message = await self._trade_add_to_list(ctx, pokemon_list, list_name='trade_requests')
 
         additional_fields= {}
         additional_fields['Accepted Input'] = self.utilities.trim_to(self.print_pokemon(pokemon_list), 900)
@@ -145,7 +160,7 @@ class TradeManager:
 
         if len(pokemon_request_message) > 0:
             # await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** is looking for : **{pokemon_request_message}**")
-            await self.utilities._send_embed(ctx.channel, title=f"**{ctx.message.author.display_name}** Here are your trade options:", additional_fields=additional_fields)
+            await self.utilities._send_embed(ctx.channel, title=f"**{ctx.message.author.display_name}** Here are your trade options:", additional_fields=additional_fields, footer=footer)
         else:
             await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has no pokemon requests registered with me yet!")
 
@@ -153,16 +168,21 @@ class TradeManager:
     @_trade.command(aliases=["offer","have","o","h"])
     async def _trade_offer(self, ctx, *pokemon: RemoveComma):
 
-        pokemon_request_message = await self._trade_add_to_list(ctx, *pokemon, list_name='trade_offers')
-
         pokemon_list = self.extract_poke_form(ctx, pokemon)
+
+        footer=None
+        if len(pokemon_list) < len(pokemon):
+            footer = "Tip: You can use Pokedex # instead of pokemon name. To see available options use !poke-form list <filter>"
+
+        pokemon_request_message = await self._trade_add_to_list(ctx, pokemon_list, list_name='trade_offers')
+
         additional_fields= {}
         additional_fields['Accepted Input'] = self.utilities.trim_to(self.print_pokemon(pokemon_list), 900)
         additional_fields['Offer (Have)'] = self.utilities.trim_to(pokemon_request_message, 980)
 
         if len(pokemon_request_message) > 0:
             #await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has following Pokemon for trade : **{pokemon_request_message}**")
-            await self.utilities._send_embed(ctx.channel, title=f"**{ctx.message.author.display_name}** Here are your trade options:", additional_fields=additional_fields)
+            await self.utilities._send_embed(ctx.channel, title=f"**{ctx.message.author.display_name}** Here are your trade options:", additional_fields=additional_fields, footer=footer)
         else:
             await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** has no pokemon for trade registered with me yet!")
 
@@ -179,6 +199,11 @@ class TradeManager:
 
         pokemon_list = self.extract_poke_form(ctx, pokemon)
 
+        footer = None
+        if len(pokemon_list) < len(pokemon):
+            footer = "Tip: You can use Pokedex # instead of pokemon name. To see available options use !poke-form list <filter>"
+
+        removed_poke_form_list = []
         if len(pokemon_list) > 0:
 
             trainer_trade_offers = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_offers', [])
@@ -188,12 +213,18 @@ class TradeManager:
 
                 if pokemon_offered in trainer_trade_offers:
                     trainer_trade_offers.remove(pokemon_offered)
+                    removed_poke_form_list.append(pokemon_offered)
 
                 if pokemon_offered in trainer_trade_requests:
                     trainer_trade_requests.remove(pokemon_offered)
+                    if pokemon_offered not in removed_poke_form_list:
+                        removed_poke_form_list.append(pokemon_offered)
 
-        pokemon_request_message = ", ".join(pokemon_list)
-        await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, following pokemon are removed from your trade lists : **{pokemon_request_message}**")
+        additional_fields= {}
+        additional_fields['Accepted Input'] = self.utilities.trim_to(self.print_pokemon(pokemon_list), 900)
+        additional_fields['Pokemon Removed'] = self.utilities.trim_to(self.print_pokemon(removed_poke_form_list), 900)
+
+        await self.utilities._send_embed(ctx.channel, title=f"**{ctx.message.author.display_name}** Here are your trade options:", additional_fields=additional_fields, footer=footer)
 
     @_trade.command(aliases=["list"])
     async def _trade_list(self, ctx, *parameters: RemoveComma):

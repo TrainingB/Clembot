@@ -193,7 +193,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 
-default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager','exts.reactrolemanager']
+default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
 for ext in default_exts:
     try:
@@ -5929,9 +5929,9 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
     help_embed.set_footer(text=footer)
     return help_embed
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["import-gym"])
+@Clembot.command(pass_context=True, hidden=True, aliases=["import-gymx"])
 @commands.has_permissions(manage_channels=True)
-async def _import(ctx):
+async def _importx(ctx, *, gym_list_in_json_text):
     try:
 
         gym_info_1 = {}
