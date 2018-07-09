@@ -2478,6 +2478,7 @@ async def want(ctx):
 
     if len(want_split) < 1:
         help_embed = get_help_embed("Subscribe for Pokemon notifications.", "!want pokemon", "Available Roles: ", _want_roles(ctx.message.guild), "message")
+        await ctx.channel.send(embed=help_embed)
         return
 
 
