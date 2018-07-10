@@ -4842,7 +4842,7 @@ async def on_message(message):
             ar_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses', {}).setdefault(message.channel.id,{}).get(content_without_prefix, None)
 
             if ar_message:
-                return await _send_embed(message.channel, ar_message)
+                return await message.channel.send(ar_message)
 
             if 'contest_channel' in guild_dict[message.guild.id]:
                 if message.channel.id in guild_dict[message.guild.id]['contest_channel'] and guild_dict[message.guild.id]['contest_channel'][message.channel.id].get('started', False) == True:
