@@ -49,7 +49,7 @@ class AutoResponder:
 
     @_autoresponse.command(aliases=["add"])
     async def _autoresponse_add(self, ctx, *, ar_message_text):
-        ar_key, _, ar_message = ar_message_text.replace('\n', ' ').partition(' ')
+        ar_key, _, ar_message = ar_message_text.partition(' ')
 
         ctx.bot.guild_dict[ctx.guild.id].setdefault('auto-responses', {})[ctx.channel.id][ar_key] = ar_message
 
