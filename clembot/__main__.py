@@ -59,6 +59,7 @@ from exts.profilemanager import ProfileManager
 from exts.trademanager import TradeManager
 from exts.utilities import Utilities
 from exts.reactrolemanager import ReactRoleManager
+from exts.autoresponder import AutoResponder
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -193,7 +194,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 
-default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager']
+default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
 for ext in default_exts:
     try:
@@ -229,7 +230,7 @@ async def _unload(ctx, *extensions):
 
 Parser = ArgParser()
 MyTradeManager = TradeManager(Clembot)
-
+MyAutoResponder = AutoResponder(Clembot)
 
 """
 
@@ -4837,6 +4838,12 @@ async def on_message(message):
     try:
     # print(guild_dict)
         if message.guild is not None:
+            content_without_prefix = message.content.replace(_get_prefix(Clembot, message), '')
+            ar_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses', {}).setdefault(message.channel.id,{}).get(content_without_prefix, None)
+
+            if ar_message:
+                return await _send_embed(message.channel, ar_message)
+
             if 'contest_channel' in guild_dict[message.guild.id]:
                 if message.channel.id in guild_dict[message.guild.id]['contest_channel'] and guild_dict[message.guild.id]['contest_channel'][message.channel.id].get('started', False) == True:
                     await contestEntry(message)
@@ -5914,6 +5921,21 @@ async def _send_message(channel, description):
         return await channel.send(embed=message_embed)
     except Exception as error:
         print(error)
+
+async def _send_embed(channel, description=None, title=None, additional_fields={}, footer=None):
+
+        embed = discord.Embed(description=description, colour=discord.Colour.gold(), title=title)
+
+        for label, value in additional_fields.items():
+            embed.add_field(name="**{0}**".format(label), value=value)
+
+        if footer:
+            embed.set_footer(text=footer)
+
+        try:
+            return await channel.send(embed=embed)
+        except Exception as error:
+            return await channel.send(error)
 
 def get_beep_embed(title, description, usage=None, available_value_title=None, available_values=None, footer=None, mode="message"):
 

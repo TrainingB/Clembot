@@ -103,7 +103,7 @@ class GymManager:
 #
     @commands.command(pass_context=True, hidden=True, aliases=["import-gym"])
     @commands.has_permissions(manage_channels=True)
-    async def _import_gym(self, ctx, *, gym_list_in_json_text):
+    async def _import_gym(self, ctx, *, gym_list_in_json_text=''):
         try:
 
             gym_info_1 = {}
@@ -134,7 +134,7 @@ class GymManager:
 
                 gym_code_key = words_1[:2] + words_2[:2] + words_3[:2]
 
-                city, state = gym_info_1['CityState'].split(",")
+                city, state = gym_info_1['CityState'].replace(' ','').split(",")
 
                 gmap_url = "https://www.google.com/maps/place/{0},{1}".format(gym_info_1['Latitude'], gym_info_1['Longitude'])
 
