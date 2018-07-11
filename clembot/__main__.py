@@ -26,7 +26,6 @@ import spelling
 from PIL import Image
 from PIL import ImageFilter
 from PIL import ImageEnhance
-import pytesseract
 import requests
 import aiohttp
 from io import BytesIO
@@ -2595,7 +2594,7 @@ async def all(ctx):
     return
 
 
-@Clembot.command(pass_context=True, hidden=True)
+@Clembot.command(pass_context=True, hidden=True, aliases=["w"])
 @checks.wildset()
 @checks.citychannel()
 async def wild(ctx):
@@ -4167,7 +4166,7 @@ async def _fetch_moveset_and_counters(ctx, pkmn, weather='clear', counters_and_m
 
 
 
-@Clembot.command()
+@Clembot.command(aliases=["re"])
 @checks.nonraidchannel()
 async def research(ctx, *, args = None):
     """Report Field research
@@ -4943,7 +4942,7 @@ async def process_map_link(message, newloc=None):
 
 
 
-@Clembot.command(pass_context=True, hidden=True)
+@Clembot.command(pass_context=True, hidden=True, aliases=["ex"])
 @checks.cityraidchannel()
 @checks.raidset()
 async def exraid(ctx):
@@ -6196,6 +6195,7 @@ beepmsg = _("""**{member}, !beep** can be used with following options:
 
 **!beep report** - to see commands to report raid or raidegg.
 **!beep raid** - for raid specific commands.
+**!beep wild** - for wild reports and subscription commands.
 **!beep gym** - for gym code related commands.
 **!beep notification** - for notification related commands.
 
@@ -6221,9 +6221,18 @@ beep_report = _(
 
 **!raidparty <raid-party-channel-name>** - to create a channel for raid party where multiple raids are done by a group back to back. 
 
-**!wild <pokemon> <place>** - to report a wild sighting of a pokemon
-
 Also, see **!beep gym** for gym-code commands!
+""")
+
+beep_wild = _(
+"""**{member}** here are the commands for wild reporting:
+
+**!wild <pokemon> <location>** - to report a wild sighting of a pokemon at the location.
+
+**!want** - brings up a list of pokemon which can be subscribed for notifications via raid or wild commands.
+
+**!want <pokemon>** - to add a pokemon in your want list of subscription
+**!unwant <pokemon>** - to remove a pokemon in your want list of subscription
 """)
 
 beep_raid = _("""
@@ -6402,6 +6411,8 @@ async def beep(ctx):
         else:
             if args_split[0] == 'report':
                 await ctx.message.channel.send( embed = get_beep_embed(title="Help - Raid Reporting", description = beep_report.format(member=ctx.message.author.display_name), footer=footer))
+            elif args_split[0] == 'wild':
+                await ctx.message.channel.send(embed=get_beep_embed(title="Help - Wild", description=beep_wild.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'raidparty':
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Party (Status)", description=beep_raidparty.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'raidowner':

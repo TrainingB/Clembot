@@ -366,6 +366,7 @@ class TradeManager:
 **!trade request <pokemon>** - to add pokemon to your requests list.
 
 **!trade clear <pokemon>** - to remove pokemon from your trade offer or request list.
+**!trade clear all** - to clear your trade offer and request list.
 
 **!trade list** - brings up pokemon in your trade offer/request list.
 **!trade list @user** - brings up pokemon in user's trade offer/request list.
