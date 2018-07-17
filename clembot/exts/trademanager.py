@@ -124,7 +124,6 @@ class TradeManager:
         return pokemon_list
 
     async def _trade_add_to_list(self, ctx, pokemon_list, list_name):
-
         user = ctx.message.author
 
         trainer_trade_pokemon = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get(list_name,[])
