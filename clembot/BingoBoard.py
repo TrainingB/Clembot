@@ -34,17 +34,17 @@ class BingoBoard:
 
                     if len(cell) == 1:
                         text = textwrap.fill(cell[0], 12)
-                        draw.text((x_position, y_position), text, 'black', font)
+                        draw.text((x_position, y_position), text, 'white', font)
                     else:
                         text = textwrap.fill(cell[0], 12)
-                        draw.text((x_position, y_position - 15 ), text, 'black', font)
+                        draw.text((x_position, y_position - 15 ), text, 'white', font)
 
                         if len(cell[1]) == 1:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 65, y_position + 20 ), text, 'black', special_font)
+                            draw.text((x_position + 65, y_position + 20 ), text, 'white', special_font)
                         else:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 10 , y_position + 20), text, 'black', small_font)
+                            draw.text((x_position + 10 , y_position + 20), text, 'white', small_font)
 
 
                     x_position += cell_width
