@@ -8043,7 +8043,12 @@ def get_roster_with_highlight(roster, highlight_roster_loc):
                 eta = " [{eta}]".format(eta=eta)
             else:
                 eta = ""
-            roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon}{eta}{marker2}").format(number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], eta=eta, marker1=marker, marker2=marker)
+            if len(roster_msg) > 1900:
+                roster_msg += "\n and more!"
+                break
+            else:
+                roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon}{eta}{marker2}").format(number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], eta=eta, marker1=marker, marker2=marker)
+
     except Exception as error:
         print(error)
 
