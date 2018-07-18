@@ -1,6 +1,6 @@
 from discord.ext import commands
 import discord
-
+import asyncio
 
 class RemoveComma(commands.Converter):
     async def convert(self, ctx, argument):
@@ -125,6 +125,45 @@ class Utilities:
 
         return help_embed
 
+
+    async def ask_confirmation(self, ctx, message, rusure_message, yes_message, no_message, timed_out_message):
+        author = message.author
+        channel = message.channel
+
+        reaction_list = ['✅', '❎']
+        # reaction_list = ['❔', '✅', '❎']
+
+        rusure = await channel.send( _("Beep Beep! {message}".format(message=rusure_message)))
+        await rusure.add_reaction( "✅")  # checkmark
+        await rusure.add_reaction( "❎")  # cross
+
+        def check(react, user):
+            if user.id != author.id:
+                return False
+            return True
+
+        # res = await Clembot.wait_for_reaction(reaction_list, message=rusure, check=check, timeout=60)
+        try:
+            reaction, user = await ctx.bot.wait_for('reaction_add', check=check, timeout=10)
+        except asyncio.TimeoutError:
+            await rusure.delete()
+            confirmation = await channel.send(_("Beep Beep! {message}".format(message=timed_out_message)))
+            await asyncio.sleep(3)
+            await confirmation.delete()
+            return False
+
+        if reaction.emoji == "❎":
+            await rusure.delete()
+            confirmation = await channel.send( _("Beep Beep! {message}".format(message=no_message)))
+            await asyncio.sleep(3)
+            await confirmation.delete()
+            return False
+        elif reaction.emoji == "✅":
+            await rusure.delete()
+            confirmation = await channel.send( _("Beep Beep! {message}".format(message=yes_message)))
+            await asyncio.sleep(3)
+            await confirmation.delete()
+            return True
 
 def setup(bot):
     bot.add_cog(Utilities())

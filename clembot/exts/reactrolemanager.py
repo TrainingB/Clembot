@@ -193,7 +193,7 @@ class ReactRoleManager:
             message_text = "\n"
             for emoji, role in emoji_role_dict.items():
                 message_text += f"\n{self.printable(ctx.guild, emoji)} - **{role}**"
-            message = await self.utilities._send_message(ctx.channel, f"React to this message to select the role(s).{message_text}", footer=f"Click \u23f9 to stop. This message will be auto deleted in {timeout_duration} seconds.")
+            message = await self.utilities._send_message(ctx.channel, f"React to this message to select the role(s).{message_text}", footer=f"Click \u23f9 to stop. This message will be auto deleted in {timeout_duration} seconds.", user=original_user)
 
         for emoji in emoji_role_dict.keys():
             try:
@@ -245,7 +245,7 @@ class ReactRoleManager:
             for emoji, role in emoji_role_dict.items():
                 message_text += f"\n{self.printable(ctx.guild, emoji)} - **{role}**"
 
-            message = await self.utilities._send_embed(ctx.channel, description=f"React to this message to make your selection(s). {message_text}", footer=f"Click \u23f9 to stop. This message will be auto deleted after {timeout_duration} second of inactivity.")
+            message = await self.utilities._send_embed(ctx.channel, description=f"React to this message to make your selection(s). {message_text}", footer=f"Click \u23f9 to stop. This message will be auto deleted after {timeout_duration} second of inactivity.", user =original_user)
 
         for emoji in emoji_role_dict.keys():
             try:

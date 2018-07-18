@@ -59,6 +59,8 @@ from exts.trademanager import TradeManager
 from exts.utilities import Utilities
 from exts.reactrolemanager import ReactRoleManager
 from exts.autoresponder import AutoResponder
+from exts.rostermanager import RosterManager
+from exts.configmanager import ConfigManager
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -104,7 +106,7 @@ except OSError:
 guild_dict = Clembot.guild_dict
 
 
-
+Clembot.raidlist = {}
 bingo_template = {}
 config = {}
 pkmn_info = {}
@@ -140,6 +142,7 @@ def load_config():
     global GOOGLE_API_KEY
     global GOOGLE_MAPS_URL
     global SQLITE_DB
+    global raidlist
     # Load configuration
     with open("config.json", "r") as fd:
         config = json.load(fd)
@@ -193,7 +196,9 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 
 
-default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager', 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder']
+default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager',
+                'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder',
+                'exts.rostermanager', 'exts.configmanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
 for ext in default_exts:
     try:
@@ -230,7 +235,8 @@ async def _unload(ctx, *extensions):
 Parser = ArgParser()
 MyTradeManager = TradeManager(Clembot)
 MyAutoResponder = AutoResponder(Clembot)
-
+MyRosterManager = RosterManager(Clembot)
+MyConfigManager = ConfigManager(Clembot)
 """
 
 ======================
@@ -361,6 +367,8 @@ def get_level(pkmn):
                 return level
 
 
+
+
 def get_raidlist():
     raidlist = []
     for level in raid_info["raid_eggs"]:
@@ -368,6 +376,8 @@ def get_raidlist():
             raidlist.append(pokemon)
             raidlist.append(get_name(pokemon).lower())
     return raidlist
+
+Clembot.raidlist = get_raidlist()
 
 
 # Given a Pokemon name, return a list of its
@@ -5398,6 +5408,10 @@ Please type `!beep status` if you need a refresher of Clembot commands!
 
             if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
                 await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
+            elif egg_level == "5" and get_number(guild_dict[raid_channel.guild.id]['configuration']['settings'].get('regional', None)) in raid_info['raid_eggs']["5"]['pokemon']:
+                await _eggassume('assume ' + guild_dict[raid_channel.guild.id]['configuration']['settings']['regional'], raid_channel)
+
+            guild_dict[message.channel.guild.id].setdefault("configuration", {}).setdefault("settings", {})["regional"]
 
             record_reported_by(message.guild.id, message.author.id, 'egg_reports')
 
