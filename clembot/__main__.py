@@ -2701,8 +2701,9 @@ async def _wild(message):
 
 
 @Clembot.event
-async def on_raw_reaction_add(emoji, message_id, channel_id, user_id):
-
+async def on_raw_reaction_add(emoji, message_id=None, channel_id=None, user_id=None):
+    if not message_id or not channel_id or not user_id:
+        return
     channel = Clembot.get_channel(channel_id)
     message = await channel.get_message(message_id)
     guild = message.guild
@@ -8041,6 +8042,32 @@ async def move(ctx):
         await print_roster(ctx.message, _("raid party is moving to the next location in the roster!"))
 
     return
+def get_roster_messages_with_highlight(roster, highlight_roster_loc):
+    roster_msg = ""
+    roster_msg_list = []
+    index = 0
+    try:
+        for roster_loc in roster:
+            if highlight_roster_loc == roster_loc['index']:
+                marker = "**"
+            else:
+                marker = ""
+            eta = roster_loc.get('eta', "")
+            if eta:
+                eta = " [{eta}]".format(eta=eta)
+            else:
+                eta = ""
+            if len(roster_msg) > 1900:
+                roster_msg_list.append(roster_msg)
+                roster_msg = ""
+
+            roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon}{eta}{marker2}").format(number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], eta=eta, marker1=marker, marker2=marker)
+
+        roster_msg_list.append(roster_msg)
+    except Exception as error:
+        print(error)
+
+    return roster_msg_list
 
 
 def get_roster_with_highlight(roster, highlight_roster_loc):
@@ -8324,8 +8351,6 @@ async def print_roster(message, roster_message=None):
 
     roster_index = roster[0]['index']
 
-    roster_msg = get_roster_with_highlight(roster, roster_index)
-
     raid_party_image_url = "https://media.discordapp.net/attachments/419935483477622793/450201828802560010/latest.png"
 
     raid_img_url = raid_party_image_url
@@ -8339,14 +8364,24 @@ async def print_roster(message, roster_message=None):
         embed_title = "Raid Party has not started yet!!"
         raid_party_image_url = ""
 
+    roster_msg_list = get_roster_messages_with_highlight(roster, roster_index)
+    roster_msg = roster_msg_list[0]
+
     raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title), url=raid_party_image_url, description=roster_msg)
-    raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=message.author.avatar_url)
+    raid_embed.set_footer(text=_("Requested by @{author}").format(author=message.author.display_name), icon_url=message.author.avatar_url)
     raid_embed.set_thumbnail(url=raid_img_url)
 
     if roster_message:
         await message.channel.send( content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention, roster_message=roster_message), embed=raid_embed)
     else:
         await message.channel.send( content=_("Beep Beep! {member} here is the raid party roster: ").format(member=message.author.mention), embed=raid_embed)
+
+    if len(roster_msg_list) > 1:
+        for roster_msg in roster_msg_list[1:] :
+            raid_embed = discord.Embed(description=roster_msg)
+            raid_embed.set_footer(text=_("Requested by @{author}").format(author=message.author.display_name),icon_url=message.author.avatar_url)
+            raid_embed.set_thumbnail(url=raid_img_url)
+            await message.channel.send(embed=raid_embed)
 
     return
 
@@ -8842,6 +8877,7 @@ async def raid_boss(ctx, level=None, *, newlist=None):
                 with open(os.path.join('data', 'raid_info.json'), 'w') as fd:
                     json.dump(data, fd, indent=2, separators=(', ', ': '))
                 load_config()
+                Clembot.raidlist = get_raidlist()
                 await question.clear_reactions()
                 await question.add_reaction('☑')
             else:
