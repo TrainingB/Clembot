@@ -122,7 +122,7 @@ GOOGLE_API_KEY = ""
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
 INVITE_CODE = "AUzEXRU"
 SQLITE_DB = ""
-CACHE_VERSION = 6
+CACHE_VERSION = 7
 
 # Append path of this script to the path of
 # config files which we're loading.
