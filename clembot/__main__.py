@@ -2351,30 +2351,31 @@ async def analyze(ctx, *, count: str = None):
             if count.isdigit():
                 count = int(count)
                 limit = count
-        else:
-            limit = None
 
         channel = ctx.message.channel
         await ctx.message .delete()
 
         map_users = {}
-
-        async for message in channel.history(limit=limit):
+        counter = 1
+        async for message in channel.history(limit=None):
             if len(message.attachments) > 0:
                 map_users.update({message.author.mention: map_users.get(message.author.mention, 0) + 1})
+                counter = counter + 1
+                if counter > limit:
+                    break
 
-        sorted_map = sorted(map_users.items(), key=lambda x: x[1])
+        sorted_map = dict(sorted(map_users.items(), key=lambda x: x[1], reverse=True))
 
-        text = json.dumps(sorted_map, indent=4, sort_keys=True)
+        text = json.dumps(sorted_map, indent=4)
 
         parts = [text[i:i + 1800] for i in range(0, len(text), 1800)]
 
-        await Clembot.owner.send(content=f"Executed in {ctx.message.channel.name} by {ctx.message.author.display_name}")
+        await ctx.message.author.send(content=f"Results from {ctx.message.guild.name}.{ctx.message.channel.name} requested by {ctx.message.author.display_name}")
         for message_text in parts:
-            await Clembot.owner.send( content=message_text)
+            await ctx.message.author.send( content=message_text)
 
     except Exception as error:
-        await Clembot.owner.send(content=error)
+        await ctx.message.author.send(content=error)
         print(error)
 
 

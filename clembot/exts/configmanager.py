@@ -25,6 +25,10 @@ class ConfigManager:
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
 
+    @_setx.command(aliases=["wild"])
+    async def _setx_wild_channel(self, ctx, city):
+        return
+
     @_setx.command(aliases=["regional"])
     async def _setx_regional(self, ctx, raid_boss = None):
 

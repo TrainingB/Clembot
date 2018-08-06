@@ -1,3 +1,4 @@
+
 from PIL import Image,ImageDraw,ImageFont
 import textwrap
 from random import randint
@@ -9,7 +10,7 @@ class BingoBoard:
     def __init__(self, bingo_board):
         self.bingo_board = bingo_board
 
-    def generate_board_image(self, file_name='bingo', user_name='anon', template_file="mareep.png"):
+    def generate_board_image(self, file_name='bingo', user_name='anon', template_file="eevee.png"):
         try:
             script_path = os.path.dirname(os.path.realpath(__file__))
             dir_path = os.path.join(script_path, "..","data")
@@ -28,24 +29,26 @@ class BingoBoard:
             canvas = Image.open(os.path.join(file_path, template_file))
             draw = ImageDraw.Draw(canvas)
 
+            colors = ['black','yellow','black','yellow','yellow','yellow','black','yellow','black']
+            counter = 0
             for row in self.bingo_board:
                 x_position = 20
                 for cell in row:
 
                     if len(cell) == 1:
                         text = textwrap.fill(cell[0], 12)
-                        draw.text((x_position, y_position), text, 'white', font)
+                        draw.text((x_position, y_position), text, colors[counter], font)
                     else:
                         text = textwrap.fill(cell[0], 12)
-                        draw.text((x_position, y_position - 15 ), text, 'white', font)
+                        draw.text((x_position, y_position - 15 ), text, colors[counter], font)
 
                         if len(cell[1]) == 1:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 65, y_position + 20 ), text, 'white', special_font)
+                            draw.text((x_position + 65, y_position + 20 ), text, colors[counter], special_font)
                         else:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 10 , y_position + 20), text, 'white', small_font)
-
+                            draw.text((x_position + 10 , y_position + 20), text, colors[counter], small_font)
+                    counter=counter+1
 
                     x_position += cell_width
                 y_position += cell_height

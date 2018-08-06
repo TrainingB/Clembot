@@ -50,7 +50,7 @@ def guildowner_or_permissions(**perms):
     return commands.check(predicate)
 
 def guildowner():
-    return guildowner_or_permissions()
+    return guildowner_or_permissions() or is_owner()
 
 def check_wantchannel(ctx):
     if ctx.guild is None:

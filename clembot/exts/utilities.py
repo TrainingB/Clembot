@@ -125,6 +125,11 @@ class Utilities:
 
         return help_embed
 
+    @classmethod
+    async def get_image_embed(cls, channel, image_url):
+        embed = discord.Embed(colour=channel.guild.me.colour)
+        embed.set_thumbnail(url=image_url)
+        return await channel.send(embed=embed)
 
     async def ask_confirmation(self, ctx, message, rusure_message, yes_message, no_message, timed_out_message):
         author = message.author
