@@ -2351,7 +2351,7 @@ async def analyze(ctx, *, count: str = None):
             if count.isdigit():
                 count = int(count)
                 limit = count
-        if not limit:
+        else:
             limit = None
 
         channel = ctx.message.channel
