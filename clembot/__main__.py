@@ -2365,7 +2365,7 @@ async def analyze(ctx, *, count: str = None):
 
         sorted_map = sorted(map_users.items(), key=lambda x: x[1])
 
-        text = json.dumps(map_users, indent=4, sort_keys=True)
+        text = json.dumps(sorted_map, indent=4, sort_keys=True)
 
         parts = [text[i:i + 1800] for i in range(0, len(text), 1800)]
 
