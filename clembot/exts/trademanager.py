@@ -6,8 +6,8 @@ from discord.ext import commands
 from exts.utilities import Utilities
 from exts.utilities import RemoveComma
 from random import *
-from exts.pokemonform import PokemonForm
-from exts.pokemon import Pokemon
+# from exts.pokemonform import PokemonForm
+# from exts.pokemon import Pokemon
 
 import json
 
@@ -420,27 +420,27 @@ class TradeManager:
         footer = "Tip: < > denotes required and [ ] denotes optional arguments."
         await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Trade Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 
-    @commands.command(aliases=["debug"])
-    async def _debug(self, ctx, *pokemon_list):
-        for pokemon in pokemon_list:
-            try:
-                # pokemon_test = await Pokemon.convert_pokemon(ctx, 'unown-y')
-                # await self.utilities._send_message(ctx.channel, pokemon_test.pokemon_info())
-                # pokemon_test = await Pokemon.convert_pokemon(ctx, 'unown y')
-                # await self.utilities._send_message(ctx.channel, pokemon_test.pokemon_info())
-                pokemon_info = await Pokemon.convert_pokemon(ctx, pokemon)
-
-                response_text = json.dumps(pokemon_info, indent=4)
-                await self.utilities._send_message(ctx.channel, f"`{response_text}`")
-
-                if pokemon_info['match']:
-                    await self.utilities.get_image_embed(ctx.channel, pokemon_info['img_url'])
-
-
-
-            except Exception as error:
-                pass
-                print(error)
+    # @commands.command(aliases=["debug"])
+    # async def _debug(self, ctx, *pokemon_list):
+    #     for pokemon in pokemon_list:
+    #         try:
+    #             # pokemon_test = await Pokemon.convert_pokemon(ctx, 'unown-y')
+    #             # await self.utilities._send_message(ctx.channel, pokemon_test.pokemon_info())
+    #             # pokemon_test = await Pokemon.convert_pokemon(ctx, 'unown y')
+    #             # await self.utilities._send_message(ctx.channel, pokemon_test.pokemon_info())
+    #             pokemon_info = await Pokemon.convert_pokemon(ctx, pokemon)
+    #
+    #             response_text = json.dumps(pokemon_info, indent=4)
+    #             await self.utilities._send_message(ctx.channel, f"`{response_text}`")
+    #
+    #             if pokemon_info['match']:
+    #                 await self.utilities.get_image_embed(ctx.channel, pokemon_info['img_url'])
+    #
+    #
+    #
+    #         except Exception as error:
+    #             pass
+    #             print(error)
 
 
 def setup(bot):
