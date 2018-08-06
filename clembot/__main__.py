@@ -41,6 +41,7 @@ from contextlib import redirect_stdout
 # --B--
 # ---- dependencies
 import gymsql
+import operator
 
 import time
 from datetime import timedelta
@@ -61,6 +62,7 @@ from exts.reactrolemanager import ReactRoleManager
 from exts.autoresponder import AutoResponder
 from exts.rostermanager import RosterManager
 from exts.configmanager import ConfigManager
+
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -2343,27 +2345,37 @@ async def _about_me(ctx):
 @Clembot.command(pass_context=True, hidden=True)
 async def analyze(ctx, *, count: str = None):
     limit = 200
-    if count:
-        if count.isdigit():
-            count = int(count)
-            limit = count
-    channel = ctx.message.channel
-    await ctx.message .delete()
 
-    map_users = {}
     try:
+        if count:
+            if count.isdigit():
+                count = int(count)
+                limit = count
+        if not limit:
+            limit = None
+
+        channel = ctx.message.channel
+        await ctx.message .delete()
+
+        map_users = {}
+
         async for message in channel.history(limit=limit):
             if len(message.attachments) > 0:
                 map_users.update({message.author.mention: map_users.get(message.author.mention, 0) + 1})
+
+        sorted_map = sorted(map_users.items(), key=lambda x: x[1])
+
+        text = json.dumps(map_users, indent=4, sort_keys=True)
+
+        parts = [text[i:i + 1800] for i in range(0, len(text), 1800)]
+
+        await Clembot.owner.send(content=f"Executed in {ctx.message.channel.name} by {ctx.message.author.display_name}")
+        for message_text in parts:
+            await Clembot.owner.send( content=message_text)
+
     except Exception as error:
+        await Clembot.owner.send(content=error)
         print(error)
-
-    text = json.dumps(map_users, indent=4, sort_keys=True)
-
-    parts = [text[i:i + 1800] for i in range(0, len(text), 1800)]
-
-    for message_text in parts:
-        await Clembot.owner.send( content=message_text)
 
 
 @Clembot.command(pass_context=True, hidden=True)
