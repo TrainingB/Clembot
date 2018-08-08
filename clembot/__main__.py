@@ -200,7 +200,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager',
                 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder',
-                'exts.rostermanager', 'exts.configmanager']
+                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
 for ext in default_exts:
     try:
