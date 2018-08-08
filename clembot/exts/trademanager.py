@@ -6,7 +6,7 @@ from discord.ext import commands
 from exts.utilities import Utilities
 from exts.utilities import RemoveComma
 from random import *
-# from exts.pokemonform import PokemonForm
+from exts.pokemonform import PokemonForm
 # from exts.pokemon import Pokemon
 
 import json
