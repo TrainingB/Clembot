@@ -54,7 +54,7 @@ class BingoBoard:
                 y_position += cell_height
 
             rand_file_int = randint(0, 1333337);
-            file_name = os.path.join(dir_path,'bingo_boards', file_name + '_' + user_name + '_' + str(rand_file_int) + '.png')
+            file_name = os.path.join(dir_path,'bingo_boards', file_name + '_' + str(user_name) + '_' + str(rand_file_int) + '.png')
             canvas.save(file_name, "PNG", quality=20, optimize=True)
 
 
