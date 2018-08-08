@@ -237,7 +237,7 @@ class CPCalculator:
             return await self.utilities._send_message(ctx.channel, f"{error}")
 
     @_calc.command(aliases=["iv"])
-    async def _calc_iv(self, ctx, required_cp:int, attack: int, defense: int, hp: int, min_level: int):
+    async def _calc_iv(self, ctx, required_cp:int, minAtkIV: int, minDefIV: int, minHpIV: int, min_level: int):
         try:
             output_message = ""
 
@@ -254,22 +254,39 @@ class CPCalculator:
                     for step in [0.0, 0.5]:
                         if lvl == 40 and step != 0:
                             continue
-                        for atkIV in range(attack, 16):
-                            for defIV in range(defense, 16):
-                                for hpIV in range(hp, 16):
-                                    attack_stat = int(baseAtk) + attack
-                                    defense_stat = int(baseDef) + defense
-                                    hp_stat = int(baseHp) + hp
-                                    key = lvl + step
-                                    cp = max(10, math.floor((attack_stat * math.sqrt(defense_stat) * math.sqrt(hp_stat) * (self.cpM[key] ** 2)) / 10.0))
-                                    print(required_cp , cp, atkIV, defIV, hpIV)
-                                    if cp == required_cp:
-                                        output_message = output_message + "\n" + f"**{pokemon}** ({atkIV} / {defIV} / {hpIV}) \t  {key}   \t **{int(cp)}**"
+                        key = lvl + step
+                        minCp = self.calcCp( key, baseAtk, baseDef, baseHp, minAtkIV, minDefIV, minHpIV )
+                        maxCp = self.calcCp( key, baseAtk, baseDef, baseHp, 15, 15, 15 )
+
+                        if required_cp < minCp or required_cp > maxCp:
+                            continue
+                        for atkIV in range(minAtkIV, 16):
+                            minCpForAttack = self.calcCp( key, baseAtk, baseDef, baseHp, atkIV, minDefIV, minHpIV )
+                            if required_cp < minCpForAttack:
+                                break
+
+                            for defIV in range(minDefIV, 16):
+                                minCpForAttackAndDefense = self.calcCp(key, baseAtk, baseDef, baseHp, atkIV, defIV, minHpIV)
+                                if required_cp < minCpForAttackAndDefense:
+                                    break
+
+                                for hpIV in range(minHpIV, 16):
+                                    cp = self.calcCp(key, baseAtk, baseDef, baseHp, atkIV, defIV, hpIV)
+                                    if cp > required_cp:
+                                        break
+                                    if cp != required_cp:
+                                        continue
+                                    output_message = output_message + "\n" + f"**{pokemon}** ({atkIV} / {defIV} / {hpIV}) \t  {key}   \t **{int(cp)}**"
 
             return await self.utilities._send_message(ctx.channel, f"Here are the CPs by levels: {output_message}")
         except Exception as error :
             return await self.utilities._send_message(ctx.channel, f"{error}")
 
+    def calcCp(self, key, baseAtk, baseDef, baseHp, atkIV, defIV, hpIV):
+        attack = int(baseAtk) + atkIV
+        defense = int(baseDef) + defIV
+        hp = int(baseHp) + hpIV
+        return max(10, math.floor((attack * math.sqrt(defense) * math.sqrt(hp) * (self.cpM[key] ** 2)) / 10.0))
 
 def setup(bot):
     bot.add_cog(CPCalculator(bot))
