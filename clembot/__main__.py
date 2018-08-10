@@ -2125,67 +2125,69 @@ async def configure(ctx):
             break
         guild_dict_temp['category_dict'] = category_dict
     if (configcancel == False) and (guild_dict_temp['other'] == True) and ((firstconfig == True) or (configgoto == 'all') or (configgoto == 'want') or (configgoto == 'allmain')):
+        try:
+            existing_want_channel_list = []
+            for channel_id in guild_dict_temp['want_channel_list']:
+                try:
+                    want_channel = discord.utils.get(guild.channels, id=channel_id)
+                    existing_want_channel_list.append(want_channel.name)
+                except:
+                    pass
 
-        existing_want_channel_list = []
-        for channel_id in guild_dict_temp['want_channel_list']:
-            try:
-                want_channel = discord.utils.get(guild.channels, id=channel_id)
-                existing_want_channel_list.append(want_channel.name)
-            except:
-                pass
+            await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="The **!want** and **!unwant** commands let you add or remove roles for Pokemon that will be mentioned in reports. This let you get notifications on the Pokemon you want to track. I just need to know what channels you want to allow people to manage their pokemon with the **!want** and **!unwant** command. If you pick a channel that doesn't exist, I'll make it for you.\n\nIf you don't want to allow the management of tracked Pokemon roles, then you may want to disable this feature.\n\n**Current Want Channels : **`{current_regions}` \n\n**New Want Channels** (Respond with: **N** to disable, or the **channel-name** list to enable, each seperated by a comma and space) :".format(current_regions=', '.join(existing_want_channel_list))).set_author(name='Pokemon Notifications', icon_url=Clembot.user.avatar_url))
 
-        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="The **!want** and **!unwant** commands let you add or remove roles for Pokemon that will be mentioned in reports. This let you get notifications on the Pokemon you want to track. I just need to know what channels you want to allow people to manage their pokemon with the **!want** and **!unwant** command. If you pick a channel that doesn't exist, I'll make it for you.\n\nIf you don't want to allow the management of tracked Pokemon roles, then you may want to disable this feature.\n\n**Current Want Channels : **`{current_regions}` \n\n**New Want Channels** (Respond with: **N** to disable, or the **channel-name** list to enable, each seperated by a comma and space) :".format(current_regions=', '.join(existing_want_channel_list))).set_author(name='Pokemon Notifications', icon_url=Clembot.user.avatar_url))
-
-        while True:
-            wantchs = await Clembot.wait_for('message', check=(lambda message: (message.guild == None) and message.author == owner))
-            if wantchs.content.lower() == 'n':
-                guild_dict_temp['wantset'] = False
-                await owner.send(embed=discord.Embed(colour=discord.Colour.red(), description='Pokemon Notifications disabled'))
-                break
-            elif wantchs.content.lower() == 'cancel':
-                configcancel = True
-                await owner.send(embed=discord.Embed(colour=discord.Colour.red(), description='**CONFIG CANCELLED!**\n\nNo changes have been made.'))
-                return
-            else:
-                want_list = wantchs.content.lower().split(', ')
-                guild_channel_list = []
-                for channel in guild.channels:
-                    guild_channel_list.append(channel.name)
-                diff = set(want_list) - set(guild_channel_list)
-                if (not diff):
-                    guild_dict_temp['wantset'] = True
-                    await owner.send(embed=discord.Embed(colour=discord.Colour.green(), description='Pokemon Notifications enabled'))
-                    while True:
-                        try:
-                            for want_channel_name in want_list:
-                                want_channel = discord.utils.get(guild.channels, name=want_channel_name)
-                                if want_channel == None:
-                                    want_channel = await guild.create_text_channel(want_channel_name)
-                                if want_channel.id not in guild_dict_temp['want_channel_list']:
-                                    guild_dict_temp['want_channel_list'].append(want_channel.id)
-                            break
-                        except:
-                            await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("You didn't give me enough permissions to create channels! Please check my permissions and that my role is above general roles. Let me know if you'd like me to check again.\n\nRespond with: **Y** to try again, or **N** to skip and create the missing channels yourself.")))
-                            while True:
-                                wantpermswait = await Clembot.wait_for('message', check=(lambda message: (message.guild == None) and message.author == owner))
-                                if wantpermswait.content.lower() == 'n':
-                                    break
-                                elif wantpermswait.content.lower() == 'y':
-                                    break
-                                elif wantpermswait.content.lower() == 'cancel':
-                                    configcancel = True
-                                    await owner.send(embed=discord.Embed(colour=discord.Colour.red(), description='**CONFIG CANCELLED!**\n\nNo changes have been made.'))
-                                    return
-                                else:
-                                    await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="I'm sorry I don't understand. Please reply with either **Y** to try again, or **N** to skip and create the missing channels yourself."))
-                                    continue
-                            if wantpermswait.content.lower() == 'y':
-                                continue
-                            break
+            while True:
+                wantchs = await Clembot.wait_for('message', check=(lambda message: (message.guild == None) and message.author == owner))
+                if wantchs.content.lower() == 'n':
+                    guild_dict_temp['wantset'] = False
+                    await owner.send(embed=discord.Embed(colour=discord.Colour.red(), description='Pokemon Notifications disabled'))
+                    break
+                elif wantchs.content.lower() == 'cancel':
+                    configcancel = True
+                    await owner.send(embed=discord.Embed(colour=discord.Colour.red(), description='**CONFIG CANCELLED!**\n\nNo changes have been made.'))
+                    return
                 else:
-                    await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("The channel list you provided doesn't match with your servers channels.\n\nThe following aren't in your server:{invalid_channels}\n\nPlease double check your channel list and resend your reponse.").format(invalid_channels=', '.join(diff))))
-                    continue
-                break
+                    want_list = wantchs.content.lower().split(', ')
+                    guild_channel_list = []
+                    for channel in guild.channels:
+                        guild_channel_list.append(channel.name)
+                    diff = set(want_list) - set(guild_channel_list)
+                    if (not diff):
+                        guild_dict_temp['wantset'] = True
+                        await owner.send(embed=discord.Embed(colour=discord.Colour.green(), description='Pokemon Notifications enabled'))
+                        while True:
+                            try:
+                                for want_channel_name in want_list:
+                                    want_channel = discord.utils.get(guild.channels, name=want_channel_name)
+                                    if want_channel == None:
+                                        want_channel = await guild.create_text_channel(want_channel_name)
+                                    if want_channel.id not in guild_dict_temp['want_channel_list']:
+                                        guild_dict_temp['want_channel_list'].append(want_channel.id)
+                                break
+                            except:
+                                await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("You didn't give me enough permissions to create channels! Please check my permissions and that my role is above general roles. Let me know if you'd like me to check again.\n\nRespond with: **Y** to try again, or **N** to skip and create the missing channels yourself.")))
+                                while True:
+                                    wantpermswait = await Clembot.wait_for('message', check=(lambda message: (message.guild == None) and message.author == owner))
+                                    if wantpermswait.content.lower() == 'n':
+                                        break
+                                    elif wantpermswait.content.lower() == 'y':
+                                        break
+                                    elif wantpermswait.content.lower() == 'cancel':
+                                        configcancel = True
+                                        await owner.send(embed=discord.Embed(colour=discord.Colour.red(), description='**CONFIG CANCELLED!**\n\nNo changes have been made.'))
+                                        return
+                                    else:
+                                        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description="I'm sorry I don't understand. Please reply with either **Y** to try again, or **N** to skip and create the missing channels yourself."))
+                                        continue
+                                if wantpermswait.content.lower() == 'y':
+                                    continue
+                                break
+                    else:
+                        await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("The channel list you provided doesn't match with your servers channels.\n\nThe following aren't in your server:{invalid_channels}\n\nPlease double check your channel list and resend your reponse.").format(invalid_channels=', '.join(diff))))
+                        continue
+                    break
+        except Exception as error:
+            print(error)
     if (configcancel == False) and (guild_dict_temp['other'] == True) and (guild_dict_temp['raidset'] == True) and ((firstconfig == True) or (configgoto == 'all') or (configgoto == 'timezone') or (configgoto == 'allmain')):
         await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("To help coordinate raids reports for you, I need to know what timezone you're in! The current 24-hr time UTC is {utctime}. How many hours off from that are you?\n\nRespond with: A number from **-12** to **12**:").format(utctime=strftime('%H:%M', time.gmtime()))).set_author(name='Timezone Configuration', icon_url=Clembot.user.avatar_url))
         while True:
@@ -4224,6 +4226,15 @@ async def research(ctx, *, args = None):
                 research_embed.add_field(name=_("**Location:**"),value='\n'.join(textwrap.wrap(location.title(), width=30)),inline=True)
                 research_embed.add_field(name=_("**Quest:**"),value='\n'.join(textwrap.wrap(quest.title(), width=30)),inline=True)
                 research_embed.add_field(name=_("**Reward:**"),value='\n'.join(textwrap.wrap(reward.title(), width=30)),inline=True)
+
+                reward_role = discord.utils.get(ctx.message.guild.roles, name=reward)
+
+                if reward_role:
+
+                    pokemon_reward = f" for {reward_role.mention}"
+                    await ctx.message.channel.send(content=_(f"Beep Beep! A field research {pokemon_reward} has been reported by {ctx.message.author.mention}!"))
+
+
                 break
             else:
                 research_embed.add_field(name=_('**New Research Report**'), value=_("Beep Beep! I'll help you report a research quest!\n\nFirst, I'll need to know what **pokestop** you received the quest from. Reply with the name of the **pokestop**. You can reply with **cancel** to stop anytime."), inline=False)
@@ -4285,11 +4296,13 @@ async def research(ctx, *, args = None):
             if pkmn_match:
                 role = discord.utils.get(guild.roles, name=pkmn_match)
                 if role:
-                    roletest = _("{pokemon} - ").format(pokemon=role.mention)
-            research_msg = _("A Field Research has been reported!").format(roletest=roletest,author=author.display_name)
+                    roletest = _(f"for {role.mention}")
+                else:
+                    roletest = ""
 
+            research_msg = f"Beep Beep! A field research {roletest} has been reported by {ctx.message.author.mention}!"
 
-            research_embed.__setattr__('title', research_msg)
+            research_embed.__setattr__('title', f"A field research has been reported.")
             confirmation = await channel.send(embed=research_embed)
             research_dict = copy.deepcopy(guild_dict[guild.id].get('questreport_dict',{}))
             research_dict[confirmation.id] = {

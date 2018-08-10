@@ -101,6 +101,9 @@ class ReactRoleManager:
     async def _react_role_list(self, ctx, filter_text=None):
         await self.utilities._send_message(ctx.channel, json.dumps(ctx.bot.guild_dict[ctx.guild.id]['react-roles'], indent=2))
 
+    def _get_react_role_list(self, ctx):
+        return ctx.bot.guild_dict[ctx.guild.id]['react-roles'].keys()
+
     @_react_role.command(aliases=["add"])
     async def _react_role_add(self, ctx, *, command_and_json_text):
 
@@ -157,8 +160,10 @@ class ReactRoleManager:
     @commands.command(pass_context=True, hidden=True, aliases=["select"])
     async def _select_react_role(self, ctx, group_name=None):
         try:
+            available_groups = ", ".join(ctx.bot.guild_dict[ctx.guild.id].setdefault('react-roles', {}).keys())
+
             if group_name == None:
-                help_embed = self.utilities.get_help_embed("Select roles via reactions.", "!select *group-name*", "Available Groups ", ctx.bot.guild_dict[ctx.guild.id].setdefault('react-roles', {}).keys(), "message")
+                help_embed = self.utilities.get_help_embed("Select roles via reactions.", "!select *group-name*", "Available Groups ", available_groups, "message")
                 return await ctx.channel.send(embed = help_embed)
 
 
@@ -172,7 +177,7 @@ class ReactRoleManager:
                 else:
                     return await self._assign_role_via_reaction(ctx, None, ctx.message.author, emoji_role_dict=group_dict['emoji_role_dict'])
 
-            return await self.utilities._send_error_message(ctx.channel, f", No ReactRoles are defined for **{group_name}**", ctx.message.author)
+            return await self.utilities._send_error_message(ctx.channel, f", Only available selections are **{available_groups}**", ctx.message.author)
 
         except Exception as error:
             return await self.utilities._send_error_message(ctx.channel, f", Some error has occured!", ctx.message.author)

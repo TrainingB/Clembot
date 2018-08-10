@@ -134,7 +134,7 @@ class TradeManager:
             for pokemon_offered in pokemon_list:
 
                 if pokemon_offered not in trainer_trade_pokemon:
-                    trainer_trade_pokemon.append(pokemon_offered)
+                        trainer_trade_pokemon.append(pokemon_offered)
 
                 ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {})[list_name] = trainer_trade_pokemon
 
@@ -345,6 +345,10 @@ class TradeManager:
                         if trainer_trade_pokeform.__contains__(pokemon_searched_for) or pokeform_searched_for == trainer_trade_pokemonform:
 
                             if not trainers_with_pokemon.__contains__(trainer_id):
+
+                                if len(trainers_with_pokemon) > 1 :
+                                    break
+
                                 trainers_with_pokemon.append(trainer_id)
 
                                 trainer_trade_requests = guild_trainer_dict.setdefault(trainer_id, {}).get('trade_requests', [])
@@ -359,8 +363,7 @@ class TradeManager:
                                 else:
                                     additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} (has {trainer_trade_pokeform})"] = 'No Requests yet!'
 
-                                if len(trainers_with_pokemon) > 10 :
-                                    break
+
 
             trainer_search_result = "\n ".join(trainer_list)
 
