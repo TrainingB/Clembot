@@ -2154,6 +2154,7 @@ async def configure(ctx):
                     diff = set(want_list) - set(guild_channel_list)
                     if (not diff):
                         guild_dict_temp['wantset'] = True
+                        guild_dict_temp['want_channel_list'] = []
                         await owner.send(embed=discord.Embed(colour=discord.Colour.green(), description='Pokemon Notifications enabled'))
                         while True:
                             try:
@@ -2164,7 +2165,8 @@ async def configure(ctx):
                                     if want_channel.id not in guild_dict_temp['want_channel_list']:
                                         guild_dict_temp['want_channel_list'].append(want_channel.id)
                                 break
-                            except:
+                            except Exception as error:
+                                print(error)
                                 await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("You didn't give me enough permissions to create channels! Please check my permissions and that my role is above general roles. Let me know if you'd like me to check again.\n\nRespond with: **Y** to try again, or **N** to skip and create the missing channels yourself.")))
                                 while True:
                                     wantpermswait = await Clembot.wait_for('message', check=(lambda message: (message.guild == None) and message.author == owner))

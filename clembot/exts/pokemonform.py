@@ -1,5 +1,5 @@
 class PokemonForm:
-    alphabets = list('abcdefghijklmnopqrstuvwxyz."-')
+    alphabets = list('abcdefghijklmnopqrstuvwxyz."-!?')
 
     def __init__(self, text):
         self.text = text
@@ -23,14 +23,14 @@ def hash(text):
 
 def test():
 
-    a = PokemonForm('mr. mime-shiny-glasses')
-    b = PokemonForm('mr. mime-glasses-shiny-')
+    a = PokemonForm('unown-!')
+    b = PokemonForm('unown-?')
     c = PokemonForm('mr. mime-glasses-shiny-')
 
     print(a.hash())
     print(b.hash())
     print(c.hash())
-    print(a.__eq__(c))
+    print(a.__eq__(b))
     print(b.__eq__(c))
 
 def main():
