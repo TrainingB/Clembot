@@ -206,9 +206,9 @@ for ext in default_exts:
     try:
         Clembot.load_extension(ext)
     except Exception as e:
-        print(f'**Error when loading extension {ext}:**\n{type(e).__name__}: {e}')
+        logger.info(f'**Error when loading extension {ext}:**\n{type(e).__name__}: {e}')
     else:
-        print(f'Loaded {ext} extension.')
+        logger.info(f'Loaded {ext} extension.')
 
 @Clembot.command(name='load')
 @checks.is_owner()
@@ -321,7 +321,7 @@ def get_city_list(message):
         #         city_list.append(city_key)
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
     return city_list
 
@@ -723,7 +723,7 @@ async def expiry_check(channel):
             try:
                 if guild_dict[guild.id]['raidchannel_dict'][channel.id]['active'] is True:
                     if guild_dict[guild.id]['raidchannel_dict'][channel.id]['exp'] is not None:
-                        # print("{channel} => {expiry} vs {current}".format(channel=channel.name,expiry=guild_dict[guild.id]['raidchannel_dict'][channel.id]['exp'],current=fetch_current_time(channel.guild.id)))
+                        # logger.info("{channel} => {expiry} vs {current}".format(channel=channel.name,expiry=guild_dict[guild.id]['raidchannel_dict'][channel.id]['exp'],current=fetch_current_time(channel.guild.id)))
 
                         if guild_dict[guild.id]['raidchannel_dict'][channel.id]['exp'] <= fetch_current_time(channel.guild.id):
                             if guild_dict[guild.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
@@ -754,7 +754,7 @@ async def expire_channel(channel):
     try:
         guild = channel.guild
         alreadyexpired = False
-        # print("Expire_Channel - " + channel.name)
+        # logger.info("Expire_Channel - " + channel.name)
         logger.info("Expire_Channel - " + channel.name)
         # If the channel exists, get ready to delete it.
         # Otherwise, just clean up the dict since someone
@@ -846,10 +846,10 @@ async def expire_channel(channel):
                         await channel_exists.delete()
                         logger.info("Expire_Channel - Channel Deleted - " + channel.name)
             except Exception as error:
-                print(error)
+                logger.info(error)
                 pass
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["archive"])
 async def _archive(ctx):
@@ -1026,7 +1026,7 @@ async def message_cleanup(loop=True):
                 try:
                     report_message = await report_delete_dict[messageid]['channel'].get_message(messageid)
                     logger.info('message_cleanup - DELETE ' + report_message.content)
-                    print(report_message)
+                    logger.info(report_message)
                     await report_message.delete()
 
                 except discord.errors.NotFound:
@@ -1117,7 +1117,7 @@ async def _print(owner, message):
     if 'launcher' in sys.argv[1:]:
         if 'debug' not in sys.argv[1:]:
             await owner.send(message)
-    # print(message)
+    # logger.info(message)
     logger.info(message)
 
 
@@ -1314,7 +1314,7 @@ async def save(ctx):
     File path is relative to current directory."""
     try:
         await _save()
-        print("CONFIG SAVED")
+        logger.info("CONFIG SAVED")
     except Exception as err:
         await _print(Clembot.owner, _("Error occured while trying to save!"))
         await _print(Clembot.owner, err)
@@ -1384,7 +1384,7 @@ async def _set_config(ctx, ):
 
         await ctx.message.channel.send(content)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 @_get.command(pass_context=True, hidden=True, aliases=["config"])
 @checks.is_owner()
@@ -1402,7 +1402,7 @@ async def _get_config(ctx):
         del args_split[0]
         await _send_message(ctx.message.channel, content)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 
@@ -1431,13 +1431,13 @@ async def _get_configuration(ctx):
         guild_dict_temp['want_channel_name_list'] = want_channel_name_list
         guild_dict_temp['want_channel_list'] = {}
 
-        print(json.dumps(guild_dict_temp, indent=2))
+        logger.info(json.dumps(guild_dict_temp, indent=2))
 
 
         content = ctx.message.guild.name + "\n" + json.dumps(guild_dict_temp, indent=2)
         await _send_message(ctx.message.channel, content)
     except Exception as error:
-        print(error)
+        logger.info(error)
         await _send_error_message(ctx.message.channel, error)
 
 
@@ -1471,7 +1471,7 @@ async def _set_bingo_event(ctx):
 
         await ctx.message.channel.send(content)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 
@@ -1562,7 +1562,7 @@ async def _get_bingo_event(ctx):
 
         await ctx.message.channel.send(content)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 @_get.command(pass_context=True, hidden=True)
 @commands.has_permissions(manage_guild=True)
@@ -2166,7 +2166,7 @@ async def configure(ctx):
                                         guild_dict_temp['want_channel_list'].append(want_channel.id)
                                 break
                             except Exception as error:
-                                print(error)
+                                logger.info(error)
                                 await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("You didn't give me enough permissions to create channels! Please check my permissions and that my role is above general roles. Let me know if you'd like me to check again.\n\nRespond with: **Y** to try again, or **N** to skip and create the missing channels yourself.")))
                                 while True:
                                     wantpermswait = await Clembot.wait_for('message', check=(lambda message: (message.guild == None) and message.author == owner))
@@ -2189,7 +2189,7 @@ async def configure(ctx):
                         continue
                     break
         except Exception as error:
-            print(error)
+            logger.info(error)
     if (configcancel == False) and (guild_dict_temp['other'] == True) and (guild_dict_temp['raidset'] == True) and ((firstconfig == True) or (configgoto == 'all') or (configgoto == 'timezone') or (configgoto == 'allmain')):
         await owner.send(embed=discord.Embed(colour=discord.Colour.lighter_grey(), description=_("To help coordinate raids reports for you, I need to know what timezone you're in! The current 24-hr time UTC is {utctime}. How many hours off from that are you?\n\nRespond with: A number from **-12** to **12**:").format(utctime=strftime('%H:%M', time.gmtime()))).set_author(name='Timezone Configuration', icon_url=Clembot.user.avatar_url))
         while True:
@@ -2318,7 +2318,7 @@ async def about(ctx):
         await about_msg.delete()
         await ctx.message.delete()
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 @about.command(pass_context=True)
 async def me(ctx):
@@ -2380,7 +2380,7 @@ async def analyze(ctx, *, count: str = None):
 
     except Exception as error:
         await ctx.message.author.send(content=error)
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -2713,7 +2713,7 @@ async def _wild(message):
             record_reported_by(message.guild.id, message.author.id, 'wild_reports')
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 
@@ -2800,14 +2800,14 @@ async def hide(ctx):
 
 async def _hideChannel(channel):
     try:
-        print("hide: {channel}".format(channel=channel.name))
+        logger.info("hide: {channel}".format(channel=channel.name))
 
         readable = discord.PermissionOverwrite()
         readable.read_messages = False
 
         await Clembot.edit_channel_permissions(channel, channel.guild.default_role, readable)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True)
@@ -2834,7 +2834,7 @@ async def _lockChannel(channel):
         await Clembot.edit_channel_permissions(channel, channel.guild.me, writeable)
         await Clembot.edit_channel_permissions(channel, channel.guild.default_role, readable)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True)
@@ -2849,7 +2849,7 @@ async def _unlockChannel(channel):
         writeable.read_messages = True
         await Clembot.edit_channel_permissions(channel, channel.guild.default_role, writeable)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True)
@@ -2923,7 +2923,7 @@ async def _show_register(ctx):
 
     notifications = copy.deepcopy(guild_dict[ctx.guild.id]['notifications'])
     new_notifications_map = {'notifications': {'roles': [], 'gym_role_map': {}}}
-    print(notifications)
+    logger.info(notifications)
     role_map = {}
 
 
@@ -3013,7 +3013,7 @@ async def _find_gym(message):
         else:
             await message.channel.send(content="Beep Beep...! provide gym-code for lookup")
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["register-role"])
@@ -3048,7 +3048,7 @@ registers a role and a gym
             role = await guild.create_role(name=role_name, hoist=False, mentionable=True)
             await asyncio.sleep(0.5)
         except Exception as error:
-            print(error)
+            logger.info(error)
 
     add_notifications_guild_dict(message.guild.id)
     guild_dict[guild.id]['notifications']['roles'].append(role.id)
@@ -3207,7 +3207,7 @@ async def _subscribe(ctx):
         await ctx.message.author.add_roles(role)
         await _send_message(channel, _("Beep Beep! **{member}**, You have successfully subscribed for **{role}**.".format(role=role_name, member=ctx.message.author.display_name)))
     except Exception as error:
-        print(error)
+        logger.info(error)
         logger.info(error)
 
         await _send_error_message(error, channel)
@@ -3251,7 +3251,7 @@ async def _unsubscribe(ctx):
             await message.author.remove_roles(role)
             await _send_message(channel, _("Beep Beep! **{member}**, Your subscribtion for **{role}** has been removed!".format(role=role_name, member=ctx.message.author.display_name)))
     except Exception as error:
-        print(error)
+        logger.info(error)
         logger.info(error)
 
         await _send_error_message(error, channel)
@@ -3346,7 +3346,7 @@ async def _contest(message):
         guild_dict[message.guild.id]['contest_channel'].update(contest_channel_dict)
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
     return
 
@@ -3575,7 +3575,7 @@ async def _newraid(message):
         raid_channel_category = get_category(message.channel, get_level(entered_raid))
         raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
     except Exception as error:
-        print(error)
+        logger.info(error)
         return
     raid = discord.utils.get(message.guild.roles, name=entered_raid)
     if raid is None:
@@ -3651,7 +3651,7 @@ async def __raid(ctx, pokemon, *, location:commands.clean_content(fix_channel_me
             await _raid(ctx.message)
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 #
 # @checks.cityeggchannel()
 # @Clembot.command()
@@ -3780,7 +3780,7 @@ async def _raid(message):
         raid_channel_category = get_category(message.channel, get_level(entered_raid))
         raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
     except Exception as error:
-        print(error)
+        logger.info(error)
         return
     raid = discord.utils.get(message.guild.roles, name=entered_raid)
     if raid is None:
@@ -3882,15 +3882,15 @@ async def old_fetch_counters_dict(pkmn , weather:None):
         title_url = url.replace('https://fight', 'https://www')
         hyperlink_icon = 'https://i.imgur.com/fn9E5nb.png'
         pbtlr_icon = 'https://www.pokebattler.com/favicon-32x32.png'
-        print(url)
+        logger.info(url)
         async with aiohttp.ClientSession() as sess:
             async with sess.get(url) as resp:
                 data = await resp.json()
 
-        # print(json.dumps(data, indent=4))
+        # logger.info(json.dumps(data, indent=4))
         data = data['attackers'][0]
 
-        print(json.dumps(data, indent=4))
+        logger.info(json.dumps(data, indent=4))
 
         raid_cp = data['cp']
         atk_levels = '30'
@@ -3969,7 +3969,7 @@ async def old_fetch_counters_dict(pkmn , weather:None):
 
 
         text = json.dumps(ctrs_dict, indent=0)
-        print(text)
+        logger.info(text)
 
         await _send_message(ctx.channel, text)
 
@@ -3978,7 +3978,7 @@ async def old_fetch_counters_dict(pkmn , weather:None):
         await moveset_message.delete()
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases= ["moveset"])
@@ -4035,7 +4035,7 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
         else:
             await _send_error_message (ctx.channel, "**{}** please use the command in the raid channel.".format(ctx.message.author.display_name))
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 
@@ -4047,7 +4047,7 @@ async def _test_get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
     counters_dict = await _fetch_moveset_and_counters(ctx, pkmn, 'clear', counters_dict)
 
     counters_dict = await _fetch_moveset_and_counters(ctx, pkmn, 'rainy', counters_dict)
-    print(counters_dict)
+    logger.info(counters_dict)
 
 async def _fetch_moveset_and_counters(ctx, pkmn, weather='clear', counters_and_movesets = {}):
     try:
@@ -4081,12 +4081,12 @@ async def _fetch_moveset_and_counters(ctx, pkmn, weather='clear', counters_and_m
         title_url = url.replace('https://fight', 'https://www')
         hyperlink_icon = 'https://i.imgur.com/fn9E5nb.png'
         pbtlr_icon = 'https://www.pokebattler.com/favicon-32x32.png'
-        print(url)
+        logger.info(url)
         async with aiohttp.ClientSession() as sess:
             async with sess.get(url) as resp:
                 data = await resp.json()
 
-        # print(json.dumps(data, indent=4))
+        # logger.info(json.dumps(data, indent=4))
         data = data['attackers'][0]
 
         raid_cp = data['cp']
@@ -4180,13 +4180,13 @@ async def _fetch_moveset_and_counters(ctx, pkmn, weather='clear', counters_and_m
             ctrs_dict[ctrs_index] = {'moveset': movesetstr, 'emoji': emoji_dict[ctrs_index]}
 
         text = json.dumps(counters_and_movesets, indent=2)
-        print(text)
+        logger.info(text)
 
         return counters_and_movesets
 
 
     except Exception as error:
-        print(error)
+        logger.info(error)
         logger.error(error)
 
 
@@ -4211,8 +4211,8 @@ async def research(ctx, *, args = None):
 
         guild = message.guild
         timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset']))
-        print(message.created_at )
-        print(timestamp)
+        logger.info(message.created_at )
+        logger.info(timestamp)
         to_midnight = 24*60*60 - ((timestamp-timestamp.replace(hour=0, minute=0, second=0, microsecond=0)).seconds)
         error = False
         research_id = '%04x' % randrange(16 ** 4)
@@ -4337,9 +4337,9 @@ async def research(ctx, *, args = None):
 
 
     except Exception as error:
-        print(error)
         logger.info(error)
-        print(traceback.print_exc())
+        logger.info(error)
+        logger.info(traceback.print_exc())
 
 
 
@@ -4423,7 +4423,7 @@ async def timerset(ctx, timer):
             except ValueError:
                 return await _send_error_message(channel, _("Beep Beep! Your timer wasn't formatted correctly. **!timerset mm/dd HH:MM AM/PM** can be used to set the timer for the channel."))
             except Exception as error:
-                print(error)
+                logger.info(error)
                 return await _send_error_message(channel, _("Beep Beep! Your timer wasn't formatted correctly. **!timerset mm/dd HH:MM AM/PM** can be used to set the timer for the channel."))
             diff = convert_to_epoch(end) - convert_to_epoch(now)
             total = (diff / 60)
@@ -4553,7 +4553,7 @@ def validate_raid_start_time(raid_starts_at, raid_reported_at, raid_expires_at):
         if raid_reported_at <= raid_starts_at <= raid_expires_at:
             return True
     except Exception as error:
-        print(error)
+        logger.info(error)
 
     return False
 
@@ -4628,7 +4628,7 @@ async def _reset_start(ctx):
             guild_dict[ctx.message.channel.guild.id]['raidchannel_dict'][ctx.message.channel.id]['suggested_start'] = False
             confirmation_message = await ctx.message.channel.send( _("Beep Beep! {member} start time has been cleared!").format(member=ctx.message.author.mention))
         except Exception as error:
-            print(error)
+            logger.info(error)
         return
 
 
@@ -4660,7 +4660,7 @@ async def start(ctx):
                 guild_dict[ctx.message.channel.guild.id]['raidchannel_dict'][ctx.message.channel.id]['suggested_start'] = raid_starts_at
                 await ctx.message.channel.send( _("Beep Beep! {member} suggested the start time : {starttime}").format(member=ctx.message.author.mention, starttime=print_24_hour(raid_starts_at)))
             except Exception as error:
-                print(error)
+                logger.info(error)
             return
 
 
@@ -4874,13 +4874,16 @@ async def _cancel(message):
 @Clembot.event
 async def on_message(message):
     try:
-    # print(guild_dict)
+    # logger.info(guild_dict)
         if message.guild is not None:
             content_without_prefix = message.content.replace(_get_prefix(Clembot, message), '')
             ar_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses', {}).setdefault(message.channel.id,{}).get(content_without_prefix, None)
-
             if ar_message:
                 return await message.channel.send(ar_message)
+            ar_image_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses-image', {}).setdefault(message.channel.id,{}).get(content_without_prefix, None)
+            if ar_image_message:
+                return await _send_image_embed(message.channel, ar_image_message)
+
 
             if 'contest_channel' in guild_dict[message.guild.id]:
                 if message.channel.id in guild_dict[message.guild.id]['contest_channel'] and guild_dict[message.guild.id]['contest_channel'][message.channel.id].get('started', False) == True:
@@ -4914,7 +4917,7 @@ async def on_message(message):
         message.content = messagelist.pop(0).lower() + " " + " ".join(messagelist)
         await Clembot.process_commands(message)
     except Exception as error:
-        print("error while processing message {message} : {error}".format(message=message.content,error=error) )
+        logger.info("error while processing message {message} : {error}".format(message=message.content,error=error) )
 
 def extract_link_from_text(text):
     newloc = None
@@ -5001,7 +5004,7 @@ async def __exraid(ctx):
     argument_text = ctx.message.clean_content.lower()
     parameters = Parser.parse_arguments(argument_text, exraid_SYNTAX_ATTRIBUTE, {'gym_info' : get_gym_by_code_message}, {'message' : ctx.message})
     logger.info(parameters)
-    print(parameters)
+    logger.info(parameters)
 
     if parameters['length'] <= 1:
         await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!exraid <location>**"))
@@ -5052,7 +5055,7 @@ async def __exraid(ctx):
         raid_channel_category = get_category(message.channel, egg_level)
         raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
     except Exception as error:
-        print(error)
+        logger.info(error)
         await message.channel.send(content=_("Beep Beep! An error occurred while creating the channel. {error}").format(error=error))
         return
 
@@ -5069,7 +5072,7 @@ async def __exraid(ctx):
     try:
         raidreport = await message.channel.send(content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
     except Exception as error:
-        print(error)
+        logger.info(error)
     await asyncio.sleep(1)  # Wait for the channel to be created.
 
     raidmsg = _(
@@ -5247,7 +5250,7 @@ async def _raidparty(message):
         raid_channel_category = get_category(message.channel, None)
         raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(raid_channel_overwrites) , category=raid_channel_category)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
     raidreport = await _send_message(message.channel, _("Beep Beep! A **raid-party** has been reported by **{member}**! Coordinate in {raid_channel}").format(member=message.author.display_name, raid_channel=raid_channel.mention))
     await asyncio.sleep(1)  # Wait for the channel to be created.
@@ -5325,7 +5328,7 @@ async def _raidegg(message):
         argument_text = message.clean_content.lower()
         parameters = Parser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
         logger.info(parameters)
-        print(parameters)
+        logger.info(parameters)
         if parameters['length'] <= 2:
             await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
             return
@@ -5387,7 +5390,7 @@ async def _raidegg(message):
                 raid_channel_category = get_category(message.channel, egg_level)
                 raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
             except Exception as error:
-                print(error)
+                logger.info(error)
                 await message.channel.send(content=_("Beep Beep! An error occurred while creating the channel. {error}").format(error=error))
                 return
 
@@ -5404,7 +5407,7 @@ async def _raidegg(message):
             try:
                 raidreport = await message.channel.send(content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
             except Exception as error:
-                print(error)
+                logger.info(error)
             await asyncio.sleep(1)  # Wait for the channel to be created.
 
             raidmsg = _("""Beep Beep! Level {level} raid egg reported by {member} in {citychannel}! Details: {location_details}. Coordinate here!
@@ -5497,7 +5500,7 @@ async def _eggtoraid(entered_raid, channel):
             raid_message = await channel.get_message(eggdetails['raidmessage'])
             raid_messageauthor = raid_message.mentions[0]
         except Exception as error:
-            print(error)
+            logger.info(error)
 
         if eggdetails.get('egglevel',None):
             suggested_start = eggdetails['suggested_start']
@@ -5545,7 +5548,7 @@ async def _eggtoraid(entered_raid, channel):
         try:
             await channel.edit(name=raid_channel_name) # topic=raidexp.strftime('Ends on %B %d at %I:%M %p (%H:%M)')
         except Exception as error:
-            print(error)
+            logger.info(error)
         raidmsg = _("""
 Beep Beep! The egg reported by {member} in {citychannel} hatched into a {pokemon} raid! Details: {location_details}. Coordinate here!
 This channel will be deleted five minutes after the timer expires.
@@ -5595,9 +5598,9 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
             if eggdetails.get('egglevel', None):
                 await channel.send( content=_("Beep Beep! Trainers {trainer_list}: The raid egg has just hatched into a {pokemon} raid!").format(trainer_list=", ".join(trainer_list), pokemon=raid_role), embed=raid_embed)
         except Exception as error:
-            print(error)
+            logger.info(error)
     except Exception as mainerror:
-        print(error)
+        logger.info(error)
     event_loop.create_task(expiry_check(channel))
 
 
@@ -5911,7 +5914,7 @@ async def _gyms(message):
         else:
             await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.display_name,gym_code=gym_code, city=city))
     except Exception as error:
-        print(error)
+        logger.info(error)
         await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.display_name,gym_code=gym_code, city=city))
 
 
@@ -5962,7 +5965,19 @@ async def _send_message(channel, description):
 
         return await channel.send(embed=message_embed)
     except Exception as error:
-        print(error)
+        logger.info(error)
+
+
+async def _send_image_embed(channel, image_url=None):
+    embed = discord.Embed(colour=discord.Colour.gold())
+
+    embed.set_image(url=image_url)
+
+    try:
+        return await channel.send(embed=embed)
+    except Exception as error:
+        return await channel.send(error)
+
 
 async def _send_embed(channel, description=None, title=None, additional_fields={}, footer=None):
 
@@ -6073,7 +6088,7 @@ async def _importx(ctx, *, gym_list_in_json_text):
 
     except Exception as error:
         return await _send_error_message(ctx.message.channel, error)
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -6118,7 +6133,7 @@ async def nest(ctx):
         await message.channel.send(embed=nest_embed)
 
     except Exception as error:
-        print("{0} while processing message.".format(error))
+        logger.info("{0} while processing message.".format(error))
 
 
     await asyncio.sleep(15)
@@ -6152,7 +6167,7 @@ async def gym(ctx):
             await _send_error_message(ctx.message.channel, "Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
             return
     except Exception as error:
-        print(error)
+        logger.info(error)
         logger.info(error)
 
 async def _generate_gym_embed_old(message, gym_info):
@@ -6173,7 +6188,7 @@ async def _generate_gym_embed_old(message, gym_info):
 
         await message.channel.send( content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention, roster_message=roster_message), embed=raid_embed)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 async def _change_channel_name(message, gym_info):
@@ -6196,7 +6211,7 @@ async def _change_channel_name(message, gym_info):
 
         await message.channel.edit(name=raid_channel_name)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 async def _update_channel_with_link(message, link):
@@ -6211,7 +6226,7 @@ async def _update_channel_with_link(message, link):
         if gym_location_update:
             await process_map_link(message, link)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 def check_raid_channel(channel_id):
@@ -6488,7 +6503,7 @@ async def beep(ctx):
 
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 #         pokebattler integration
 weather_list = ['none', 'extreme', 'clear', 'sunny', 'rainy', 'partlycloudy', 'cloudy', 'windy', 'snowy', 'foggy']
@@ -6645,7 +6660,7 @@ async def countersold(ctx, *, entered_pkmn = None):
             url += "attackers/levels/30/strategies/CINEMATIC_ATTACK_WHEN_POSSIBLE/DEFENSE_RANDOM_MC?sort=OVERALL&"
             url += "weatherCondition={weather}&dodgeStrategy=DODGE_REACTION_TIME&aggregation=AVERAGE".format(weather=weather)
 
-            print(url)
+            logger.info(url)
             async with ctx.typing():
                 async with aiohttp.ClientSession() as sess:
                     async with sess.get(url) as resp:
@@ -6766,7 +6781,7 @@ async def _process_rsvp(message, status):
         await _send_error_message(message.channel, "Beep Beep! **{}** {}".format(message.author.display_name, valueerror))
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["c","o"])
@@ -6969,7 +6984,7 @@ async def list(ctx):
                         await channel.send( listmsg)
                     return
                 except Exception as error:
-                    print(error)
+                    logger.info(error)
 
             if checks.check_raidpartychannel(ctx):
                 if checks.check_raidactive(ctx):
@@ -6981,7 +6996,7 @@ async def list(ctx):
                     return await channel.send(embed=_generate_rsvp_embed_master(message, RAID_list_options))
 
     except Exception as error:
-        print(error)
+        logger.info(error)
     return
 
 
@@ -7039,6 +7054,13 @@ async def _researchlist(ctx):
 async def _remove_research(ctx, research_id=None):
     if research_id is None:
         return await _send_error_message(ctx.channel, "Please provide the 4 char code for the research quest!")
+
+    if research_id == 'all':
+        if checks.guildowner_or_permissions(manage_guild=True):
+            guild_dict[ctx.guild.id]['questreport_dict'] = {}
+            return await _send_message(ctx.channel, "**{0}** Research list has been cleared.".format(ctx.message.author.display_name, research_id))
+        else:
+            return await _send_error_message(ctx.channel, "**all** can be used by guild owner only!")
     research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict', {}))
     questmsg = ""
     delete_quest_id = None
@@ -7067,7 +7089,7 @@ async def _research_status(ctx, research_id=None):
     delete_quest_id = None
     research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict', {}))
 
-    print(json.dumps(research_dict, indent=2))
+    logger.info(json.dumps(research_dict, indent=2))
 
     if research_id is None:
         return await _send_error_message(ctx.channel, "Please provide the 4 char code for the research quest!")
@@ -7577,7 +7599,7 @@ async def _recover_rsvp(ctx):
 
                     if rsvp_status:
                         trainer_dict = _add_rsvp_to_dict(trainer_dict, message.author.id, rsvp_status, rsvp_count)
-                        print(trainer_dict)
+                        logger.info(trainer_dict)
 
         output_message = None
         if trainer_dict:
@@ -7598,7 +7620,7 @@ async def _recover_rsvp(ctx):
         await output_message.delete()
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["mention","m"])
 async def _mention(ctx):
@@ -7726,7 +7748,7 @@ async def _waiting(ctx):
             else:
                 waiting_exstr = _(" including {trainer_list} and the people with them! Be considerate and let them know if and when you'll be there").format(trainer_list=", ".join(name_list))
     except Exception as error:
-        print(error)
+        logger.info(error)
     listmsg = (_("Beep Beep! {trainer_count} waiting at the raid{including_string}!").format(trainer_count=str(ctx_waitingcount), including_string=waiting_exstr))
     return listmsg
 
@@ -7851,7 +7873,7 @@ async def raidover(ctx):
         else:
             await _send_error_message(channel, _("Beep Beep! Only raid reporter can clean up the channel!"))
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True)
@@ -7870,7 +7892,7 @@ async def pathshare(ctx):
 
         await ctx.message.channel.send(_("Beep Beep! Pathshare URL has been set to {url}!".format(url=pathshare_url)))
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 
@@ -8093,7 +8115,7 @@ def get_roster_messages_with_highlight(roster, highlight_roster_loc):
 
         roster_msg_list.append(roster_msg)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
     return roster_msg_list
 
@@ -8119,7 +8141,7 @@ def get_roster_with_highlight(roster, highlight_roster_loc):
                 roster_msg += _("\n{marker1}{number} [{gym}]({link}) - {pokemon}{eta}{marker2}").format(number=emojify_numbers(roster_loc['index']), pokemon=roster_loc['pokemon'].capitalize(), gym=roster_loc['gym_name'], link=roster_loc['gmap_link'], eta=eta, marker1=marker, marker2=marker)
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
     return roster_msg
 
@@ -8280,7 +8302,7 @@ async def where(ctx):
         return
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases= ["next"])
@@ -8366,7 +8388,7 @@ async def print_roster_with_highlight(message, highlight_roster_loc, roster_mess
         await message.channel.send( content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention, roster_message=roster_message), embed=raid_embed)
 
     except Exception as error:
-        print(error)
+        logger.info(error)
     return
 
 
@@ -8436,7 +8458,7 @@ async def _generate_gym_embed(message, gym_info):
 
 
 async def _get_gym_info_list(message, gym_code):
-    print("_get_gym_info_list")
+    logger.info("_get_gym_info_list")
     city = _read_channel_city(message)
 
     gym_info_list = gymsql.get_gym_list_by_code(city_state_key=city, gym_code_key=gym_code)
@@ -8453,7 +8475,7 @@ async def _get_gym_info(message, gym_code):
     city = _read_channel_city(message)
 
     gym_info = gymsql.get_gym_by_code(city_state_key=city, gym_code_key=gym_code)
-    print("_get_gym_info() : {gym_info}".format(gym_info=gym_info))
+    logger.info("_get_gym_info() : {gym_info}".format(gym_info=gym_info))
     if gym_info:
         await _generate_gym_embed(message, gym_info)
         return gym_info
@@ -8533,7 +8555,7 @@ async def _remove_gym(ctx):
         else:
             await _send_error_message(message.channel, "Beep Beep...! **{message}** please provide gym-code for lookup.".format(member=message.author.display_name))
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True,aliases=["update-gym"])
@@ -8558,7 +8580,7 @@ async def _update_gym(ctx):
 
         return
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True,aliases=["get-gym"])
@@ -8575,7 +8597,7 @@ async def _get_gym(ctx):
         response = gymsql.get_gym_by_code(city_state, args[0])
         await ctx.message.channel.send( content=json.dumps(response, indent=4, sort_keys=True))
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @Clembot.command(pass_context=True, hidden=True,aliases=["get-card"])
@@ -8605,7 +8627,7 @@ async def _get_card(ctx):
 
 
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 bingo = WowBingo()
 
@@ -8613,7 +8635,7 @@ bingo = WowBingo()
 async def _bingo_win(ctx):
     try:
         message = ctx.message
-        print("_bingo_win called")
+        logger.info("_bingo_win called")
 
         event_title_map = gymsql.find_clembot_config("bingo-event-title")
         event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
@@ -8641,13 +8663,13 @@ async def _bingo_win(ctx):
             await message.channel.send("Beep Beep! {0} you will need to generate a bingo card first!".format(message.author.mention))
 
     except Exception as error:
-        print(error)
+        logger.info(error)
     return
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["bingo-card"])
 async def _bingo_card(ctx):
-    print("_bingo_card() called")
+    logger.info("_bingo_card() called")
     command_option = "-new"
     is_option_new = False
     try :
@@ -8663,7 +8685,7 @@ async def _bingo_card(ctx):
 
         if len(ctx.message.mentions) > 0:
             author = ctx.message.mentions[0]
-        print("calling")
+        logger.info("calling")
         event_title_map = gymsql.find_clembot_config("bingo-event-title")
         logger.info(event_title_map)
         event_pokemon = _get_bingo_event_pokemon(message.guild.id, "bingo-event")
@@ -8706,7 +8728,7 @@ async def _bingo_card(ctx):
             os.remove(file_path)
 
     except Exception as error:
-        print(error)
+        logger.info(error)
     return
 
 
@@ -8843,7 +8865,7 @@ async def leaderboard(ctx, lb_type="lifetime" , r_type="total"):
                 rank += 1
         await ctx.send(embed=embed)
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["pokedex"])
 @checks.is_owner()
@@ -8911,7 +8933,7 @@ async def raid_boss(ctx, level=None, *, newlist=None):
             else:
                 return
     except Exception as error:
-        print(error)
+        logger.info(error)
 
 
 @list.command()

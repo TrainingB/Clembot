@@ -45,7 +45,13 @@ class AutoResponder:
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
 
+    @_autoresponse.command(aliases=["add-image"])
+    async def _autoresponse_add_image(self, ctx, *, ar_message_text):
+        ar_key, _, ar_message = ar_message_text.partition(' ')
 
+        ctx.bot.guild_dict[ctx.guild.id].setdefault('auto-responses-image', {})[ctx.channel.id][ar_key] = ar_message
+
+        await self.utilities._send_message(ctx.channel, f"{ar_key} has been set correctly.", user=ctx.message.author)
 
     @_autoresponse.command(aliases=["add"])
     async def _autoresponse_add(self, ctx, *, ar_message_text):
