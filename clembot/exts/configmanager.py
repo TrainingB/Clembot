@@ -6,6 +6,7 @@ from discord.ext import commands
 from exts.utilities import Utilities
 from exts.utilities import RemoveComma
 from random import *
+import gymsql
 
 import json
 
@@ -21,13 +22,85 @@ class ConfigManager:
 
     @commands.group(pass_context=True, hidden=True, aliases=["setx"])
     async def _setx(self, ctx):
-
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
 
-    @_setx.command(aliases=["wild"])
-    async def _setx_wild_channel(self, ctx, city):
-        return
+
+    @commands.group(pass_context=True, hidden=True, aliases=["set-config"])
+    async def _set_config(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+
+    @_setx.group(pass_context=True, hidden=True, aliases=["channel"])
+    async def _set_channel_config(self, ctx, * , key_and_json_text):
+        try:
+            await self.utilities._send_message(ctx.channel, key_and_json_text)
+
+            key, _, json_text = key_and_json_text.replace('\n', ' ').partition(' ')
+
+            if len(json_text) < 1:
+                return await self.utilities._send_message(ctx.channel, f"No json provided!")
+
+            json_body = json.loads(json_text)
+
+            new_configuration = {}
+            new_configuration[key] = json_body
+
+            configuration = gymsql.read_guild_configuration(ctx.message.guild.id, ctx.message.channel.id)
+
+            if configuration:
+                configuration.update(new_configuration)
+            else:
+                configuration = new_configuration
+
+            configuration = gymsql.save_guild_configuration(guild_id=ctx.message.guild.id,
+                                                            channel_id=ctx.message.channel.id, configuration=configuration)
+
+            if configuration:
+                await self.utilities._send_message(ctx.channel, configuration)
+            else:
+                await self.utilities._send_error_message(ctx.channel, "Beep Beep! I couldn't set the configuration successfully.")
+        except Exception as error:
+            print(error)
+
+    @_setx.group(pass_context=True, hidden=True, aliases=["guild"])
+    async def _set_guild_config(self, ctx, * , key_and_json_text):
+        try:
+            await self.utilities._send_message(ctx.channel, key_and_json_text)
+
+            key, _, json_text = key_and_json_text.replace('\n', ' ').partition(' ')
+
+            if len(json_text) < 1:
+                return await self.utilities._send_message(ctx.channel, f"No json provided!")
+
+            new_configuration = {}
+            configuration = gymsql.read_guild_configuration(ctx.message.guild.id, None)
+
+            if json_text == "remove":
+                del configuration[key]
+            else:
+                json_body = json.loads(json_text)
+                new_configuration[key] = json_body
+
+
+                if configuration:
+                    configuration.update(new_configuration)
+                else:
+                    configuration = new_configuration
+
+            configuration = gymsql.save_guild_configuration(guild_id=ctx.message.guild.id,
+                                                            channel_id=None, configuration=configuration)
+
+            if configuration:
+                await self.utilities._send_message(ctx.channel, configuration)
+            else:
+                await self.utilities._send_error_message(ctx.channel, "Beep Beep! I couldn't set the configuration successfully.")
+        except Exception as error:
+            print(error)
+
+
+
+
 
     @_setx.command(aliases=["regional"])
     async def _setx_regional(self, ctx, raid_boss = None):

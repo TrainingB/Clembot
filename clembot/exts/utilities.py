@@ -71,7 +71,7 @@ class Utilities:
         embed = discord.Embed(description=description, colour=discord.Colour.gold(), title=title)
 
         for label, value in additional_fields.items():
-            embed.add_field(name="**{0}**".format(label), value=value)
+            embed.add_field(name="**{0}**".format(label), value=value, inline=False)
 
         if footer:
             embed.set_footer(text=footer)

@@ -62,7 +62,7 @@ from exts.reactrolemanager import ReactRoleManager
 from exts.autoresponder import AutoResponder
 from exts.rostermanager import RosterManager
 from exts.configmanager import ConfigManager
-
+from exts.utilities import Utilities
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -190,7 +190,7 @@ load_config()
 
 Clembot.config = config
 Clembot.pkmn_info = pkmn_info
-
+utilities = Utilities()
 
 poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
 floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png"
@@ -2467,6 +2467,8 @@ def _want_roles(guild):
     for role in guild.roles:
         if role.name in pkmn_info['pokemon_list']:
             allowed_want_list.append(role.name)
+
+    allowed_want_list = sorted(allowed_want_list)
     return allowed_want_list
 
 
@@ -2710,7 +2712,7 @@ async def _wild(message):
             }
             guild_dict[message.guild.id]['wildreport_dict'] = wild_dict
 
-            record_reported_by(message.guild.id, message.author.id, 'wild_reports')
+            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'wild_reports')
 
     except Exception as error:
         logger.info(error)
@@ -2959,6 +2961,7 @@ def _get_subscription_roles(guild):
         if role:
             role_list.append(role.name)
 
+    role_list = sorted(role_list)
     return role_list
 
 
@@ -3845,7 +3848,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
     else:
         await raid_channel.send( content=_("Beep Beep! Hey {member}, if you can, set the time left on the raid using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
 
-    record_reported_by(message.guild.id, message.author.id, 'raid_reports')
+    record_reported_by(message.guild.id, message.channel.name, message.author.id, 'raid_reports')
 
 
     event_loop.create_task(expiry_check(raid_channel))
@@ -4324,7 +4327,7 @@ async def research(ctx, *, args = None):
                 await message.delete()
             except Exception:
                 pass
-            record_reported_by(message.guild.id, message.author.id, 'research_reports')
+            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'research_reports')
         else:
             research_embed.clear_fields()
             research_embed.add_field(name='**Research Report Cancelled**', value=_("Beep Beep! Your report has been cancelled because you {error}! Retry when you're ready.").format(error=error), inline=False)
@@ -5106,7 +5109,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
     if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
         await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
 
-    record_reported_by(message.guild.id, message.author.id, 'egg_reports')
+    record_reported_by(message.guild.id, message.channel.name, message.author.id, 'egg_reports')
 
     event_loop.create_task(expiry_check(raid_channel))
     return
@@ -5445,7 +5448,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
 
             guild_dict[message.channel.guild.id].setdefault("configuration", {}).setdefault("settings", {})["regional"]
 
-            record_reported_by(message.guild.id, message.author.id, 'egg_reports')
+            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'egg_reports')
 
             event_loop.create_task(expiry_check(raid_channel))
 
@@ -5604,13 +5607,20 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
     event_loop.create_task(expiry_check(channel))
 
 
-
-
 def get_guild_local_leaderboard(guild_id):
     configuration = gymsql.read_guild_configuration(guild_id=guild_id)
     leaderboard_type = None
     if configuration:
-        leaderboard_type = configuration.get('leaderboard-type',None)
+        leaderboard_type = configuration.get('guild_leaderboard',None)
+
+    return leaderboard_type
+
+
+def get_guild_leaderboard_configuration(guild_id):
+    configuration = gymsql.read_guild_configuration(guild_id=guild_id)
+    leaderboard_type = None
+    if configuration:
+        leaderboard_type = configuration.get('guild_leaderboard_configuration',None)
 
     return leaderboard_type
 
@@ -5723,7 +5733,7 @@ async def _get_guild_config(message):
 
     configuration = gymsql.read_guild_configuration(message.guild.id)
     if configuration:
-        content = "Beep Beep! Server Configuration : \n{configuration}".format(configuration=json.dumps(configuration, indent=2, sort_keys=True))
+        content = "Beep Beep! Server Configuration : \n```{configuration}```".format(configuration=json.dumps(configuration, indent=2, sort_keys=True))
 
     await _send_message(message.channel, content)
 
@@ -7040,7 +7050,7 @@ async def _researchlist(ctx):
                     except discord.errors.NotFound:
                         pass
         if questmsg:
-            listmsg = _(' **Here\'s the current research reports for {channel}**\n{questmsg}').format(channel=ctx.message.channel.name.capitalize(),questmsg=questmsg)
+            listmsg = _(' **Here\'s the current research reports for {channel}**\n{questmsg}').format(channel=ctx.message.channel.name.capitalize(), questmsg=utilities.trim_to(questmsg, 1900, '\n🔰') )
         else:
             if len(args) < 3 :
                 listmsg = _(" There are no research reports. Report one with **!research**")
@@ -7070,7 +7080,8 @@ async def _remove_research(ctx, research_id=None):
                 quest_research_id = research_dict[questid]['research_id']
                 quest_reported_by = research_dict[questid]['reportauthor']
                 if quest_research_id == research_id:
-                    record_error_reported_by(ctx.message.guild.id, quest_reported_by, 'research_reports')
+                    record_error_reported_by(ctx.message.guild.id, ctx.message.channel.name, quest_reported_by,
+                                             'research_reports')
                     del research_dict[questid]
                     guild_dict[ctx.guild.id]['questreport_dict'] = research_dict
                     research_report = await ctx.channel.get_message(questid)
@@ -7450,10 +7461,13 @@ async def duplicate(ctx):
 
                 raidmsg = await channel.get_message(rc_d['raidmessage'])
                 reporter = raidmsg.mentions[0]
+                report_city = rc_d['reportcity']
+                report_channel = discord.utils.get(ctx.message.guild.channels, id=report_city)
+
                 if 'egg' in raidmsg.content:
-                    record_error_reported_by(guild.id, reporter.id, 'egg_reports')
+                    record_error_reported_by(guild.id, report_channel.name, reporter.id, 'egg_reports')
                 else:
-                    record_error_reported_by(guild.id, reporter.id, 'raid_reports')
+                    record_error_reported_by(guild.id, report_channel.name, reporter.id, 'raid_reports')
                 await expire_channel(channel)
                 return
         else:
@@ -7519,7 +7533,7 @@ async def new(ctx):
         return
     else:
         report_city = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['reportcity']
-        report_channel = discord.utils.get(message.guild.channels, name=report_city)
+        report_channel = discord.utils.get(message.guild.channels, id=report_city)
 
         details = " ".join(location_split)
         if "/maps" in message.content:
@@ -8830,7 +8844,7 @@ async def leaderboard(ctx, lb_type="lifetime" , r_type="total"):
         leaderboard_list = ['lifetime']
         addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
         if addtional_leaderboard :
-            leaderboard_list.append(addtional_leaderboard)
+            leaderboard_list.extend(addtional_leaderboard)
 
         leaderboard_type = lb_type if lb_type in leaderboard_list else 'lifetime'
 
@@ -8961,29 +8975,47 @@ async def _wildlist(ctx):
 
 
 
-def record_reported_by(guild_id, author_id, report_type):
+def record_reported_by(guild_id, channel_name, author_id, report_type):
 
-    leaderboard_list = ['lifetime']
-    addtional_leaderboard = get_guild_local_leaderboard(guild_id)
-    if addtional_leaderboard :
-        leaderboard_list.append(addtional_leaderboard)
+    try:
+        applicable_leaderboards = ['lifetime']
 
-    for leaderboard in leaderboard_list:
-        existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) + 1
-        guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
+        guild_leaderboards = get_guild_local_leaderboard(guild_id)
+        guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
 
 
-def record_error_reported_by(guild_id, author_id, report_type):
+        for leaderboard_name in guild_leaderboards:
+            channel_leaderboard = guild_leaderboard_configuration.get(leaderboard_name,{})
+            if channel_name in channel_leaderboard.get('channels',[channel_name]) :
+                # if raid_level in channel_leaderboard.get('level', [raid_level]) :
+                applicable_leaderboards.append(leaderboard_name)
 
-    leaderboard_list = ['lifetime']
-    addtional_leaderboard = get_guild_local_leaderboard(guild_id)
-    if addtional_leaderboard :
-        leaderboard_list.append(addtional_leaderboard)
+        for leaderboard in applicable_leaderboards:
+            existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) + 1
+            guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
+    except Exception as error:
+        logger.error("Error while recording in leaderboard " + error )
 
-    for leaderboard in leaderboard_list:
-        existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) - 1
-        guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
+def record_error_reported_by(guild_id, channel_name, author_id, report_type):
 
+    try:
+        applicable_leaderboards = ['lifetime']
+        guild_leaderboards = get_guild_local_leaderboard(guild_id)
+        guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
+
+
+        for leaderboard_name in guild_leaderboards:
+            channel_leaderboard = guild_leaderboard_configuration.get(leaderboard_name,{})
+            if channel_name in channel_leaderboard.get('channels',[channel_name]) :
+                # if raid_level in channel_leaderboard.get('level', [raid_level]) :
+                applicable_leaderboards.append(leaderboard_name)
+
+        for leaderboard in applicable_leaderboards:
+            existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) - 1
+            guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
+
+    except Exception as error:
+        logger.error("Error while recording in leaderboard " + error )
 
 try:
     event_loop.run_until_complete(Clembot.start(config['bot_token']))
