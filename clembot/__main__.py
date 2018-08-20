@@ -5611,7 +5611,7 @@ def get_guild_local_leaderboard(guild_id):
     configuration = gymsql.read_guild_configuration(guild_id=guild_id)
     leaderboard_type = None
     if configuration:
-        leaderboard_type = configuration.get('guild_leaderboard',None)
+        leaderboard_type = configuration.get('guild_leaderboard',[])
 
     return leaderboard_type
 
@@ -8788,7 +8788,7 @@ async def profilex(ctx, user: discord.Member = None):
     leaderboard_list = ['lifetime']
     addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
     if addtional_leaderboard :
-        leaderboard_list.append(addtional_leaderboard)
+        leaderboard_list.extend(addtional_leaderboard)
 
     for leaderboard in leaderboard_list:
 

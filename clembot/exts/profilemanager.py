@@ -94,9 +94,9 @@ class ProfileManager:
             embed.add_field(name="**Pokebattler Id**", value=f"{ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('pokebattlerid',None)}", inline=True)
 
             leaderboard_list = ['lifetime']
-            # addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
+            # addtional_leaderboard = ctx.bot.get_guild_local_leaderboard(ctx.guild.id)
             # if addtional_leaderboard:
-            #     leaderboard_list.append(addtional_leaderboard)
+            #     leaderboard_list.extend(addtional_leaderboard)
 
             for leaderboard in leaderboard_list:
                 reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault(leaderboard, {}).get('raid_reports', 0), trainer_profile.setdefault(leaderboard, {}).get('egg_reports', 0), trainer_profile.setdefault(leaderboard, {}).get('wild_reports', 0), trainer_profile.setdefault(leaderboard, {}).get('research_reports', 0))
