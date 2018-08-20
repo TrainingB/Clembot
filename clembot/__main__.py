@@ -5620,7 +5620,7 @@ def get_guild_leaderboard_configuration(guild_id):
     configuration = gymsql.read_guild_configuration(guild_id=guild_id)
     leaderboard_type = None
     if configuration:
-        leaderboard_type = configuration.get('guild_leaderboard_configuration',None)
+        leaderboard_type = configuration.get('guild_leaderboard_configuration',{})
 
     return leaderboard_type
 
