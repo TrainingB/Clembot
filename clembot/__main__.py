@@ -8981,12 +8981,12 @@ def record_reported_by(guild_id, channel_name, author_id, report_type):
         guild_leaderboards = get_guild_local_leaderboard(guild_id)
         guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
 
-
-        for leaderboard_name in guild_leaderboards:
-            channel_leaderboard = guild_leaderboard_configuration.get(leaderboard_name,{})
-            if channel_name in channel_leaderboard.get('channels',[channel_name]) :
-                # if raid_level in channel_leaderboard.get('level', [raid_level]) :
-                applicable_leaderboards.append(leaderboard_name)
+        if guild_leaderboards:
+            for leaderboard_name in guild_leaderboards:
+                channel_leaderboard = guild_leaderboard_configuration.get(leaderboard_name,{})
+                if channel_name in channel_leaderboard.get('channels',[channel_name]) :
+                    # if raid_level in channel_leaderboard.get('level', [raid_level]) :
+                    applicable_leaderboards.append(leaderboard_name)
 
         for leaderboard in applicable_leaderboards:
             existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) + 1
@@ -9002,11 +9002,12 @@ def record_error_reported_by(guild_id, channel_name, author_id, report_type):
         guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
 
 
-        for leaderboard_name in guild_leaderboards:
-            channel_leaderboard = guild_leaderboard_configuration.get(leaderboard_name,{})
-            if channel_name in channel_leaderboard.get('channels',[channel_name]) :
-                # if raid_level in channel_leaderboard.get('level', [raid_level]) :
-                applicable_leaderboards.append(leaderboard_name)
+        if guild_leaderboards:
+            for leaderboard_name in guild_leaderboards:
+                channel_leaderboard = guild_leaderboard_configuration.get(leaderboard_name,{})
+                if channel_name in channel_leaderboard.get('channels',[channel_name]) :
+                    # if raid_level in channel_leaderboard.get('level', [raid_level]) :
+                    applicable_leaderboards.append(leaderboard_name)
 
         for leaderboard in applicable_leaderboards:
             existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) - 1
