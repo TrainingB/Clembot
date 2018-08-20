@@ -7066,11 +7066,9 @@ async def _remove_research(ctx, research_id=None):
         return await _send_error_message(ctx.channel, "Please provide the 4 char code for the research quest!")
 
     if research_id == 'all':
-        if checks.guildowner_or_permissions(manage_guild=True):
-            guild_dict[ctx.guild.id]['questreport_dict'] = {}
-            return await _send_message(ctx.channel, "**{0}** Research list has been cleared.".format(ctx.message.author.display_name, research_id))
-        else:
-            return await _send_error_message(ctx.channel, "**all** can be used by guild owner only!")
+        guild_dict[ctx.guild.id]['questreport_dict'] = {}
+        return await _send_message(ctx.channel, "**{0}** Research list has been cleared.".format(ctx.message.author.display_name, research_id))
+
     research_dict = copy.deepcopy(guild_dict[ctx.guild.id].get('questreport_dict', {}))
     questmsg = ""
     delete_quest_id = None
