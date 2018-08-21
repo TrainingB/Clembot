@@ -1740,6 +1740,22 @@ async def announce(ctx, *, announce=None):
     await message.delete()
 
 
+@Clembot.command(pass_context=True, hidden=True)
+@checks.is_owner()
+async def listservers(ctx):
+
+    recipient = {}
+    recipient_text = ""
+
+    for guild in Clembot.guilds:
+        recipient[guild.name] = guild.owner.mention
+        recipient_text+= f"\n**{guild.name}** - {guild.owner.mention}"
+
+
+    await _send_message( ctx.channel, recipient_text )
+
+
+    return
 
 @Clembot.command(pass_context=True, hidden=True)
 @commands.has_permissions(manage_guild=True)
