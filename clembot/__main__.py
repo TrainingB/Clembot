@@ -4221,6 +4221,9 @@ async def research(ctx, *, args = None):
         research_id = '%04x' % randrange(16 ** 4)
         research_embed = discord.Embed(colour=discord.Colour.gold()).set_thumbnail(url='https://raw.githubusercontent.com/TrainingB/Clembot/v1-rewrite/images/field-research.png?cache={0}'.format(CACHE_VERSION))
         research_embed.set_footer(text=_('Reported by @{author} - {timestamp} | {research_id}').format(author=author.display_name, timestamp=timestamp.strftime(_('%I:%M %p (%H:%M)')), research_id=research_id), icon_url=author.avatar_url_as(format=None, static_format='jpg', size=32))
+
+        reward_role = None
+
         while True:
             if args:
                 research_split = message.clean_content.replace("!research ","").split(", ")
@@ -4233,12 +4236,6 @@ async def research(ctx, *, args = None):
                 research_embed.add_field(name=_("**Reward:**"),value='\n'.join(textwrap.wrap(reward.title(), width=30)),inline=True)
 
                 reward_role = discord.utils.get(ctx.message.guild.roles, name=reward)
-
-                if reward_role:
-
-                    pokemon_reward = f" for {reward_role.mention}"
-                    await ctx.message.channel.send(content=_(f"Beep Beep! A field research {pokemon_reward} has been reported by {ctx.message.author.mention}!"))
-
 
                 break
             else:
@@ -4299,13 +4296,14 @@ async def research(ctx, *, args = None):
             roletest = ""
             pkmn_match = next((p for p in pkmn_info['pokemon_list'] if re.sub('[^a-zA-Z0-9]', '', p) == re.sub('[^a-zA-Z0-9]', '', reward.lower())), None)
             if pkmn_match:
-                role = discord.utils.get(guild.roles, name=pkmn_match)
-                if role:
-                    roletest = _(f"for {role.mention}")
-                else:
-                    roletest = ""
+                reward_role = discord.utils.get(guild.roles, name=pkmn_match)
 
-            research_msg = f"Beep Beep! A field research {roletest} has been reported by {ctx.message.author.mention}!"
+            if reward_role:
+                pokemon_reward = f" for {reward_role.mention}"
+            else:
+                pokemon_reward = ""
+            research_msg = f"Beep Beep! A field research{pokemon_reward} has been reported by {ctx.message.author.mention}!"
+            await ctx.message.channel.send(content=research_msg)
 
             research_embed.__setattr__('title', f"A field research has been reported.")
             confirmation = await channel.send(embed=research_embed)
@@ -7033,7 +7031,7 @@ async def _researchlist(ctx):
         questmsg = ""
         for questid in research_dict:
             if research_dict[questid]['reportchannel'] == ctx.message.channel.id:
-                if not filter_text or filter_text in research_dict[questid]['quest'].title().lower():
+                if not filter_text or filter_text in research_dict[questid]['quest'].title().lower() or filter_text in research_dict[questid]['reward'].title().lower():
                     try:
                         questreportmsg = await ctx.message.channel.get_message(questid)
                         questauthor = ctx.channel.guild.get_member(research_dict[questid]['reportauthor'])
@@ -7043,7 +7041,7 @@ async def _researchlist(ctx):
                             author_display_name = research_dict[questid]['reportauthorname']
                         research_id = research_dict[questid]['research_id']
                         questmsg += _('\n🔰')
-                        if ctx.message.author.bot:
+                        if ctx.message.author.bot or filter_text :
                             questmsg += _("**[{research_id}]** - {location} / {quest} / {reward} / {author}".format(research_id=research_id,location=research_dict[questid]['location'].title(),quest=research_dict[questid]['quest'].title(),reward=research_dict[questid]['reward'].title(), author=author_display_name))
                         else:
                             questmsg += _("**[{research_id}]** - **Location**: {location}, **Quest**: {quest}, **Reward**: {reward}, **Reported By**: {author}".format(research_id=research_id, location=research_dict[questid]['location'].title(), quest=research_dict[questid]['quest'].title(), reward=research_dict[questid]['reward'].title(), author=author_display_name))
