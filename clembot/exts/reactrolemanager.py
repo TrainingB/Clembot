@@ -160,7 +160,7 @@ class ReactRoleManager:
     @commands.command(pass_context=True, hidden=True, aliases=["select"])
     async def _select_react_role(self, ctx, group_name=None):
         try:
-            available_groups = ", ".join(ctx.bot.guild_dict[ctx.guild.id].setdefault('react-roles', {}).keys())
+            available_groups = ctx.bot.guild_dict[ctx.guild.id].setdefault('react-roles', {}).keys()
 
             if group_name == None:
                 help_embed = self.utilities.get_help_embed("Select roles via reactions.", "!select *group-name*", "Available Groups ", available_groups, "message")
