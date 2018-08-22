@@ -5916,6 +5916,9 @@ async def _gyms(message):
     gym_message_output = ""
     try:
 
+        if not city:
+            return await _send_error_message(message.channel, "Beep Beep... **{member}** this channel doesn't have a city assigned. Please contact an admin to assign a city.".format(
+                                          member=message.author.display_name))
         list_of_gyms = await _get_gym_info_list(message, gym_code)
 
         if len(list_of_gyms) < 1:
@@ -8490,7 +8493,7 @@ async def _get_gym_info_list(message, gym_code):
     gym_info_list = gymsql.get_gym_list_by_code(city_state_key=city, gym_code_key=gym_code)
 
     if len(gym_info_list) == 0:
-        await message.channel.send( content="Beep Beep...Hmmm, that's a gym-code I am not aware of! Type `**!gyms** with a letter to see all gyms starting from that letter!")
+        # await message.channel.send( content="Beep Beep...Hmmm, that's a gym-code I am not aware of! Type `**!gyms** with a letter to see all gyms starting from that letter!")
         return []
 
     return gym_info_list
