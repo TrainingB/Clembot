@@ -4820,7 +4820,8 @@ def _get_trainer_names_from_dict(message, status, mentions=False, trainer_dict=N
                     name_list.append("**{trainer}**".format(trainer=user_name))
 
     if len(name_list) > 0:
-        return ', '.join(name_list)
+        return utilities.trim_to(', '.join(name_list), 950, ', ')
+        
     return None
 
 
