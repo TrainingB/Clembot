@@ -17,7 +17,7 @@ class Utilities:
         if len(text) == 0:
             return "None"
         if text and delimiter:
-            return text[:text.rfind(delimiter, 0, length)] + "** and more.**" if len(text) > length else text
+            return text[:text.rfind(delimiter, 0, length)] + " ** and more.**" if len(text) > length else text
         return text
 
     def emojify_numbers(self, number):

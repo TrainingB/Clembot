@@ -4821,7 +4821,7 @@ def _get_trainer_names_from_dict(message, status, mentions=False, trainer_dict=N
 
     if len(name_list) > 0:
         return utilities.trim_to(', '.join(name_list), 950, ', ')
-        
+
     return None
 
 
