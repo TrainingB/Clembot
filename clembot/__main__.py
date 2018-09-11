@@ -2957,10 +2957,11 @@ async def _show_register(ctx):
 
 
     for gym_code in notifications['gym_role_map'].keys():
-        role_name = role_map[notifications['gym_role_map'][gym_code]]
-
-        role_gym_map.setdefault(role_name, []).append(gym_code)
-
+        try:
+            role_name = role_map[notifications['gym_role_map'][gym_code]]
+            role_gym_map.setdefault(role_name, []).append(gym_code)
+        except Exception as error:
+            print(error)
     await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, separators=[',',':'],sort_keys=True)))
 
 
@@ -3072,6 +3073,36 @@ registers a role and a gym
     add_notifications_guild_dict(message.guild.id)
     guild_dict[guild.id]['notifications']['roles'].append(role.id)
     await channel.send( content=_("Beep Beep! {role_name} has been registered for notifications. Please use `!register-gym role-name gym-code` to register the gym under a role!").format(role_name=role.mention))
+
+    return
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["deregister-role"])
+@commands.has_permissions(manage_guild=True)
+async def _deregister_role(ctx):
+    """
+registers a role and a gym
+    """
+    message = ctx.message
+    guild = message.guild
+    channel = message.channel
+    args = message.clean_content.lower().split()
+    del args[0]
+
+    if len(args) == 0:
+        await channel.send( content=_("Beep Beep! No role-name provided. Please use `!deregister-role role-name` to create/register the role!"))
+
+    role_name = args[0]
+
+    role = discord.utils.get(guild.roles, name=role_name)
+    # Create role if it doesn't exist yet
+
+    add_notifications_guild_dict(message.guild.id)
+    guild_dict[guild.id]['notifications']['roles'].remove(role.id)
+
+    new_map = { k: v for k, v in guild_dict[guild.id]['notifications']['gym_role_map'] if v != role.id }
+
+    await channel.send( content=_("Beep Beep! {role_name} has been de-registered for notifications.").format(role_name=role.mention))
 
     return
 
@@ -7651,6 +7682,40 @@ async def _recover_rsvp(ctx):
 
     except Exception as error:
         logger.info(error)
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["assign-role"])
+async def _assign_role(ctx):
+
+    allowed = checks.check_raidchannel(ctx) or checks.check_exraidchannel(ctx) or checks.check_raidpartychannel(ctx) or checks.check_eggchannel(ctx)
+    try:
+        if not allowed:
+            raise ValueError("Beep Beep! **{}**, **assign-role** can't be used in this channel.".format(ctx.message.author.display_name))
+
+        args = ctx.message.clean_content.split()
+
+        status_to_check = None if len(args) < 2 else convert_command_to_status(args[1])
+
+        role_name = None if len(args) < 2 else args[2:] if status_to_check else args[1:]
+
+        role_to_be_assigned = discord.utils.get(ctx.guild.roles, name=role_name[0])
+
+        if role_to_be_assigned:
+            trainer_dict = copy.deepcopy(guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict'])
+            for trainer in trainer_dict.keys():
+                if status_to_check == None or trainer_dict[trainer]['status'] == status_to_check:
+                    try:
+                        user = ctx.message.guild.get_member(int(trainer))
+                        await user.add_roles(role_to_be_assigned)
+                        # await self.utilities._send_message(ctx.channel, f"Beep Beep! **{original_user.display_name}**, you joined **{role_to_be_assigned.name}** {reaction}!")
+                    except Exception as error:
+                            print(error)
+            await _send_message(ctx.channel, f"Role **{role_name[0]}** has been assigned successfully.")
+        else:
+            listmsg = f"Role with name **{role_name[0]}** not found!"
+            await _send_message(ctx.channel, listmsg)
+    except Exception as error:
+        await _send_error_message(ctx.channel, error)
+
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["mention","m"])
 async def _mention(ctx):
