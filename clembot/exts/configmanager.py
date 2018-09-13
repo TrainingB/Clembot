@@ -131,9 +131,8 @@ class ConfigManager:
                     return await self.utilities._send_message(ctx.channel, f"{raid_boss} is set as a regional raid boss.", user=ctx.message.author)
                 else:
                     return await self.utilities._send_error_message(ctx.channel, f" {regional} doesn't appear as a raid boss.", user=ctx.message.author)
-        else:
-            del ctx.bot.guild_dict[message.channel.guild.id].setdefault("configuration", {}).setdefault("settings", {})["regional"]
-            return await self.utilities._send_error_message(ctx.channel, f"Regional raid boss has been cleared.", user=ctx.message.author)
+        del ctx.bot.guild_dict[message.channel.guild.id].setdefault("configuration", {}).setdefault("settings", {})["regional"]
+        return await self.utilities._send_error_message(ctx.channel, f"Regional raid boss has been cleared.", user=ctx.message.author)
 
 
 

@@ -803,7 +803,7 @@ async def expire_channel(channel):
                     new_name = 'hatched-' + channel.name
                     await channel.edit(name=new_name)
                     await channel.send( _("""**This egg has hatched!**\n\n...or the time has just expired. Trainers {trainer_list}: Update the raid to the pokemon that hatched using **!raid <pokemon>** or reset the hatch timer with **!timerset**.""").format(trainer_list=", ".join(maybe_list)))
-                delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=45).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
+                delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=raid_timer).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
                 expiremsg = _("**This level {level} raid egg has expired!**").format(level=guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'])
             else:
                 if (not alreadyexpired):
@@ -2962,6 +2962,7 @@ async def _show_register(ctx):
             role_gym_map.setdefault(role_name, []).append(gym_code)
         except Exception as error:
             print(error)
+
     await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, separators=[',',':'],sort_keys=True)))
 
 
@@ -3777,14 +3778,14 @@ async def _raid(message):
             endmins = 0
         else:
             endmins = int(raid_split[-1].split(":")[1])
-        raidexp = 60 * endhours + endmins
+        raidexp = egg_timer * endhours + endmins
         del raid_split[-1]
     else:
         raidexp = False
 
     if raidexp is not False:
-        if _timercheck(raidexp, 45):
-            await message.channel.send( _("Beep Beep...that's too long. Raids currently last no more than 45 minutes..."))
+        if _timercheck(raidexp, raid_timer):
+            await message.channel.send( _(f"Beep Beep...that's too long. Raids currently last no more than {raid_timer} minutes..."))
             return
 
     if entered_raid not in pkmn_info['pokemon_list']:
