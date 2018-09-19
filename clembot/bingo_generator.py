@@ -1,6 +1,7 @@
 import os
 from os import name
 import json
+import csv
 from random import *
 
 # https://json-csv.com/
@@ -37,6 +38,11 @@ def load_data():
     with open(os.path.join(directory, "eevee.json"), "r") as fd:
         pokemon_cp_level['eevee_cp'] = json.load(fd)
 
+    with open(os.path.join(directory, "chikorita.json"), "r") as fd:
+        pokemon_cp_level['chikorita_cp'] = json.load(fd)
+
+
+
 load_data()
 
 
@@ -60,18 +66,19 @@ def keep_number_in_range(number, spread, min_cp, max_cp):
 gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"] ,
                   'charmander' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
                   'squirtle' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
-                  'eevee' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
+                  'eevee' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                  'chikorita' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
                   }
 
 
 
-def generate_card(event_pokemon="squirtle"):
+def generate_card(event_pokemon="chikorita"):
 
     pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level[f'{event_pokemon}_cp'])
 
 
     MALE_SIGN = u"\u2642"
-    FEMAIL_SIGN = u"\u2640"
+    FEMALE_SIGN = u"\u2640"
 
     stats = ['Attack','Defense','Stamina']
 
@@ -211,7 +218,7 @@ def main():
     print(print_card_as_text(generate_card()))
 
 
-#main()
+main()
 
 
 # https://pokemongo.gamepress.gg/pokemon/133

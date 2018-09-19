@@ -177,7 +177,8 @@ class ReactRoleManager:
                 else:
                     return await self._assign_role_via_reaction(ctx, None, ctx.message.author, emoji_role_dict=group_dict['emoji_role_dict'])
 
-            return await self.utilities._send_error_message(ctx.channel, f", Only available selections are **{available_groups}**", ctx.message.author)
+            available_groups_text = ", ".join(available_groups)
+            return await self.utilities._send_error_message(ctx.channel, f", Only available selections are **{available_groups_text}**", ctx.message.author)
 
         except Exception as error:
             return await self.utilities._send_error_message(ctx.channel, f", Some error has occured!", ctx.message.author)
@@ -211,11 +212,13 @@ class ReactRoleManager:
             reaction, user = await ctx.bot.wait_for('reaction_add', timeout=60, check=lambda r, u: u.id == original_user.id and r.message.id == message.id)
             if reaction.emoji == '\u23f9':
                 await message.remove_reaction(reaction.emoji, user)
+                timeout_message = await self.utilities._send_error_message(ctx.channel, f", No changes were made!", original_user)
                 delete_message = await self.utilities._send_error_message(ctx.channel, "Cleaning up messages...", original_user)
                 await asyncio.sleep(5)
                 await message.delete()
                 await asyncio.sleep(5)
                 await delete_message.delete()
+                return
 
             await message.remove_reaction(reaction.emoji, user)
             role_to_be_assigned = discord.utils.get(ctx.message.guild.roles, name=emoji_role_dict.get(self.demojify(ctx.guild,str(reaction.emoji))))
@@ -224,8 +227,10 @@ class ReactRoleManager:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{original_user.display_name}**, you joined **{role_to_be_assigned.name}** {reaction}!")
             await asyncio.sleep(3)
             await message.delete()
+            return
 
         except asyncio.TimeoutError:
+            nochange_timeout_message = await self.utilities._send_error_message(ctx.channel, f", No changes were made!", original_user)
             timeout_message = await self.utilities._send_error_message(ctx.channel, f", the request has timed out.", original_user)
             await asyncio.sleep(3)
             await message.delete()
@@ -250,7 +255,7 @@ class ReactRoleManager:
             for emoji, role in emoji_role_dict.items():
                 message_text += f"\n{self.printable(ctx.guild, emoji)} - **{role}**"
 
-            message = await self.utilities._send_embed(ctx.channel, description=f"**{original_user.display_name}** React to this message to make your selection(s). {message_text}", footer=f"Click \u23f9 to stop. This message will be auto deleted after {timeout_duration} second of inactivity.")
+            message = await self.utilities._send_embed(ctx.channel, description=f"**{original_user.display_name}** React to this message to make your selection(s). \n{message_text}", footer=f"Click \u23f9 to stop. This message will be auto deleted after {timeout_duration} second of inactivity.")
 
         for emoji in emoji_role_dict.keys():
             try:
@@ -268,11 +273,15 @@ class ReactRoleManager:
 
                 if reaction.emoji == '\u23f9':
                     await message.remove_reaction(reaction.emoji, user)
-                    delete_message = await self.utilities._send_error_message(ctx.channel, "Cleaning up messages...", original_user)
+                    if not is_role_changed:
+                        timeout_message = await self.utilities._send_error_message(ctx.channel,f", No changes were made!",original_user)
+                    else:
+                        delete_message = await self.utilities._send_error_message(ctx.channel, "Cleaning up messages...", original_user)
+                        await asyncio.sleep(5)
+                        return await delete_message.delete()
                     await asyncio.sleep(5)
                     await message.delete()
-                    await asyncio.sleep(5)
-                    return await delete_message.delete()
+
 
                 await message.remove_reaction(reaction.emoji, user)
                 role_to_be_assigned = discord.utils.get(ctx.message.guild.roles, name=emoji_role_dict.get(self.demojify(ctx.guild, str(reaction.emoji))))
@@ -288,11 +297,11 @@ class ReactRoleManager:
                     await self.utilities._send_error_message(ctx.channel, f", I couldn't find **{emoji_role_dict.get(reaction.emoji)}**!", original_user)
 
         except asyncio.TimeoutError:
-            timeout_message = await self.utilities._send_error_message(ctx.channel, f", the request has timed out.", original_user)
+            if not is_role_changed:
+                timeout_message = await self.utilities._send_error_message(ctx.channel, f", No changes were made!", original_user)
+
             await asyncio.sleep(3)
             await message.delete()
-            await asyncio.sleep(5)
-            await timeout_message.delete()
 
         except Exception as error:
             print(error)

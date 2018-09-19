@@ -10,7 +10,7 @@ class BingoBoard:
     def __init__(self, bingo_board):
         self.bingo_board = bingo_board
 
-    def generate_board_image(self, file_name='bingo', user_name='anon', template_file="eevee.png"):
+    def generate_board_image(self, file_name='bingo', user_name='anon', template_file="chikorita.png"):
         try:
             script_path = os.path.dirname(os.path.realpath(__file__))
             dir_path = os.path.join(script_path, "..","data")
@@ -29,7 +29,7 @@ class BingoBoard:
             canvas = Image.open(os.path.join(file_path, template_file))
             draw = ImageDraw.Draw(canvas)
 
-            colors = ['black','yellow','black','yellow','yellow','yellow','black','yellow','black']
+            colors = ['black','black','black','black','black','black','black','black','black']
             counter = 0
             for row in self.bingo_board:
                 x_position = 20

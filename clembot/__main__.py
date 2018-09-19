@@ -8742,13 +8742,13 @@ async def _bingo_win(ctx):
         if existing_bingo_card_record:
             raid_embed = discord.Embed(title=_("**{0} Shoutout!**".format(event_title_map.get(event_pokemon,"BingO"))), description="", colour=discord.Colour.dark_gold())
 
-            raid_embed.add_field(name="**Member:**", value=_("**{member}** believes the following Bingo card is completed as of **{timestamp}**.").format(member=message.author.display_name, timestamp=timestamp), inline=True)
+            raid_embed.add_field(name="**Member:**", value=_("**{member}** called **bingo** at **{timestamp}**.").format(member=message.author.display_name, timestamp=timestamp), inline=True)
             raid_embed.set_image(url=existing_bingo_card_record['bingo_card_url'])
             raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=message.author, format="jpg")))
 
-            msg = 'Beep Beep! {0.author.mention} one of the moderators/admin will contact you for verification. Please follow the guidelines below to complete the submission.'.format(message)
+            msg = 'Beep Beep! {0.author.mention} please follow the guidelines below to complete your submission.'.format(message)
 
-            guidelines = ":one: Submit **2 photos** as specified (use any collage app on your phone). \n:two: A screenshot of **all 9 event pokemon renamed**. \nSee: https://goo.gl/nPcRr5 \n:three: A collage for **box#2, 4, 6, 8 pokemon** with height, weight and gender requirements. \nSee: https://goo.gl/YrSSvM "
+            guidelines = f":one: Submit **2 photos** (use any collage app on your phone) similar to examples provided. \n:two: A screenshot of **9 event pokemon renamed**. See: https://goo.gl/nPcRr5 \n:three: A collage for **box # 2, 4, 6, 8 pokemon** showing height, weight, gender & CP requirements. \nSee: https://goo.gl/YrSSvM \n Here is {message.author.mention}'s bingo card for reference: "
             raid_embed.add_field(name="**Submission Guidelines**", value=guidelines)
 
 
