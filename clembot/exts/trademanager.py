@@ -315,12 +315,14 @@ class TradeManager:
         offers_or_request = 'offers'
         offering_or_requesting = 'offering'
         offered_or_requested = 'requested'
+        has_or_wants = 'has'
         if '-request' in pokemon :
             searchable_list_key = 'trade_requests'
             search_result_list_key = 'trade_offers'
             offers_or_request = 'requests'
             offering_or_requesting = 'requesting'
             offered_or_requested = 'to offer'
+            has_or_wants = 'wants'
 
         try:
             pokemon_list = self.extract_poke_form(ctx, pokemon)
@@ -375,11 +377,11 @@ class TradeManager:
                                         except:
                                             continue
                                         if len(trainer_trade_requests) > 10:
-                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} (has {trainer_trade_pokeform})"] = f"{self.print_pokemon(trainer_trade_requests[:10])} and more."
+                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} ({has_or_wants} {trainer_trade_pokeform})"] = f"{self.print_pokemon(trainer_trade_requests[:10])} and more."
                                         elif len(trainer_trade_requests) > 0:
-                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} (has {trainer_trade_pokeform})"] = self.print_pokemon(trainer_trade_requests)
+                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} ({has_or_wants} {trainer_trade_pokeform})"] = self.print_pokemon(trainer_trade_requests)
                                         else:
-                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} (has {trainer_trade_pokeform})"] = f'No {offers_or_request} yet!'
+                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} ({has_or_wants} {trainer_trade_pokeform})"] = f'No {offers_or_request} yet!'
                                 except Exception as error:
                                     continue
 
