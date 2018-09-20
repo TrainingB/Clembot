@@ -117,8 +117,6 @@ type_list = []
 raid_info = {}
 active_raids = []
 gym_info_list = {}
-egg_timer = 0
-raid_timer = 0
 icon_list = {}
 GOOGLE_API_KEY = ""
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
@@ -138,8 +136,6 @@ def load_config():
     global type_chart
     global type_list
     global raid_info
-    global egg_timer
-    global raid_timer
     global icon_list
     global GOOGLE_API_KEY
     global GOOGLE_MAPS_URL
@@ -174,8 +170,6 @@ def load_config():
     spelling.set_dictionary(pkmn_info['pokemon_list'])
 
     # --B--
-    egg_timer = config['egg-timer']
-    raid_timer = config['raid-timer']
     GOOGLE_API_KEY = config['google-api-key']
     GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
     SQLITE_DB = config['sqlite_db']
@@ -368,7 +362,24 @@ def get_level(pkmn):
             if pokemon == pkmn_number:
                 return level
 
+def get_raid_timer(egg_level, pokemon=None):
+    current_raid_timer = config['raid-timer']
+    try:
+        if egg_level:
+            current_raid_timer = raid_info['raid_eggs'][egg_level]['raid_timer']
+            return current_raid_timer
+        if pokemon:
+            current_raid_timer = raid_info['raid_eggs'][get_level(pokemon)]['raid_timer']
+    except:
+        pass
+    return current_raid_timer
 
+def get_egg_timer(egg_level):
+    current_egg_timer = config['egg-timer']
+    if egg_level:
+        current_egg_timer = raid_info['raid_eggs'][egg_level]['egg_timer']
+
+    return current_egg_timer
 
 
 def get_raidlist():
@@ -793,6 +804,7 @@ async def expire_channel(channel):
                     await channel.send( _("""This channel has been successfully reported as a duplicate and will be deleted in 1 minute. Check the channel list for the other raid channel to coordinate in! If this was in error, reset the raid with **!timerset**"""))
                 delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
             elif guild_dict[guild.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
+                raid_timer = get_raid_timer(guild_dict[guild.id]['raidchannel_dict'][channel.id]['egg_level'])
                 if not alreadyexpired:
                     maybe_list = []
                     trainer_dict = copy.deepcopy(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['trainer_dict'])
@@ -3558,6 +3570,7 @@ async def _newraid(message):
 
 
     if raidexp is not False:
+        raid_timer = get_raid_timer(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['egglevel'], entered_raid)
         if _timercheck(raidexp, raid_timer):
             await message.channel.send( _("Beep Beep...that's too long. Raids currently last no more than {raid_timer} minutes...".format(raid_timer=raid_timer)))
             return
@@ -3659,7 +3672,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
         'reportcity': message.channel.id,
         'trainer_dict': {},
-        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
+        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=get_raid_timer(None, entered_raid)),  # raid timer minutes from now
         'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
         'active': True,
         'raidmessage' : raidmessage.id,
@@ -3778,12 +3791,13 @@ async def _raid(message):
             endmins = 0
         else:
             endmins = int(raid_split[-1].split(":")[1])
-        raidexp = egg_timer * endhours + endmins
+        raidexp = 60 * endhours + endmins
         del raid_split[-1]
     else:
         raidexp = False
 
     if raidexp is not False:
+        raid_timer = get_raid_timer(None, entered_raid)
         if _timercheck(raidexp, raid_timer):
             await message.channel.send( _(f"Beep Beep...that's too long. Raids currently last no more than {raid_timer} minutes..."))
             return
@@ -3865,7 +3879,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
         'reportcity': message.channel.id,
         'trainer_dict': {},
-        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=raid_timer),  # raid timer minutes from now
+        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=get_raid_timer(None, entered_raid)),  # raid timer minutes from now
         'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
         'active': True,
         'raidmessage' : raidmessage.id,
@@ -4438,10 +4452,10 @@ async def timerset(ctx, timer):
     if checks.check_raidactive(ctx) and not checks.check_exraidchannel(ctx):
         if guild_dict[guild.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
             raidtype = "Raid Egg"
-            maxtime = egg_timer
+            maxtime = get_egg_timer(guild_dict[guild.id]['raidchannel_dict'][channel.id]['egglevel'])
         else:
             raidtype = "Raid"
-            maxtime = raid_timer
+            maxtime = get_raid_timer(None, guild_dict[guild.id]['raidchannel_dict'][channel.id]['pokemon'])
         if timer.isdigit():
             raidexp = int(timer)
         elif ":" in timer:
@@ -4616,7 +4630,7 @@ async def validate_start_time(channel, start_time):
     suggested_start_time = convert_into_current_time(channel, start_time)
 
     is_raid_egg = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['type'] == "egg"
-
+    egg_timer = get_egg_timer(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egg_level'])
     # modified time for raidegg
     if is_raid_egg:
         current_datetime = raid_expires_at
@@ -5134,6 +5148,8 @@ Please type `!beep status` if you need a refresher of Clembot commands!
 
     raidmessage = await raid_channel.send(content=raidmsg, embed=raid_embed)
 
+    egg_timer = get_egg_timer(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id][egg_level])
+
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
         'reportcity': message.channel.id,
         'trainer_dict': {},
@@ -5371,7 +5387,7 @@ def emojify_numbers(number):
 
 
 async def _raidegg(message):
-
+        egg_level = 0
         if message.channel.id in guild_dict[message.guild.id]['raidchannel_dict'].keys():
             await _send_error_message(message.channel, "Please use this command in a region channel.")
             return
@@ -5395,6 +5411,8 @@ async def _raidegg(message):
             raidexp = parameters['timer']
 
         if raidexp is not False:
+            egg_timer = get_egg_timer(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id][egg_level])
+
             if _timercheck(raidexp, egg_timer):
                 await message.channel.send(_("Beep Beep...that's too long. Raid Eggs currently last no more than {egg_timer} minutes...".format(egg_timer=egg_timer)))
                 return
@@ -5465,7 +5483,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
 """).format(level=egg_level, member=message.author.mention, citychannel=message.channel.mention, location_details=raid_details)
 
             raidmessage = await raid_channel.send(content=raidmsg, embed=raid_embed)
-
+            egg_timer = get_egg_timer(egg_level)
             guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
                 'reportcity': message.channel.id,
                 'trainer_dict': {},
@@ -5554,7 +5572,7 @@ async def _eggtoraid(entered_raid, channel):
 
         if eggdetails.get('egglevel',None):
             suggested_start = eggdetails['suggested_start']
-            raidexp = eggdetails['exp'] + timedelta(minutes=raid_timer)
+            raidexp = eggdetails['exp'] + timedelta(minutes=get_egg_timer(egglevel))
             hatchtype = "raid"
             raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=channel.mention)
 
