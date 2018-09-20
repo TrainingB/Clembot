@@ -804,7 +804,7 @@ async def expire_channel(channel):
                     await channel.send( _("""This channel has been successfully reported as a duplicate and will be deleted in 1 minute. Check the channel list for the other raid channel to coordinate in! If this was in error, reset the raid with **!timerset**"""))
                 delete_time = convert_to_epoch(fetch_channel_expire_time(channel.id)) + timedelta(minutes=1).seconds - convert_to_epoch(fetch_current_time(channel.guild.id))
             elif guild_dict[guild.id]['raidchannel_dict'][channel.id]['type'] == 'egg':
-                raid_timer = get_raid_timer(guild_dict[guild.id]['raidchannel_dict'][channel.id]['egg_level'])
+                raid_timer = get_raid_timer(guild_dict[guild.id]['raidchannel_dict'][channel.id]['egglevel'])
                 if not alreadyexpired:
                     maybe_list = []
                     trainer_dict = copy.deepcopy(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['trainer_dict'])
@@ -4630,7 +4630,7 @@ async def validate_start_time(channel, start_time):
     suggested_start_time = convert_into_current_time(channel, start_time)
 
     is_raid_egg = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['type'] == "egg"
-    egg_timer = get_egg_timer(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egg_level'])
+    egg_timer = get_egg_timer(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'])
     # modified time for raidegg
     if is_raid_egg:
         current_datetime = raid_expires_at
