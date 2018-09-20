@@ -310,6 +310,18 @@ class TradeManager:
     @_trade.command(aliases=["search"])
     async def _trade_search(self, ctx, *pokemon: RemoveComma):
 
+        searchable_list_key = 'trade_offers'
+        search_result_list_key = 'trade_requests'
+        offers_or_request = 'offers'
+        offering_or_requesting = 'offering'
+        offered_or_requested = 'requested'
+        if '-request' in pokemon :
+            searchable_list_key = 'trade_requests'
+            search_result_list_key = 'trade_offers'
+            offers_or_request = 'requests'
+            offering_or_requesting = 'requesting'
+            offered_or_requested = 'to offer'
+
         try:
             pokemon_list = self.extract_poke_form(ctx, pokemon)
             if len(pokemon_list) == 0:
@@ -337,9 +349,86 @@ class TradeManager:
 
             for trainer_id, trainer_dict in guild_trainer_dict.items():
 
-                trainer_trade_offers = trainer_dict.get('trade_offers', [])
+                trainer_trade_offers = trainer_dict.get(searchable_list_key, [])
 
                 for trainer_trade_pokeform in trainer_trade_offers:
+                    trainer_trade_pokemonform = PokemonForm(trainer_trade_pokeform)
+
+                    for pokemon_searched_for in pokemon_list:
+                        pokeform_searched_for = PokemonForm(pokemon_searched_for)
+
+                        if trainer_trade_pokeform.__contains__(pokemon_searched_for) or pokeform_searched_for == trainer_trade_pokemonform:
+
+                            if not trainers_with_pokemon.__contains__(trainer_id) and not additional_trainer_id_list.__contains__(trainer_id):
+                                try:
+                                    if len(trainers_with_pokemon) > 10 :
+                                        additional_trainer_id_list.append(trainer_id)
+                                        additional_trainer_list.append(f"{ctx.guild.get_member(trainer_id).display_name}")
+
+                                    else :
+
+                                        trainers_with_pokemon.append(trainer_id)
+
+                                        trainer_trade_requests = guild_trainer_dict.setdefault(trainer_id, {}).get(search_result_list_key, [])
+                                        try:
+                                            trainer_name = ctx.guild.get_member(trainer_id).display_name
+                                        except:
+                                            continue
+                                        if len(trainer_trade_requests) > 10:
+                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} (has {trainer_trade_pokeform})"] = f"{self.print_pokemon(trainer_trade_requests[:10])} and more."
+                                        elif len(trainer_trade_requests) > 0:
+                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} (has {trainer_trade_pokeform})"] = self.print_pokemon(trainer_trade_requests)
+                                        else:
+                                            additional_fields[f"{ctx.guild.get_member(trainer_id).display_name} (has {trainer_trade_pokeform})"] = f'No {offers_or_request} yet!'
+                                except Exception as error:
+                                    continue
+
+
+            trainer_search_result = "\n ".join(trainer_list)
+
+            if additional_trainer_list:
+                additional_fields[f"Other Trainers asking for {pokemon_searched_for}"] = ", ".join(additional_trainer_list)
+
+            if len(additional_fields) > 0:
+                await self.utilities._send_embed(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** Following trainers are {offering_or_requesting} **{', '.join(pokemon_list)}** for trade and here is what they have {offered_or_requested}:", additional_fields=additional_fields)
+            else:
+                await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No trainer is {offering_or_requesting} **{', '.join(pokemon_list)}** for trading yet!")
+        except Exception as error:
+            await self.utilities._send_error_message(ctx.channel, f"Beep Beep! Error occured while searching : {error}.")
+
+    @_trade.command(aliases=["search request"])
+    async def _trade_search_request(self, ctx, *pokemon: RemoveComma):
+
+        try:
+            pokemon_list = self.extract_poke_form(ctx, pokemon)
+            if len(pokemon_list) == 0:
+                pokemon_list = pokemon
+
+            # self.extract_poke_form(ctx, pokemon)
+
+            user = ctx.message.author
+
+            trainers_with_pokemon = []
+
+            # if len(pokemon_list) == 0:
+            #     return await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No valid pokemon found to search!")
+
+            guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id]['trainers']
+
+
+            trainer_list = []
+            additional_fields = {}
+            additional_trainer_id_list = []
+            additional_trainer_list = []
+
+
+
+
+            for trainer_id, trainer_dict in guild_trainer_dict.items():
+
+                trainer_trade_requests = trainer_dict.get('trade_requests', [])
+
+                for trainer_trade_pokeform in trainer_trade_requests:
                     trainer_trade_pokemonform = PokemonForm(trainer_trade_pokeform)
 
                     for pokemon_searched_for in pokemon_list:
@@ -357,7 +446,7 @@ class TradeManager:
 
                                     trainers_with_pokemon.append(trainer_id)
 
-                                    trainer_trade_requests = guild_trainer_dict.setdefault(trainer_id, {}).get('trade_requests', [])
+                                    trainer_trade_requests = guild_trainer_dict.setdefault(trainer_id, {}).get('trade_offers', [])
                                     try:
                                         trainer_name = ctx.guild.get_member(trainer_id).display_name
                                     except:
@@ -382,6 +471,8 @@ class TradeManager:
                 await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No trainer is offering **{', '.join(pokemon_list)}** for trading yet!")
         except Exception as error:
             await self.utilities._send_error_message(ctx.channel, f"Beep Beep! Error occured while searching : {error}.")
+
+
 
     beep_notes = ("""**{member}** here are the commands for trade management. 
 

@@ -6318,7 +6318,7 @@ beepmsg = _("""**{member}, !beep** can be used with following options:
 **!beep notification** - for notification related commands.
 
 **!beep raidparty** - for raidparty related commands
-**!beep raidowner** - for raidparty organizres
+**!beep raidowner** - for raidparty organizers
 
 **!beep research** - for research quest reporting commands.
 **!beep nest** - for nest reporting commands.
