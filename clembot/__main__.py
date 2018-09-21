@@ -5574,7 +5574,7 @@ async def _eggtoraid(entered_raid, channel):
 
         if eggdetails.get('egglevel',None):
             suggested_start = eggdetails['suggested_start']
-            raidexp = eggdetails['exp'] + timedelta(minutes=get_egg_timer(egglevel))
+            raidexp = eggdetails['exp'] + timedelta(minutes=get_raid_timer(egglevel))
             hatchtype = "raid"
             raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=channel.mention)
 
