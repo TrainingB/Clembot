@@ -4632,11 +4632,12 @@ async def validate_start_time(channel, start_time):
     suggested_start_time = convert_into_current_time(channel, start_time)
 
     is_raid_egg = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['type'] == "egg"
-    egg_timer = get_egg_timer(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'])
+
     # modified time for raidegg
     if is_raid_egg:
+        raid_timer = get_raid_timer(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'])
         current_datetime = raid_expires_at
-        raid_expires_at = raid_expires_at + timedelta(minutes=egg_timer)
+        raid_expires_at = raid_expires_at + timedelta(minutes=raid_timer)
 
     if suggested_start_time:
         if suggested_start_time > raid_expires_at:
