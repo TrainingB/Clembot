@@ -63,6 +63,7 @@ from exts.autoresponder import AutoResponder
 from exts.rostermanager import RosterManager
 from exts.configmanager import ConfigManager
 from exts.utilities import Utilities
+from exts.utilities import HandleAngularBrackets
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -3573,7 +3574,7 @@ async def _newraid(message):
     if raidexp is not False:
         raid_timer = get_raid_timer(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['egglevel'], entered_raid)
         if _timercheck(raidexp, raid_timer):
-            await message.channel.send( _("Beep Beep...that's too long. Raids currently last no more than {raid_timer} minutes...".format(raid_timer=raid_timer)))
+            await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name} That's too long. Raids currently last no more than {raid_timer} minutes.")
             return
 
     channel_role = None
@@ -3801,7 +3802,7 @@ async def _raid(message):
     if raidexp is not False:
         raid_timer = get_raid_timer(None, entered_raid)
         if _timercheck(raidexp, raid_timer):
-            await message.channel.send( _(f"Beep Beep...that's too long. Raids currently last no more than {raid_timer} minutes..."))
+            await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}** That's too long. Raids currently last no more than {raid_timer} minutes.")
             return
 
     if entered_raid not in pkmn_info['pokemon_list']:
@@ -4069,7 +4070,7 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
             else :
                 counters_dict = await _fetch_moveset_and_counters(ctx, pkmn, weather)
                 if not counters_dict:
-                    return await _send_error_message(ctx.channel, "Beep Bepp! **{0}** No reponse recieved from Pokebattler.".format(ctx.message.author.display_name))
+                    return await _send_error_message(ctx.channel, "Beep Bepp! **{0}** No response recieved from Pokebattler.".format(ctx.message.author.display_name))
                 moveset_dict = counters_dict['movesets']
                 moveset_dict_index = counters_dict['movesets'].get(moveset_index)
                 raid_boss_moveset = moveset_dict_index['moveset']
@@ -4423,26 +4424,26 @@ async def print_raid_timer(channel_id):
         raidtype = "raid"
         raidaction = "end"
     if not guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['active']:
-        timerstr += _("Beep Beep! This {raidtype}'s timer has already expired as of {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
+        timerstr += _("Beep Beep! This {raidtype}'s timer has already expired as of **{expiry_time} ({expiry_time24})**!").format(raidtype=raidtype, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
     else:
         if guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['egglevel'] == "EX" or guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['type'] == "exraid":
             if guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['manual_timer']:
-                timerstr += _("Beep Beep! This {raidtype} will {raidaction} on {expiry_day} at {expiry_time} ({expiry_time24})!").format(
+                timerstr += _("Beep Beep! This {raidtype} will {raidaction} on **{expiry_day} at {expiry_time} ({expiry_time24})**!").format(
                     raidtype=raidtype, raidaction=raidaction, expiry_day=localexpire.strftime("%B %d"), expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
             else:
-                timerstr += _("Beep Beep! No one told me when the {raidtype} will {raidaction}, so I'm assuming it will {raidaction} on {expiry_day} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_day=localexpire.strftime("%B %d"), expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
+                timerstr += _("Beep Beep! No one told me when the {raidtype} will {raidaction}, so I'm assuming it will {raidaction} on **{expiry_day} at {expiry_time} ({expiry_time24})**!").format(raidtype=raidtype, raidaction=raidaction, expiry_day=localexpire.strftime("%B %d"), expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
         else:
             if guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['manual_timer']:
-                timerstr += _("Beep Beep! This {raidtype} will {raidaction} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
+                timerstr += _("Beep Beep! This {raidtype} will {raidaction} at **{expiry_time} ({expiry_time24})**!").format(raidtype=raidtype, raidaction=raidaction, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
             else:
-                timerstr += _("Beep Beep! No one told me when the {raidtype} will {raidaction}, so I'm assuming it will {raidaction} at {expiry_time} ({expiry_time24})!").format(raidtype=raidtype, raidaction=raidaction, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
+                timerstr += _("Beep Beep! No one told me when the {raidtype} will {raidaction}, so I'm assuming it will {raidaction} at **{expiry_time} ({expiry_time24})**!").format(raidtype=raidtype, raidaction=raidaction, expiry_time=localexpire.strftime("%I:%M %p"), expiry_time24=localexpire.strftime("%H:%M"))
 
     return timerstr
 
 
 @Clembot.command(pass_context=True, hidden=True)
 @checks.raidchannel()
-async def timerset(ctx, timer):
+async def timerset(ctx, timer : HandleAngularBrackets):
     """Set the remaining duration on a raid.
 
     Usage: !timerset <minutes>
@@ -4473,7 +4474,7 @@ async def timerset(ctx, timer):
             await channel.send( "Beep Beep! I couldn't understand your time format. Try again like this: **!timerset <minutes>**")
             return
         if _timercheck(raidexp, maxtime):
-            await channel.send( _("Beep Beep...that's too long. {raidtype}s currently last no more than {maxtime} minutes...").format(raidtype=raidtype.capitalize(), maxtime=str(maxtime)))
+            await _send_error_message(channel, f"Beep Beep! **{ctx.message.author.display_name}** That's too long. {raidtype.capitalize()}s currently last no more than {maxtime} minutes.")
             return
         await _timerset(channel, raidexp)
 
@@ -4481,7 +4482,7 @@ async def timerset(ctx, timer):
         if checks.check_eggchannel(ctx):
             tzlocal = tz.tzoffset(None, guild_dict[guild.id]['offset'] * 3600)
             now = fetch_current_time(ctx.message.guild.id)
-            timer_split = message.clean_content.lower().split()
+            timer_split = message.clean_content.lower().replace("<", "").replace(">", "").strip().split()
             del timer_split[0]
             try:
                 end = datetime.datetime.strptime(" ".join(timer_split) + " " + str(now.year), '%m/%d %I:%M %p %Y')
@@ -4527,7 +4528,7 @@ async def _timerset(channel, exptime, expire_datetime=None):
     guild_dict[guild.id]['raidchannel_dict'][channel.id]['manual_timer'] = True
     # Send message
     timerstr = await print_raid_timer(channel.id)
-    await channel.send( timerstr)
+    await utilities._send_embed(channel, timerstr)
     # Trigger expiry checking
     event_loop.create_task(expiry_check(channel))
 
@@ -4540,8 +4541,7 @@ async def timer(ctx):
     Usage: !timer
     The expiry time should have been previously set with !timerset."""
     timerstr = await print_raid_timer(ctx.message.channel.id)
-    await ctx.message.channel.send( timerstr)
-
+    await utilities._send_embed(ctx.message.channel, timerstr)
 
 # =-=-=-=--=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=--=-=-=-=-
 # Code added for start time
@@ -5137,7 +5137,7 @@ async def __exraid(ctx):
     raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
     raid_embed.set_thumbnail(url=raid_img_url)
     try:
-        raidreport = await message.channel.send(content=_("Beep Beep! Level {level} raid egg reported by {member}! Details: {location_details}. Coordinate in {raid_channel}").format(level=egg_level, member=message.author.mention, location_details=raid_details, raid_channel=raid_channel.mention), embed=raid_embed)
+        raidreport = await message.channel.send(content=_(f"Beep Beep! Level {egg_level} raid egg reported by {message.author.mention}! Details: {raid_details}. Coordinate in {raid_channel.mention}"), embed=raid_embed)
     except Exception as error:
         logger.info(error)
     await asyncio.sleep(1)  # Wait for the channel to be created.
@@ -5151,12 +5151,12 @@ Please type `!beep status` if you need a refresher of Clembot commands!
 
     raidmessage = await raid_channel.send(content=raidmsg, embed=raid_embed)
 
-    egg_timer = get_egg_timer(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id][egg_level])
+    egg_timer = get_egg_timer('EX')
 
     guild_dict[message.guild.id]['raidchannel_dict'][raid_channel.id] = {
         'reportcity': message.channel.id,
         'trainer_dict': {},
-        'exp': fetch_current_time(message.channel.guild.id) + timedelta(minutes=egg_timer) + timedelta(days=14),  # One hour from now
+        'exp': fetch_current_time(message.channel.guild.id) + timedelta(days=14),  # One hour from now
         'manual_timer': False,  # No one has explicitly set the timer, Clembot is just assuming 2 hours
         'active': True,
         'raidmessage': raidmessage.id,

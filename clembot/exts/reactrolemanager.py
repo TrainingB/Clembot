@@ -300,12 +300,11 @@ class ReactRoleManager:
             if not is_role_changed:
                 timeout_message = await self.utilities._send_error_message(ctx.channel, f", No changes were made!", original_user)
 
-            await asyncio.sleep(3)
-            await message.delete()
-
         except Exception as error:
             print(error)
 
+        await asyncio.sleep(3)
+        await message.delete()
 
         return
 

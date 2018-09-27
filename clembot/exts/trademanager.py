@@ -486,9 +486,10 @@ class TradeManager:
 
 **!trade list** - brings up pokemon in your trade offer/request list.
 **!trade list @user** - brings up pokemon in user's trade offer/request list.
-**!trade list pokemon** - filters your trade offer/request list by sepcified pokemon.
+**!trade list pokemon** - filters your trade offer/request list by specified pokemon.
 
-**!trade search <pokemon>** - brings up a list of 10 users who are offering pokemon with their pokemon request as well.
+**!trade search <pokemon>** - brings up a list of all the users and details for first 10 users who are offering the pokemon.
+**!trade search -request <pokemon>** - brings up a list of all the users and details for first 10 users who are looking for the pokemon.
 
 **<pokemon> - can be one or more pokemon or pokedex# separated by space.**
 
