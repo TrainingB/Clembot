@@ -123,7 +123,7 @@ GOOGLE_API_KEY = ""
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
 INVITE_CODE = "AUzEXRU"
 SQLITE_DB = ""
-CACHE_VERSION = 7
+CACHE_VERSION = 8
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -142,6 +142,7 @@ def load_config():
     global GOOGLE_MAPS_URL
     global SQLITE_DB
     global raidlist
+    global CACHE_VERSION
     # Load configuration
     with open("config.json", "r") as fd:
         config = json.load(fd)
@@ -174,6 +175,7 @@ def load_config():
     GOOGLE_API_KEY = config['google-api-key']
     GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
     SQLITE_DB = config['sqlite_db']
+    CACHE_VERSION = config.get('cache_version', CACHE_VERSION)
 
     gymsql.set_db_name(SQLITE_DB)
     # gymutil.load_gyms()
