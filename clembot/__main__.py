@@ -2957,7 +2957,7 @@ async def _reset_register(ctx):
 
 @Clembot.command(pass_context=True, aliases=["show-register"])
 @commands.has_permissions(manage_guild=True)
-async def _show_register(ctx, ex_raid_role_name):
+async def _show_register(ctx, ex_raid_role_name=None):
 
     add_notifications_guild_dict(ctx.guild.id)
 
