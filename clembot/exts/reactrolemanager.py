@@ -22,10 +22,6 @@ class ReactRoleManager:
             "emoji1" :  "role one",
             "emoji1"  : "role two",
             "emoji1" : "role three"
-        },
-        "options" : {
-            "single-use" : false,
-            "exclusive" : false
         }
     }
 
