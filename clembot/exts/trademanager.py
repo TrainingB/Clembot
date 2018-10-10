@@ -389,7 +389,7 @@ class TradeManager:
             trainer_search_result = "\n ".join(trainer_list)
 
             if additional_trainer_list:
-                additional_fields[f"Other Trainers asking for {pokemon_searched_for}"] = ", ".join(additional_trainer_list)
+                additional_fields[f"Other Trainers {offering_or_requesting} {pokemon_searched_for}"] = ", ".join(additional_trainer_list)
 
             if len(additional_fields) > 0:
                 await self.utilities._send_embed(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** Following trainers are {offering_or_requesting} **{', '.join(pokemon_list)}** for trade and here is what they have {offered_or_requested}:", additional_fields=additional_fields)

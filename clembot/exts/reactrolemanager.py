@@ -23,12 +23,29 @@ class ReactRoleManager:
             "emoji1"  : "role two",
             "emoji1" : "role three"
         },
-        "exclusive" : "false",
+        "options" : {
+            "single-use" : false,
+            "exclusive" : false
+        }
     }
 
     numbers_text = ["zero","one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 
     one_to_ten = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '🔟']
+
+    def _new_serialize(self, emoji):
+        if isinstance(emoji, discord.Reaction):
+             emoji = emoji.emoji
+        if isinstance(emoji, discord.Emoji):
+            emoji = '%s:%s' % (emoji.name, emoji.id)
+        elif isinstance(emoji, discord.PartialEmoji):
+            emoji = emoji._as_reaction()
+        elif isinstance(emoji, str):
+            pass
+
+        if emoji.__contains__(">") and emoji.__contains__("<"):
+            emoji = emoji.replace('<','').replace('>','')
+        return emoji
 
 
     def serialize(self, guild, emoji):
@@ -88,9 +105,6 @@ class ReactRoleManager:
             return emoji_array[0]
 
 
-
-    # bot.guild_dict[ctx.guild.id]['react-roles']
-
     @commands.group(pass_context=True, hidden=True, aliases=["react-role", "rr"])
     async def _react_role(self, ctx):
         if ctx.invoked_subcommand is None:
@@ -135,26 +149,16 @@ class ReactRoleManager:
         await self.utilities._send_message(ctx.channel, f", group-name **{group_name}** has been removed from react-role configurations.",user=ctx.message.author)
 
     @_react_role.command(pass_context=True, hidden=True, aliases=["debug"])
-    async def _react_role_debug(self, ctx, emoji):
-        try:
+    async def _react_role_debug(self, ctx, *emoji_list):
+        for emoji in emoji_list:
+            try:
+                new_emoji = self._new_serialize(emoji)
+                this_message=await self.utilities._send_message(ctx.channel, f"New To Save: `{new_emoji}`")
+                await this_message.add_reaction(new_emoji)
 
-            to_save = self.serialize(ctx.guild, emoji)
-            await self.utilities._send_message(ctx.channel, f"To Save: `{to_save}`")
-
-            for_reaction = self.emojify(ctx.guild, to_save)
-            message = await self.utilities._send_message(ctx.channel, f"For Reaction: {for_reaction}")
-
-            emoji_to_add = self.emojify(ctx.guild, to_save)
-            await message.add_reaction(emoji_to_add)
-
-            reaction, user = await ctx.bot.wait_for('reaction_add', timeout=60, check=lambda r, u: u.id == ctx.message.author.id)
-
-            from_reaction = self.demojify(ctx.guild, str(reaction))
-            await self.utilities._send_message(ctx.channel, f"From Reaction: {from_reaction}")
-
-        except Exception as error:
-            print(error)
-
+            except Exception as error:
+                print(error)
+                continue
 
 
     @commands.command(pass_context=True, hidden=True, aliases=["select"])

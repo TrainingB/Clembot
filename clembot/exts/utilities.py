@@ -42,8 +42,56 @@ class Utilities:
 
         return number_emoji
 
+
+    def _normalize(self, emoji):
+        initial_emoji = emoji
+        if isinstance(emoji, discord.Reaction):
+             emoji = emoji.emoji
+        if isinstance(emoji, discord.Emoji):
+            emoji = ':%s:%s' % (emoji.name, emoji.id)
+        elif isinstance(emoji, discord.PartialEmoji):
+            emoji = emoji._as_reaction()
+        elif isinstance(emoji, str):
+            pass
+
+        if emoji.__contains__(">") and emoji.__contains__("<"):
+            emoji = emoji.replace('<','').replace('>','')
+        print(f"{initial_emoji} =>  {emoji}")
+        return emoji
+
+
+    def _demojify(self, emoji):
+        # convert emoji to id
+        if isinstance(emoji, discord.Reaction):
+            emoji = emoji.emoji.id
+
+        if isinstance(emoji, discord.Emoji):
+            emoji = emoji.id
+        elif isinstance(emoji, discord.PartialEmoji):
+            emoji = emoji.id if emoji.id else emoji.name
+        elif isinstance(emoji, str):
+            pass
+
+        return emoji
+
+
+    def _emojify(self, emoji):
+        if emoji.__contains__(">") and emoji.__contains__("<"):
+            emoji = emoji.replace('<', '').replace('>', '')
+        return emoji
+
     @classmethod
     async def _send_error_message(self, channel, description, user=None):
+
+        color = discord.Colour.red()
+        user_mention = ""
+        if user:
+            user_mention = f"Beep Beep! **{user.display_name}** "
+        error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
+        return await channel.send(embed=error_embed)
+
+    @classmethod
+    async def _send_message(self, channel, description, user= None):
 
         color = discord.Colour.red()
         user_mention = ""

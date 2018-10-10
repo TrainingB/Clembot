@@ -17,6 +17,7 @@ import functools
 import textwrap
 from time import strftime
 
+from discord.client import log
 from discord.colour import Colour
 
 from logs import init_loggers
@@ -59,6 +60,7 @@ from exts.profilemanager import ProfileManager
 from exts.trademanager import TradeManager
 from exts.utilities import Utilities
 from exts.reactrolemanager import ReactRoleManager
+from exts.staticreactrolemanager import StaticReactRoleManager
 from exts.autoresponder import AutoResponder
 from exts.rostermanager import RosterManager
 from exts.configmanager import ConfigManager
@@ -197,7 +199,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager',
                 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder',
-                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator']
+                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator','exts.staticreactrolemanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
 for ext in default_exts:
     try:
@@ -2750,15 +2752,19 @@ async def _wild(message):
         logger.info(error)
 
 
+staticReactRoleManager = StaticReactRoleManager(Clembot)
 
 @Clembot.event
-async def on_raw_reaction_add(emoji, message_id=None, channel_id=None, user_id=None):
-    if not message_id or not channel_id or not user_id:
+async def on_raw_reaction_add(emoji):
+    static_react_role_dict = guild_dict[emoji.guild_id].get('static-react-roles',{}).get(str(emoji.message_id),{})
+    if static_react_role_dict:
+        await staticReactRoleManager.handle_reaction_add(emoji)
         return
-    channel = Clembot.get_channel(channel_id)
-    message = await channel.get_message(message_id)
+
+    channel = Clembot.get_channel(emoji.channel_id)
+    message = await channel.get_message(emoji.message_id)
     guild = message.guild
-    user = guild.get_member(user_id)
+    user = guild.get_member(emoji.user_id)
     try:
         if message_id in guild_dict[guild.id].setdefault('wildreport_dict',{}) and user_id != Clembot.user.id:
             wild_dict = guild_dict[guild.id].setdefault('wildreport_dict',{})[message_id]
@@ -2951,7 +2957,7 @@ async def _reset_register(ctx):
 
 @Clembot.command(pass_context=True, aliases=["show-register"])
 @commands.has_permissions(manage_guild=True)
-async def _show_register(ctx):
+async def _show_register(ctx, ex_raid_role_name):
 
     add_notifications_guild_dict(ctx.guild.id)
 
@@ -2960,26 +2966,36 @@ async def _show_register(ctx):
     logger.info(notifications)
     role_map = {}
 
+    if ex_raid_role_name:
+        for gym_code in notifications['gym_role_map'].keys():
+            try:
+                role_name = role_map[notifications['gym_role_map'][gym_code]]
+                if role_name == ex_raid_role_name:
+                    role_gym_map.setdefault(role_name, []).append(gym_code)
+            except Exception as error:
+                print(error)
 
-    for role_id in notifications['roles']:
-        role = discord.utils.get(ctx.message.guild.roles, id=role_id)
-        if role:
-            new_notifications_map['notifications']['roles'].append(role.name)
-            role_map[role_id] = role.name
+        await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, separators=[',', ':'], sort_keys=True)))
+    else:
+        for role_id in notifications['roles']:
+            role = discord.utils.get(ctx.message.guild.roles, id=role_id)
+            if role:
+                new_notifications_map['notifications']['roles'].append(role.name)
+                role_map[role_id] = role.name
 
-    await _send_message(ctx.message.channel, "**Registered Roles**\n{}".format(json.dumps(new_notifications_map['notifications']['roles'], indent=4, sort_keys=True)))
+        await _send_message(ctx.message.channel, "**Registered Roles**\n{}".format(json.dumps(new_notifications_map['notifications']['roles'], indent=4, sort_keys=True)))
 
-    role_gym_map = {}
+        role_gym_map = {}
 
 
-    for gym_code in notifications['gym_role_map'].keys():
-        try:
-            role_name = role_map[notifications['gym_role_map'][gym_code]]
-            role_gym_map.setdefault(role_name, []).append(gym_code)
-        except Exception as error:
-            print(error)
+        for gym_code in notifications['gym_role_map'].keys():
+            try:
+                role_name = role_map[notifications['gym_role_map'][gym_code]]
+                role_gym_map.setdefault(role_name, []).append(gym_code)
+            except Exception as error:
+                print(error)
 
-    await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, separators=[',',':'],sort_keys=True)))
+        await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, separators=[',',':'],sort_keys=True)))
 
 
 
@@ -5585,7 +5601,7 @@ async def _eggtoraid(entered_raid, channel):
             await channel.send( spellcheck(entered_raid))
             return
         else:
-            if entered_raid not in get_raidlist():
+            if enteredrm_raid not in get_raidlist():
                 await channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
                 return
             else:
@@ -8932,6 +8948,16 @@ async def _reset_leaderboard(ctx, leaderboard_type=None):
         guild_dict[ctx.guild.id]['trainers'][trainer][leaderboard_type] = {}
 
     await _send_message(ctx.channel, "Beep Beep! **{}**, **{}** has been cleared.".format(ctx.author.mention, leaderboard_type))
+
+@Clembot.command(aliases=["leaderboard-dump"])
+async def leaderboard_dump(ctx, lb_type="lifetime" , r_type="total"):
+    with open(os.path.join('logs', 'clembot.log'), 'r') as logfile:
+        logdata = logfile.read()
+    logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
+    outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))
+    await asyncio.sleep(20)
+    await ctx.message.delete()
+    await outputlog_message.delete()
 
 
 @Clembot.command()

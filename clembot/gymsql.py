@@ -42,7 +42,7 @@ def disconnect():
 
 def read_guild_city(guild_id):
     try:
-        print("read_guild_city({guild_id})".format(guild_id=guild_id))
+        # print("read_guild_city({guild_id})".format(guild_id=guild_id))
 
         global cursor
         if cursor == None:
@@ -63,7 +63,7 @@ def read_guild_city(guild_id):
 
 def read_channel_city(guild_id, channel_id):
     try:
-        print("read_channel_city({guild_id}, {channel_id})".format(guild_id=guild_id, channel_id=channel_id))
+        # print("read_channel_city({guild_id}, {channel_id})".format(guild_id=guild_id, channel_id=channel_id))
 
         global cursor
         if cursor == None:
@@ -154,7 +154,7 @@ def save_channel_city(guild_id, channel_id, city_state):
 
 def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
     try:
-        print("get_gym_list_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
+        # print("get_gym_list_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
 
         global cursor
         if cursor == None:
@@ -185,7 +185,7 @@ def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
 
 def get_gym_by_code(city_state_key, gym_code_key):
     try:
-        print("get_gym_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
+        # print("get_gym_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
 
         return find_gym(city_state_key, gym_code_key)
 
@@ -224,7 +224,7 @@ def convert_to_dict(row, col_names)-> {}:
 
 def find_gym(city_state_key, gym_code_key):
     try:
-        print("find_gym({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key.upper(), city_state_key=city_state_key.upper()))
+        # print("find_gym({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key.upper(), city_state_key=city_state_key.upper()))
 
         global cursor
         if cursor == None:
@@ -417,7 +417,7 @@ def convert_into_gym_info(gym_info):
 def read_guild_configuration(guild_id, channel_id=None) -> {}:
 
     try:
-        print("read_guild_configuration({guild_id}, {channel_id})".format(guild_id=guild_id, channel_id=channel_id))
+        # print("read_guild_configuration({guild_id}, {channel_id})".format(guild_id=guild_id, channel_id=channel_id))
 
         global cursor
         if cursor == None:
@@ -584,7 +584,7 @@ def save_bingo_card(guild_id, user_id, event, bingo_card, bingo_card_url, genera
 
 
 def find_clembot_config(config_key):
-    print("find_clembot_config ({0})".format(config_key))
+    # print("find_clembot_config ({0})".format(config_key))
 
     try:
         global cursor
@@ -614,7 +614,7 @@ def find_clembot_config(config_key):
 
 
 def find_all_clembot_config():
-    print("find_all_clembot_config()")
+    # print("find_all_clembot_config()")
 
     try:
 
