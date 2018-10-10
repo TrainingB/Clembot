@@ -2965,17 +2965,21 @@ async def _show_register(ctx, ex_raid_role_name=None):
     new_notifications_map = {'notifications': {'roles': [], 'gym_role_map': {}}}
     logger.info(notifications)
     role_map = {}
-
+    role_gym_map={}
     if ex_raid_role_name:
-        for gym_code in notifications['gym_role_map'].keys():
-            try:
-                role_name = role_map[notifications['gym_role_map'][gym_code]]
-                if role_name == ex_raid_role_name:
-                    role_gym_map.setdefault(role_name, []).append(gym_code)
-            except Exception as error:
-                print(error)
-
-        await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, separators=[',', ':'], sort_keys=True)))
+        role = discord.utils.get(ctx.message.guild.roles, name=ex_raid_role_name)
+        if role:
+            role_id_to_filter = role.id
+            for gym_code in notifications['gym_role_map'].keys():
+                try:
+                    role_id = notifications['gym_role_map'][gym_code]
+                    if role_id == role_id_to_filter:
+                        role_gym_map.setdefault(ex_raid_role_name, []).append(gym_code)
+                except Exception as error:
+                    print(error)
+            await _send_message(ctx.message.channel, "**Registered Gyms**\n{}".format(json.dumps(role_gym_map, indent=4, separators=[',', ':'], sort_keys=True)))
+        else:
+            await utilities._send_error_message(ctx.message.channel, f"The `{ex_raid_role_name}` isn't subscribed.", ctx.author)
     else:
         for role_id in notifications['roles']:
             role = discord.utils.get(ctx.message.guild.roles, id=role_id)
@@ -5601,7 +5605,7 @@ async def _eggtoraid(entered_raid, channel):
             await channel.send( spellcheck(entered_raid))
             return
         else:
-            if enteredrm_raid not in get_raidlist():
+            if entered_raid not in get_raidlist():
                 await channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
                 return
             else:
