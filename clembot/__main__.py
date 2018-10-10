@@ -199,8 +199,8 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager',
                 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder',
-                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator','exts.staticreactrolemanager']
-#default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities']
+                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator']
+#default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities','exts.staticreactrolemanager']
 for ext in default_exts:
     try:
         Clembot.load_extension(ext)
@@ -2752,14 +2752,14 @@ async def _wild(message):
         logger.info(error)
 
 
-staticReactRoleManager = StaticReactRoleManager(Clembot)
+# staticReactRoleManager = StaticReactRoleManager(Clembot)
 
 @Clembot.event
 async def on_raw_reaction_add(emoji):
-    static_react_role_dict = guild_dict[emoji.guild_id].get('static-react-roles',{}).get(str(emoji.message_id),{})
-    if static_react_role_dict:
-        await staticReactRoleManager.handle_reaction_add(emoji)
-        return
+    # static_react_role_dict = guild_dict[emoji.guild_id].get('static-react-roles',{}).get(str(emoji.message_id),{})
+    # if static_react_role_dict:
+    #     await staticReactRoleManager.handle_reaction_add(emoji)
+    #     return
 
     channel = Clembot.get_channel(emoji.channel_id)
     message = await channel.get_message(emoji.message_id)
