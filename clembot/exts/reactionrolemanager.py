@@ -263,6 +263,7 @@ example:
         await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
 
     async def handle_reaction_add(self, reaction):
+        print("handle_reaction_add")
         try:
             reference_id = self.utilities._uuid(reaction.message_id)
 
