@@ -2764,10 +2764,12 @@ async def on_raw_reaction_remove(reaction):
 
 @Clembot.event
 async def on_raw_reaction_add(reaction):
-
-    message_uuid = utilities._uuid(reaction.message_id)
-    if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
-        return await reactionRoleManager.handle_reaction_add(reaction)
+    try:
+        message_uuid = utilities._uuid(reaction.message_id)
+        if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
+            return await reactionRoleManager.handle_reaction_add(reaction)
+    except Exception as error:
+        print(error)
     # static_react_role_dict = guild_dict[emoji.guild_id].get('static-react-roles',{}).get(str(emoji.message_id),{})
     # if static_react_role_dict:
     #     await staticReactRoleManager.handle_reaction_add(emoji)
