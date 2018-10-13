@@ -60,7 +60,7 @@ from exts.profilemanager import ProfileManager
 from exts.trademanager import TradeManager
 from exts.utilities import Utilities
 from exts.reactrolemanager import ReactRoleManager
-from exts.staticreactrolemanager import StaticReactRoleManager
+from exts.reactionrolemanager import ReactionRoleManager
 from exts.autoresponder import AutoResponder
 from exts.rostermanager import RosterManager
 from exts.configmanager import ConfigManager
@@ -94,6 +94,7 @@ custom_error_handling(Clembot, logger)
 try:
     with open(os.path.join('data', 'guilddict'), "rb") as fd:
         Clembot.guild_dict = pickle.load(fd)
+    print(json.dumps(Clembot.guild_dict, indent=2))
     logger.info("Serverdict Loaded Successfully")
 except OSError:
     logger.info("Serverdict Not Found - Looking for Backup")
@@ -199,7 +200,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager',
                 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder',
-                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator']
+                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator','exts.reactionrolemanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities','exts.staticreactrolemanager']
 for ext in default_exts:
     try:
@@ -2752,26 +2753,37 @@ async def _wild(message):
         logger.info(error)
 
 
-# staticReactRoleManager = StaticReactRoleManager(Clembot)
+reactionRoleManager = ReactionRoleManager(Clembot)
+
 
 @Clembot.event
-async def on_raw_reaction_add(emoji):
+async def on_raw_reaction_remove(reaction):
+    message_uuid = utilities._uuid(reaction.message_id)
+    if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
+        return await reactionRoleManager.handle_reaction_add(reaction)
+
+@Clembot.event
+async def on_raw_reaction_add(reaction):
+
+    message_uuid = utilities._uuid(reaction.message_id)
+    if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
+        return await reactionRoleManager.handle_reaction_add(reaction)
     # static_react_role_dict = guild_dict[emoji.guild_id].get('static-react-roles',{}).get(str(emoji.message_id),{})
     # if static_react_role_dict:
     #     await staticReactRoleManager.handle_reaction_add(emoji)
     #     return
 
-    channel = Clembot.get_channel(emoji.channel_id)
-    message = await channel.get_message(emoji.message_id)
+    channel = Clembot.get_channel(reaction.channel_id)
+    message = await channel.get_message(reaction.message_id)
     guild = message.guild
-    user = guild.get_member(emoji.user_id)
+    user = guild.get_member(reaction.user_id)
     try:
         if message_id in guild_dict[guild.id].setdefault('wildreport_dict',{}) and user_id != Clembot.user.id:
             wild_dict = guild_dict[guild.id].setdefault('wildreport_dict',{})[message_id]
-            if str(emoji) == '🏎':
+            if str(reaction) == '🏎':
                 wild_dict['omw'].append(user.mention)
                 guild_dict[guild.id]['wildreport_dict'][message_id] = wild_dict
-            elif str(emoji) == '💨':
+            elif str(reaction) == '💨':
                 if wild_dict['omw']:
                     await channel.send(f"{' '.join(wild_dict['omw'])}: the {wild_dict['pokemon'].title()} has despawned!")
                 await expire_wild(message)
@@ -2779,14 +2791,14 @@ async def on_raw_reaction_add(emoji):
         if channel.id in guild_dict[guild.id]['raidchannel_dict'] and message.id == guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrsmessage'] and user_id != Clembot.user.id:
             ctrs_dict = guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrs_dict']
             for i in ctrs_dict:
-                if ctrs_dict[i]['emoji'] == str(emoji):
+                if ctrs_dict[i]['emoji'] == str(reaction):
                     newembed = ctrs_dict[i]['embed']
                     moveset = i
                     break
             else:
                 return
             await message.edit(embed=newembed)
-            await message.remove_reaction(emoji, user)
+            await message.remove_reaction(reaction, user)
             guild_dict[guild.id]['raidchannel_dict'][channel.id]['moveset'] = moveset
     except Exception as error:
         logger.error(error)

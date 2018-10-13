@@ -81,6 +81,14 @@ class Utilities:
         return emoji
 
     @classmethod
+    def _uuid(self, id):
+        try:
+            return '%x' % (hash(id) % 10 ** 8)
+        except Exception as error:
+            print(error)
+            return id
+
+    @classmethod
     async def _send_error_message(self, channel, description, user=None):
 
         color = discord.Colour.red()
@@ -126,7 +134,7 @@ class Utilities:
         embed = discord.Embed(description=description, colour=discord.Colour.gold(), title=title)
 
         for label, value in additional_fields.items():
-            embed.add_field(name="**{0}**".format(label), value=value, inline=False)
+            embed.add_field(name="**{0}**".format(label), value=value, inline=True)
 
         if footer:
             embed.set_footer(text=footer)
@@ -227,3 +235,11 @@ class Utilities:
 
 def setup(bot):
     bot.add_cog(Utilities())
+
+
+def main():
+    utilities = Utilities()
+
+    print(utilities._uuid(499981743756148737))
+    print(utilities._uuid("499981743756148737"))
+
