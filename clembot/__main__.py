@@ -94,7 +94,7 @@ custom_error_handling(Clembot, logger)
 try:
     with open(os.path.join('data', 'guilddict'), "rb") as fd:
         Clembot.guild_dict = pickle.load(fd)
-    print(json.dumps(Clembot.guild_dict, indent=2))
+    # print(json.dumps(Clembot.guild_dict, indent=2))
     logger.info("Serverdict Loaded Successfully")
 except OSError:
     logger.info("Serverdict Not Found - Looking for Backup")
