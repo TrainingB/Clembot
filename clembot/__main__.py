@@ -2758,52 +2758,55 @@ reactionRoleManager = ReactionRoleManager(Clembot)
 
 @Clembot.event
 async def on_raw_reaction_remove(reaction):
-    message_uuid = utilities._uuid(reaction.message_id)
-    if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
-        return await reactionRoleManager.handle_reaction_add(reaction)
-
-@Clembot.event
-async def on_raw_reaction_add(reaction):
+    print(f"removed {reaction.emoji} on {reaction.message_id}")
     try:
         message_uuid = utilities._uuid(reaction.message_id)
         if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
-            return await reactionRoleManager.handle_reaction_add(reaction)
+            await reactionRoleManager.handle_reaction_add(reaction)
+            return
     except Exception as error:
         print("error calling " + error)
-    # static_react_role_dict = guild_dict[emoji.guild_id].get('static-react-roles',{}).get(str(emoji.message_id),{})
-    # if static_react_role_dict:
-    #     await staticReactRoleManager.handle_reaction_add(emoji)
-    #     return
 
-    channel = Clembot.get_channel(reaction.channel_id)
-    message = await channel.get_message(reaction.message_id)
-    guild = message.guild
-    user = guild.get_member(reaction.user_id)
+@Clembot.event
+async def on_raw_reaction_add(reaction):
+    print(f"added {reaction.emoji} on {reaction.message_id}")
     try:
-        if message_id in guild_dict[guild.id].setdefault('wildreport_dict',{}) and user_id != Clembot.user.id:
-            wild_dict = guild_dict[guild.id].setdefault('wildreport_dict',{})[message_id]
-            if str(reaction) == '🏎':
-                wild_dict['omw'].append(user.mention)
-                guild_dict[guild.id]['wildreport_dict'][message_id] = wild_dict
-            elif str(reaction) == '💨':
-                if wild_dict['omw']:
-                    await channel.send(f"{' '.join(wild_dict['omw'])}: the {wild_dict['pokemon'].title()} has despawned!")
-                await expire_wild(message)
-
-        if channel.id in guild_dict[guild.id]['raidchannel_dict'] and message.id == guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrsmessage'] and user_id != Clembot.user.id:
-            ctrs_dict = guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrs_dict']
-            for i in ctrs_dict:
-                if ctrs_dict[i]['emoji'] == str(reaction):
-                    newembed = ctrs_dict[i]['embed']
-                    moveset = i
-                    break
-            else:
-                return
-            await message.edit(embed=newembed)
-            await message.remove_reaction(reaction, user)
-            guild_dict[guild.id]['raidchannel_dict'][channel.id]['moveset'] = moveset
+        message_uuid = utilities._uuid(reaction.message_id)
+        if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
+            await reactionRoleManager.handle_reaction_add(reaction)
+            return
     except Exception as error:
-        logger.error(error)
+        print("error calling " + error)
+
+    # channel = Clembot.get_channel(reaction.channel_id)
+    # message = await channel.get_message(reaction.message_id)
+    # guild = message.guild
+    # user = guild.get_member(reaction.user_id)
+    # try:
+    #     if message_id in guild_dict[guild.id].setdefault('wildreport_dict',{}) and user_id != Clembot.user.id:
+    #         wild_dict = guild_dict[guild.id].setdefault('wildreport_dict',{})[message_id]
+    #         if str(reaction) == '🏎':
+    #             wild_dict['omw'].append(user.mention)
+    #             guild_dict[guild.id]['wildreport_dict'][message_id] = wild_dict
+    #         elif str(reaction) == '💨':
+    #             if wild_dict['omw']:
+    #                 await channel.send(f"{' '.join(wild_dict['omw'])}: the {wild_dict['pokemon'].title()} has despawned!")
+    #             await expire_wild(message)
+    #
+    #     if channel.id in guild_dict[guild.id]['raidchannel_dict'] and message.id == guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrsmessage'] and user_id != Clembot.user.id:
+    #         ctrs_dict = guild_dict[guild.id]['raidchannel_dict'][channel.id]['ctrs_dict']
+    #         for i in ctrs_dict:
+    #             if ctrs_dict[i]['emoji'] == str(reaction):
+    #                 newembed = ctrs_dict[i]['embed']
+    #                 moveset = i
+    #                 break
+    #         else:
+    #             return
+    #         await message.edit(embed=newembed)
+    #         await message.remove_reaction(reaction, user)
+    #         guild_dict[guild.id]['raidchannel_dict'][channel.id]['moveset'] = moveset
+    # except Exception as error:
+    #     logger.error(error)
 
 async def expire_wild(message):
     guild = message.channel.guild
