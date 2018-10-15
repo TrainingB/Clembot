@@ -274,8 +274,12 @@ example:
             emoji_id = self.utilities._normalize(reaction.emoji)
             static_react_role_dict = self.bot.guild_dict[reaction.guild_id].setdefault('reaction-roles',{}).setdefault(reference_id,{})
 
-            role_to_be_assigned = discord.utils.get(message.guild.roles, name=static_react_role_dict['emoji_role_map'][emoji_id])
+            role_to_be_assigned_name = static_react_role_dict['emoji_role_map'].get(emoji_id,None)
 
+            if role_to_be_assigned_name:
+                role_to_be_assigned = discord.utils.get(message.guild.roles, name=static_react_role_dict['emoji_role_map'][emoji_id])
+            else:
+                return await self.utilities._send_error_message_and_cleanup(channel, f"reaction is not setup for role assingation!", user)
 
             is_exclusive = static_react_role_dict['options']['exclusive']
             is_remove_roles = static_react_role_dict['options'].get('remove-roles', False)
