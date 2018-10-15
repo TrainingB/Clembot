@@ -41,6 +41,9 @@ def load_data():
     with open(os.path.join(directory, "chikorita.json"), "r") as fd:
         pokemon_cp_level['chikorita_cp'] = json.load(fd)
 
+    with open(os.path.join(directory, "beldum.json"), "r") as fd:
+        pokemon_cp_level['beldum_cp'] = json.load(fd)
+
 
 
 load_data()
@@ -67,12 +70,13 @@ gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2
                   'charmander' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
                   'squirtle' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
                   'eevee' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
-                  'chikorita' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
+                  'chikorita' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                  'beldum': ["", "", "", "", "", "", "", ""]
                   }
 
 
 
-def generate_card(event_pokemon="chikorita"):
+def generate_card(event_pokemon="beldum"):
 
     pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level[f'{event_pokemon}_cp'])
 
@@ -114,7 +118,7 @@ def generate_card(event_pokemon="chikorita"):
     cell_4_json = pokemon_cp["{0}".format(cell_4_level)]
     cell_4_cp = randint(cell_4_json['Min CP'], cell_4_json['Max CP'])
     cell_4_range = keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP'])
-    cell_4_value = ["CP : {0} ".format(cell_4_range), "{0}".format(gender[randint(0,7)])]
+    cell_4_value = ["CP : {0} ".format(cell_4_range)] # , "{0}".format(gender[randint(0,7)])
 
     cell_5_value = ["{0}".format(event_pokemon.capitalize().center(15, ' ')), "✩"]
 
@@ -122,7 +126,7 @@ def generate_card(event_pokemon="chikorita"):
     cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
     cell_6_cp = randint(cell_6_json['Min CP'], cell_6_json['Max CP'])
     cell_6_range = keep_number_in_range(cell_6_cp, cell_6_json['Spread'] * 2, cell_6_json['Min CP'], cell_6_json['Max CP'])
-    cell_6_value = ["CP : {0} ".format(cell_6_range), "{0}".format(gender[randint(0, 7)])]
+    cell_6_value = ["CP : {0} ".format(cell_6_range)] # , "{0}".format(gender[randint(0, 7)])
 
 
     cell_7_level = randint(14, 17)
@@ -218,7 +222,7 @@ def main():
     print(print_card_as_text(generate_card()))
 
 
-# main()
+main()
 
 
 # https://pokemongo.gamepress.gg/pokemon/133

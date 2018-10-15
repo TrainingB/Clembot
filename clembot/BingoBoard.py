@@ -15,11 +15,11 @@ class BingoBoard:
             script_path = os.path.dirname(os.path.realpath(__file__))
             dir_path = os.path.join(script_path, "..","data")
             file_path = os.path.join(script_path, "..","data", "templates")
-            y_position = 150
-            cell_width =  190
-            cell_height = 130
+            y_position = 130
+            cell_width =  160
+            cell_height = 120
             margin = 10
-            font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 28, encoding="unic")
+            font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 24, encoding="unic")
             special_font = ImageFont.truetype(os.path.join(script_path, "..","data","fonts","DejaVuSansMono.ttf"), 40, encoding="unic")
             small_font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 22, encoding="unic")
 
@@ -29,7 +29,7 @@ class BingoBoard:
             canvas = Image.open(os.path.join(file_path, template_file))
             draw = ImageDraw.Draw(canvas)
 
-            colors = ['black','black','black','black','black','black','black','black','black']
+            colors = ['black','black','black','black','gold','black','black','black','black']
             counter = 0
             for row in self.bingo_board:
                 x_position = 20

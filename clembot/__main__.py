@@ -7169,6 +7169,7 @@ async def _researchlist(ctx):
         return listmsg
     except Exception as error:
         logger.error(error)
+        print(error)
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["remove-research"])
 async def _remove_research(ctx, research_id=None):
