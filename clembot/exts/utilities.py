@@ -46,15 +46,12 @@ class Utilities:
     def _normalize(self, emoji):
         initial_emoji = emoji
         if isinstance(emoji, discord.Reaction):
-            print(f"discord.Reaction {emoji} => {emoji.emoji}")
             emoji = emoji.emoji
 
         if isinstance(emoji, discord.Emoji):
-            print(f"discord.Emoji {emoji} => {':%s:%s' % (emoji.name, emoji.id)}")
             emoji = ':%s:%s' % (emoji.name, emoji.id)
 
         elif isinstance(emoji, discord.PartialEmoji):
-            print(f"discord.Emoji {emoji} => {emoji._as_reaction()}")
             emoji = emoji._as_reaction()
         elif isinstance(emoji, str):
             pass
@@ -64,7 +61,6 @@ class Utilities:
 
         if emoji.__contains__(">") and emoji.__contains__("<"):
             emoji = emoji.replace('<','').replace('>','')
-        print(f"{initial_emoji} =>  {emoji}")
         return emoji
 
 
@@ -197,6 +193,13 @@ class Utilities:
         return help_embed
 
     @classmethod
+    async def _send_error_message_and_cleanup(self, channel, message, user):
+        log_message = await self._send_error_message(channel, message, user=user)
+        await asyncio.sleep(5)
+        await log_message.delete()
+
+
+    @classmethod
     async def get_image_embed(cls, channel, image_url):
         embed = discord.Embed(colour=channel.guild.me.colour)
         embed.set_thumbnail(url=image_url)
@@ -240,6 +243,9 @@ class Utilities:
             await asyncio.sleep(3)
             await confirmation.delete()
             return True
+
+
+
 
 def setup(bot):
     bot.add_cog(Utilities())
