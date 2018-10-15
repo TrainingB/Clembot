@@ -2769,7 +2769,7 @@ async def on_raw_reaction_remove(reaction):
 
 @Clembot.event
 async def on_raw_reaction_add(reaction):
-    print(f"added {reaction.emoji} on {reaction.message_id}")
+    print(f"added {reaction.emoji} = {utilities._normalize(reaction.emoji)} on {reaction.message_id}")
     try:
         message_uuid = utilities._uuid(reaction.message_id)
         if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
