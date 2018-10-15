@@ -246,21 +246,25 @@ example:
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["edit"])
     async def _reaction_role_edit(self, ctx, reference_id, title=None, body=None, url=None ):
+        try:
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
 
-        channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
+            if not title:
+                title = message.embeds[0].title
+            if not body:
+                body = message.embeds[0].description
+            if not url:
+                url = message.embeds[0].url
+            elif url == "None":
+                url = None
+            new_embed = discord.Embed(description=body, title=title, colour=message.embeds[0].colour.value)
+            if url:
+                new_embed.set_image(url=url)
+            await message.edit(embed=new_embed)
 
-        if not title:
-            title = message.embeds[0].title
-        if not body:
-            body = message.embeds[0].description
-        if not url:
-            url = message.embeds[0].url
-
-        new_embed = discord.Embed(description=body, title=title, colour=message.embeds[0].colour.value, url=url)
-        new_embed.set_image(url=url)
-        await message.edit(embed=new_embed)
-
-        await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
+            await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
+        except Exception as error:
+            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=user)
 
     async def handle_reaction_add(self, reaction):
         print("handle_reaction_add is called()")
