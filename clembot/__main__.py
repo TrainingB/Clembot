@@ -7130,6 +7130,8 @@ async def research(ctx):
     """List the quests for the channel
 
     Usage: !list research"""
+
+    print(f"list research called {ctx.message.author}")
     listmsg = _('**Beep Beep!**')
     listmsg += await _researchlist(ctx)
     await _send_message(ctx.channel, description=listmsg)
