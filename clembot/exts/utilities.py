@@ -46,13 +46,21 @@ class Utilities:
     def _normalize(self, emoji):
         initial_emoji = emoji
         if isinstance(emoji, discord.Reaction):
-             emoji = emoji.emoji
+            print(f"discord.Reaction {emoji} => {emoji.emoji}")
+            emoji = emoji.emoji
+
         if isinstance(emoji, discord.Emoji):
+            print(f"discord.Emoji {emoji} => {':%s:%s' % (emoji.name, emoji.id)}")
             emoji = ':%s:%s' % (emoji.name, emoji.id)
+
         elif isinstance(emoji, discord.PartialEmoji):
+            print(f"discord.Emoji {emoji} => {emoji._as_reaction()}")
             emoji = emoji._as_reaction()
         elif isinstance(emoji, str):
             pass
+
+        if emoji.count(':') == 1 and not emoji.startswith(':'):
+            emoji = f":{emoji}"
 
         if emoji.__contains__(">") and emoji.__contains__("<"):
             emoji = emoji.replace('<','').replace('>','')
@@ -243,3 +251,7 @@ def main():
     print(utilities._uuid(499981743756148737))
     print(utilities._uuid("499981743756148737"))
 
+    print(utilities._normalize("<:valor:460721754260766721>"))
+    print(utilities._normalize("<valor:460721754260766721>"))
+
+# main()
