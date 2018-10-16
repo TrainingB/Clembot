@@ -4980,7 +4980,7 @@ async def _cancel(message):
 @Clembot.event
 async def on_message(message):
     try:
-    # logger.info(guild_dict)
+        # logger.info(guild_dict)
         if message.guild is not None:
             content_without_prefix = message.content.replace(_get_prefix(Clembot, message), '')
             ar_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses', {}).setdefault(message.channel.id,{}).get(content_without_prefix, None)
@@ -5021,6 +5021,7 @@ async def on_message(message):
                             return
         messagelist = message.content.split(" ")
         message.content = messagelist.pop(0).lower() + " " + " ".join(messagelist)
+        print(message)
         await Clembot.process_commands(message)
     except Exception as error:
         logger.info("error while processing message {message} : {error}".format(message=message.content,error=error) )
