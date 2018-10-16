@@ -2762,7 +2762,7 @@ async def on_raw_reaction_remove(reaction):
     try:
         message_uuid = utilities._uuid(reaction.message_id)
         if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
-            await reactionRoleManager.handle_reaction_add(reaction)
+            await reactionRoleManager.handle_reaction(reaction, 'remove')
             return
     except Exception as error:
         print("error calling " + error)
@@ -2772,8 +2772,8 @@ async def on_raw_reaction_add(reaction):
     try:
         message_uuid = utilities._uuid(reaction.message_id)
         if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
-            print(f"added {reaction.emoji} = {utilities._normalize(reaction.emoji)} on {reaction.message_id}")
-            await reactionRoleManager.handle_reaction_add(reaction)
+            # print(f"added {reaction.emoji} = {utilities._normalize(reaction.emoji)} on {reaction.message_id}")
+            await reactionRoleManager.handle_reaction(reaction, 'add')
             return
     except Exception as error:
         print("error calling " + error)

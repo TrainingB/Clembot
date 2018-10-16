@@ -195,7 +195,7 @@ class Utilities:
     @classmethod
     async def _send_error_message_and_cleanup(self, channel, message, user):
         log_message = await self._send_error_message(channel, message, user=user)
-        await asyncio.sleep(5)
+        await asyncio.sleep(8)
         await log_message.delete()
 
 

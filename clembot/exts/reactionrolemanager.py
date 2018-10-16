@@ -266,8 +266,8 @@ example:
         except Exception as error:
             await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=user)
 
-    async def handle_reaction_add(self, reaction):
-        print("handle_reaction_add is called()")
+    async def handle_reaction(self, reaction, operation='add'):
+        # print(f"handle_reaction_{operation} is called()")
         try:
             reference_id = self.utilities._uuid(reaction.message_id)
 
@@ -291,21 +291,27 @@ example:
                 role_name_list = static_react_role_dict['emoji_role_map'].values()
                 for already_assigned_role in user.roles:
                     if already_assigned_role.name in role_name_list:
-                        log_message = await self.utilities._send_error_message(channel,
-                                                                    f"You are already a member of **{already_assigned_role.name}**. Please contact an admin if you want to switch roles!",
-                                                                    user=user)
-                        await asyncio.sleep(5)
-                        await log_message.delete()
-                        return
+                        if operation == 'add':
+                            return await self.utilities._send_error_message_and_cleanup(channel, f"You already have one of the exclusive role **{already_assigned_role.name}** assigned. Please contact an admin if you want to switch roles!", user=user)
+                        else:
+                            return await self.utilities._send_error_message_and_cleanup(channel, f"removing exclusive role is not allowed. Please contact an admin.", user)
             if role_to_be_assigned:
-                is_role_changed = True
+
                 if role_to_be_assigned not in user.roles:
-                    await user.add_roles(role_to_be_assigned)
-                    log_message = await self.utilities._send_message(channel, f"you joined **{role_to_be_assigned.name}** {reaction.emoji}!", user=user)
+                    if operation == 'add':
+                        await user.add_roles(role_to_be_assigned)
+                        log_message = await self.utilities._send_message(channel, f"you joined **{role_to_be_assigned.name}** {reaction.emoji}!", user=user)
+                    else:
+                        return await self.utilities._send_error_message_and_cleanup(channel, f"your reaction and role assignation was out of sync. *Please react again to make changes!*", user)
                 else:
                     if is_remove_roles:
-                        await user.remove_roles(role_to_be_assigned)
-                        log_message = await self.utilities._send_error_message(channel,f"you left **{role_to_be_assigned.name}** {reaction.emoji}!", user=user)
+                        if operation == 'remove':
+                            await user.remove_roles(role_to_be_assigned)
+                            log_message = await self.utilities._send_message(channel,f"you left **{role_to_be_assigned.name}** {reaction.emoji}!", user=user)
+                        else:
+                            return await self.utilities._send_error_message_and_cleanup(channel,
+                                                                                        f"your reaction and role assignation was out of sync. *Please react again to make changes!*",
+                                                                                        user)
                     else:
                         log_message = await self.utilities._send_message(channel, f"you already have **{role_to_be_assigned.name}** {reaction.emoji}!", user=user)
             else:
