@@ -114,19 +114,19 @@ def generate_card(event_pokemon="beldum"):
     cell_3_value = ["CP : {0} ".format(cell_3_range)]
 
 
-    cell_4_level = randint(10,13)
+    cell_4_level = randint(10,17)
     cell_4_json = pokemon_cp["{0}".format(cell_4_level)]
     cell_4_cp = randint(cell_4_json['Min CP'], cell_4_json['Max CP'])
-    cell_4_range = keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP'])
-    cell_4_value = ["CP : {0} ".format(cell_4_range)] # , "{0}".format(gender[randint(0,7)])
+    cell_4_range = keep_number_in_range(cell_4_cp, randint(40,60), cell_4_json['Min CP'], cell_4_json['Max CP']) #cell_4_json['Spread'] * 2
+    cell_4_value = ["CP : {0} ".format(cell_4_range) , "Weight = {0}".format(size[randint(0,7)])] # , "{0}".format(gender[randint(0,7)])
 
     cell_5_value = ["{0}".format(event_pokemon.capitalize().center(15, ' ')), "✩"]
 
-    cell_6_level = randint(22, 25)
+    cell_6_level = randint(18, 25)
     cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
     cell_6_cp = randint(cell_6_json['Min CP'], cell_6_json['Max CP'])
-    cell_6_range = keep_number_in_range(cell_6_cp, cell_6_json['Spread'] * 2, cell_6_json['Min CP'], cell_6_json['Max CP'])
-    cell_6_value = ["CP : {0} ".format(cell_6_range)] # , "{0}".format(gender[randint(0, 7)])
+    cell_6_range = keep_number_in_range(cell_6_cp, randint(60,80), cell_6_json['Min CP'], cell_6_json['Max CP']) #cell_6_json['Spread'] * 2
+    cell_6_value = ["CP : {0} ".format(cell_6_range), "Height = {0}".format(size[randint(0, 7)])] # , "{0}".format(gender[randint(0, 7)])
 
 
     cell_7_level = randint(14, 17)
