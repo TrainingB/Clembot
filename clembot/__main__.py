@@ -4979,7 +4979,6 @@ async def _cancel(message):
 
 @Clembot.event
 async def on_message(message):
-    print(message)
     try:
         # logger.info(guild_dict)
         if message.guild is not None:
@@ -5022,7 +5021,6 @@ async def on_message(message):
                             return
         messagelist = message.content.split(" ")
         message.content = messagelist.pop(0).lower() + " " + " ".join(messagelist)
-        print(message)
         await Clembot.process_commands(message)
     except Exception as error:
         logger.info("error while processing message {message} : {error}".format(message=message.content,error=error) )
