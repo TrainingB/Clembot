@@ -4979,6 +4979,7 @@ async def _cancel(message):
 
 @Clembot.event
 async def on_message(message):
+    print(message)
     try:
         # logger.info(guild_dict)
         if message.guild is not None:
