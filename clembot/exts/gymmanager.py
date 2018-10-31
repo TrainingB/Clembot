@@ -139,14 +139,14 @@ class GymManager:
                 gmap_url = "https://www.google.com/maps/place/{0},{1}".format(gym_info_1['Latitude'], gym_info_1['Longitude'])
 
                 gym_info_to_save = {}
-                gym_info_to_save['city_state_key'] = city + state
+                gym_info_to_save['city_state_key'] = gym_info_1.get('Region', city + state)
                 gym_info_to_save['gym_code_key'] = gym_code_key
                 gym_info_to_save['gym_name'] = gym_info_1['Name']
                 gym_info_to_save['original_gym_name'] = gym_info_1.get('OriginalName', gym_info_1['Name'])
                 gym_info_to_save['gmap_url'] = gmap_url
                 gym_info_to_save['latitude'] = gym_info_1['Latitude']
                 gym_info_to_save['longitude'] = gym_info_1['Longitude']
-                gym_info_to_save['region_code_key'] = city + state
+                gym_info_to_save['region_code_key'] = gym_info_1.get('Region', city + state)
                 gym_info_to_save['word_1'] = words_1[:2]
                 gym_info_to_save['word_2'] = words_2[:2]
                 gym_info_to_save['word_3'] = words_3[:2]
