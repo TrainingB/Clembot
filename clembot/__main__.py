@@ -94,7 +94,7 @@ custom_error_handling(Clembot, logger)
 try:
     with open(os.path.join('data', 'guilddict'), "rb") as fd:
         Clembot.guild_dict = pickle.load(fd)
-    #print(json.dumps(Clembot.guild_dict, indent=2))
+    # print(json.dumps(Clembot.guild_dict, indent=2))
     logger.info("Serverdict Loaded Successfully")
 except OSError:
     logger.info("Serverdict Not Found - Looking for Backup")
@@ -110,7 +110,6 @@ except OSError:
         logger.info("Serverdict Created")
 
 guild_dict = Clembot.guild_dict
-
 
 Clembot.raidlist = {}
 bingo_template = {}
@@ -265,6 +264,46 @@ async def remove_channel(ctx, channel_id):
             await _send_error_message(ctx.channel, "Channel doesn't exists.")
     except Exception as error:
         await _send_error_message(ctx.channel, "Channel doesn't exists.")
+
+
+{
+    "guild_id" : {
+        "trainers" : {
+            "trainer_id" : {
+                "leaderboard" : {
+                    "lifetime" : {
+
+                    },
+                    "biweekly" : {
+
+                    }}}}}}
+
+@Clembot.command(pass_context=True, hidden=True, aliases= ["fix-leaderboard"])
+@checks.is_owner()
+async def fix_leaderboard(ctx):
+
+    try:
+        guild_id = ctx.guild.id
+
+
+        applicable_leaderboards = ['lifetime']
+
+        guild_leaderboards = get_guild_local_leaderboard(guild_id)
+        guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
+
+        leaderboard_dict = {}
+        trainers_dict = guild_dict[ctx.guild.id]['trainers']
+
+        for trainer_id in trainers_dict.keys():
+            for leaderboard_name in applicable_leaderboards:
+                for report_type in trainers_dict[trainer_id].get(leaderboard_name,{}).keys():
+                    leaderboard_dict.setdefault(trainer_id, {}).setdefault('leaderboard_details',{}).setdefault(leaderboard_name,{})[report_type] = trainers_dict[trainer_id].setdefault(leaderboard_name,{}).get(report_type,0)
+
+        guild_dict[ctx.guild.id]['trainers'].update(leaderboard_dict)
+        print(leaderboard_dict)
+        print(guild_dict[ctx.guild.id])
+    except Exception as error:
+        print(error)
 
 
 def clembot_time_in_guild_timezone(message):
@@ -9143,7 +9182,9 @@ async def extract_leaderboard(ctx):
                 # for leaderboard in applicable_leaderboards:
                 t_d = dict.copy(guild_dict[ctx.guild.id]['trainers'])
 
-                text = f"[{user.mention}] {t_d.get('wild_reports',0)} Wild Reports, {t_d.get('raid_reports',0)} Raid Reports, {t_d.get('egg_reports',0)} Egg Reports, {t_d.get('research_reports',0)} Research Reports"
+                text=f"[{user.mention}] "
+                if t_d.get('wild_reports',0) + t_d.get('raid_reports',0) + t_d.get('egg_reports',0) + t_d.get('research_reports',0) > 0:
+                    text = f"{text} {t_d.get('wild_reports',0)} Wild Reports, {t_d.get('raid_reports',0)} Raid Reports, {t_d.get('egg_reports',0)} Egg Reports, {t_d.get('research_reports',0)} Research Reports"
 
                 guild_leaderboards = get_guild_local_leaderboard(guild_id)
                 guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
@@ -9152,14 +9193,34 @@ async def extract_leaderboard(ctx):
                     applicable_leaderboards.append(leaderboard_name)
 
                     l_d = t_d.get(leaderboard_name, {})
-                    text = f"{text}\t\n [{user.mention}][{leaderboard_name}]{l_d.get('wild_reports',0)} Wild Reports, {l_d.get('raid_reports',0)} Raid Reports, {l_d.get('egg_reports',0)} Egg Reports, {l_d.get('research_reports',0)} Research Reports"
+                    if l_d.get('wild_reports', 0) + l_d.get('raid_reports', 0) + l_d.get('egg_reports', 0) + l_d.get('research_reports', 0) > 0:
+                        text = f"{text}\t\n [{user.mention}][{leaderboard_name}]{l_d.get('wild_reports',0)} Wild Reports, {l_d.get('raid_reports',0)} Raid Reports, {l_d.get('egg_reports',0)} Egg Reports, {l_d.get('research_reports',0)} Research Reports"
+
                 await utilities._send_message(ctx.channel, text)
 
     except Exception as error:
+        await utilities._send_message(ctx.channel, error)
         print(error)
 
 
 
+
+
+
+@Clembot.command(pass_context=True, hidden=True,aliases=["export-dict"])
+@checks.is_owner()
+async def export_dict(ctx):
+    """Get current Clembot log.
+
+    Usage: !outputlog
+    Output is a link to hastebin."""
+
+    logdata = json.dumps(guild_dict[ctx.guild.id])
+    # logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
+    outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))
+    await asyncio.sleep(20)
+    await ctx.message.delete()
+    await outputlog_message.delete()
 
 
 def record_reported_by(guild_id, channel_name, author_id, report_type):
