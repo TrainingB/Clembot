@@ -273,23 +273,29 @@ async def fix_leaderboard(ctx):
     try:
         guild_id = ctx.guild.id
 
+        for guild_id in guild_dict.keys():
+            print(guild_id)
 
-        applicable_leaderboards = ['lifetime']
+            applicable_leaderboards = ['lifetime']
 
-        guild_leaderboards = get_guild_local_leaderboard(guild_id)
-        guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
+            addtional_leaderboard = get_guild_local_leaderboard(guild_id)
+            if addtional_leaderboard:
+                applicable_leaderboards.extend(addtional_leaderboard)
 
-        leaderboard_dict = dict(guild_dict[ctx.guild.id]['trainers'])
-        trainers_dict = guild_dict[ctx.guild.id]['trainers']
+            print(applicable_leaderboards)
 
-        for trainer_id in trainers_dict.keys():
-            for leaderboard_name in applicable_leaderboards:
-                for report_type in trainers_dict[trainer_id].get(leaderboard_name,{}).keys():
-                    leaderboard_dict.setdefault(trainer_id, {}).setdefault('leaderboard-stats',{}).setdefault(leaderboard_name,{})[report_type] = trainers_dict[trainer_id].setdefault(leaderboard_name,{}).get(report_type,0)
+            leaderboard_dict = dict(guild_dict[ctx.guild.id]['trainers'])
+            trainers_dict = guild_dict[ctx.guild.id]['trainers']
 
-        guild_dict[ctx.guild.id]['trainers'].update(leaderboard_dict)
-        print(leaderboard_dict)
-        print(guild_dict[ctx.guild.id])
+            for trainer_id in trainers_dict.keys():
+                for leaderboard_name in applicable_leaderboards:
+                    for report_type in trainers_dict[trainer_id].get(leaderboard_name,{}).keys():
+                        leaderboard_dict.setdefault(trainer_id, {}).setdefault('leaderboard-stats',{}).setdefault(leaderboard_name,{})[report_type] = trainers_dict[trainer_id].setdefault(leaderboard_name,{}).get(report_type,0)
+
+            guild_dict[ctx.guild.id]['trainers'].update(leaderboard_dict)
+
+            await _send_message(ctx.channel, f"The leaderboard has been fixed.")
+
     except Exception as error:
         print(error)
 
