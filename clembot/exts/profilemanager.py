@@ -58,8 +58,8 @@ class ProfileManager:
             return await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, No trainer code has been set yet.")
 
 
-    @commands.group(pass_context=True, hidden=True)
-    async def profile(self, ctx):
+    @commands.group(pass_context=True, hidden=True, aliases=["profile"])
+    async def _profile(self, ctx):
 
         if len(ctx.message.mentions) > 0:
             user = ctx.message.mentions[0]
@@ -99,7 +99,7 @@ class ProfileManager:
             #     leaderboard_list.extend(addtional_leaderboard)
 
             for leaderboard in leaderboard_list:
-                reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault(leaderboard, {}).get('raid_reports', 0), trainer_profile.setdefault(leaderboard, {}).get('egg_reports', 0), trainer_profile.setdefault(leaderboard, {}).get('wild_reports', 0), trainer_profile.setdefault(leaderboard, {}).get('research_reports', 0))
+                reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('raid_reports', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('egg_reports', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('wild_reports', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('research_reports', 0))
 
                 embed.add_field(name="**Leaderboard ({}) :**".format(leaderboard.capitalize()), value=f"{reports_text}", inline=True)
 
@@ -107,7 +107,7 @@ class ProfileManager:
 
 
 
-    @profile.command(aliases=["pokebattler","pb"])
+    @_profile.command(aliases=["pokebattler", "pb"])
     async def _profile_pokebattler(self, ctx, pbid: int = 0):
         if not pbid:
             await self.utilities._send_message(ctx, _(f'Beep Beep! **{ctx.message.author.display_name}**, Pokebattler ID has been cleared.'))
@@ -125,7 +125,32 @@ class ProfileManager:
         await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** Pokebattler ID set to {pbid}!')))
 
 
-    @profile.command(aliases=["ign"])
+    #
+    # "trainers": {
+    #   "289657500167438336": {
+    #       "friends" : [
+    #           "743298732973957"
+    #       ]
+    #     }
+    #   },
+
+    @_profile.group(aliases=["friend"])
+    async def _profile_friend(self, ctx, friend_to_add , level = "great"):
+        try:
+
+            discordMember = await self.utilities.find_target(ctx, friend_to_add)
+            if discordMember:
+                ctx.bot.guild_dict[ctx.guild.id].get('trainers', {}).setdefault('friends',{})[discordMember.id] = level
+                print(json.dumps(ctx.bot.guild_dict[ctx.guild.id].get('trainers')))
+            else:
+                print(friend_to_add)
+
+            return
+        except Exception as error:
+            print(error)
+
+
+    @_profile.command(aliases=["ign"])
     async def _profile_ign(self, ctx, ign=None):
 
         if not ign:
@@ -144,7 +169,7 @@ class ProfileManager:
         await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** your IGN is set to **{ign}**!')))
 
 
-    @profile.command(aliases=["trainer-code","code"])
+    @_profile.command(aliases=["trainer-code", "code"])
     async def _profile_trainer_code(self, ctx, *parameters):
 
         trainer_code = "".join(parameters)
@@ -163,7 +188,7 @@ class ProfileManager:
 
         await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** your trainer code is set to **{trainer_code}**!')))
 
-    @profile.command(aliases=["silph"])
+    @_profile.command(aliases=["silph"])
     async def _profile_silph(self, ctx, silph_user: str = None):
         """Links a server member to a Silph Road Travelers Card."""
         try:

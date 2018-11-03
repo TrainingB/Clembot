@@ -94,7 +94,7 @@ custom_error_handling(Clembot, logger)
 try:
     with open(os.path.join('data', 'guilddict'), "rb") as fd:
         Clembot.guild_dict = pickle.load(fd)
-    # print(json.dumps(Clembot.guild_dict, indent=2))
+#    print(Clembot.guild_dict)
     logger.info("Serverdict Loaded Successfully")
 except OSError:
     logger.info("Serverdict Not Found - Looking for Backup")
@@ -266,18 +266,6 @@ async def remove_channel(ctx, channel_id):
         await _send_error_message(ctx.channel, "Channel doesn't exists.")
 
 
-{
-    "guild_id" : {
-        "trainers" : {
-            "trainer_id" : {
-                "leaderboard" : {
-                    "lifetime" : {
-
-                    },
-                    "biweekly" : {
-
-                    }}}}}}
-
 @Clembot.command(pass_context=True, hidden=True, aliases= ["fix-leaderboard"])
 @checks.is_owner()
 async def fix_leaderboard(ctx):
@@ -291,13 +279,13 @@ async def fix_leaderboard(ctx):
         guild_leaderboards = get_guild_local_leaderboard(guild_id)
         guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
 
-        leaderboard_dict = {}
+        leaderboard_dict = dict(guild_dict[ctx.guild.id]['trainers'])
         trainers_dict = guild_dict[ctx.guild.id]['trainers']
 
         for trainer_id in trainers_dict.keys():
             for leaderboard_name in applicable_leaderboards:
                 for report_type in trainers_dict[trainer_id].get(leaderboard_name,{}).keys():
-                    leaderboard_dict.setdefault(trainer_id, {}).setdefault('leaderboard_details',{}).setdefault(leaderboard_name,{})[report_type] = trainers_dict[trainer_id].setdefault(leaderboard_name,{}).get(report_type,0)
+                    leaderboard_dict.setdefault(trainer_id, {}).setdefault('leaderboard-stats',{}).setdefault(leaderboard_name,{})[report_type] = trainers_dict[trainer_id].setdefault(leaderboard_name,{}).get(report_type,0)
 
         guild_dict[ctx.guild.id]['trainers'].update(leaderboard_dict)
         print(leaderboard_dict)
@@ -8968,8 +8956,8 @@ async def profilex(ctx, user: discord.Member = None):
 
     embed.add_field(name="Silph Road", value=f"{silph}", inline=True)
     embed.add_field(name="Pokebattler Id", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('pokebattlerid',None)}", inline=True)
-
-    trainer_profile=guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{})
+    author_id = user.id
+    trainer_profile=guild_dict[ctx.guild.id]['trainers'].setdefault(author_id,{})
 
     leaderboard_list = ['lifetime']
     addtional_leaderboard = get_guild_local_leaderboard(ctx.guild.id)
@@ -8978,10 +8966,10 @@ async def profilex(ctx, user: discord.Member = None):
 
     for leaderboard in leaderboard_list:
 
-        reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault(leaderboard,{}).get('raid_reports',0) ,
-                                                                                        trainer_profile.setdefault(leaderboard, {}).get('egg_reports',0) ,
-                                                                                        trainer_profile.setdefault(leaderboard, {}).get('wild_reports',0),
-                                                                                        trainer_profile.setdefault(leaderboard, {}).get('research_reports',0) )
+        reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard,{}).get('raid_reports',0) ,
+                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('egg_reports',0) ,
+                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('wild_reports',0),
+                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('research_reports',0) )
 
         embed.add_field(name="Leaderboard : {}".format(leaderboard.capitalize()), value=f"{reports_text}", inline=True)
 
@@ -9010,19 +8998,11 @@ async def _reset_leaderboard(ctx, leaderboard_type=None):
     trainers = copy.deepcopy(guild_dict[ctx.guild.id]['trainers'])
 
     for trainer in trainers.keys():
-        guild_dict[ctx.guild.id]['trainers'][trainer][leaderboard_type] = {}
+        guild_dict[ctx.guild.id]['trainers'][trainer].setdefault('leaderboard-stats',{})[leaderboard_type] = {}
 
     await _send_message(ctx.channel, "Beep Beep! **{}**, **{}** has been cleared.".format(ctx.author.mention, leaderboard_type))
 
-@Clembot.command(aliases=["leaderboard-dump"])
-async def leaderboard_dump(ctx, lb_type="lifetime" , r_type="total"):
-    with open(os.path.join('logs', 'clembot.log'), 'r') as logfile:
-        logdata = logfile.read()
-    logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
-    outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))
-    await asyncio.sleep(20)
-    await ctx.message.delete()
-    await outputlog_message.delete()
+
 
 
 @Clembot.command()
@@ -9055,11 +9035,11 @@ async def leaderboard(ctx, lb_type="lifetime" , r_type="total"):
         trainers = copy.deepcopy(guild_dict[ctx.guild.id]['trainers'])
 
         for trainer in trainers.keys():
-            raids = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('raid_reports', 0)
-            wilds = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('wild_reports', 0)
-            exraids = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('ex_reports', 0)
-            eggs = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('egg_reports', 0)
-            research = trainers[trainer].setdefault(leaderboard_type,{}).setdefault('research_reports', 0)
+            raids = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('raid_reports', 0)
+            wilds = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('wild_reports', 0)
+            exraids = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('ex_reports', 0)
+            eggs = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('egg_reports', 0)
+            research = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('research_reports', 0)
             total_reports = raids + wilds + exraids + eggs + research
             trainer_stats = {'trainer':trainer, 'total':total_reports, 'raids':raids, 'wilds':wilds, 'research':research, 'eggs':eggs}
             if trainer_stats[type] > 0:
@@ -9069,7 +9049,7 @@ async def leaderboard(ctx, lb_type="lifetime" , r_type="total"):
         embed = discord.Embed(colour=ctx.guild.me.colour)
         embed.set_author(name=_("Leaderboard Type: {leaderboard_type} ({report_type})").format(leaderboard_type=leaderboard_type.title(), report_type=report_type.title()), icon_url=Clembot.user.avatar_url)
         for trainer in leaderboard:
-            user = ctx.guild.get_member(trainer['trainer'])
+            user = ctx.guild.get_member(int(trainer['trainer']))
             if user:
                 embed.add_field(name=f"{rank}. {user.display_name} - {type.title()}: **{trainer[type]}**", value=f"Raids: **{trainer['raids']}** | Eggs: **{trainer['eggs']}** | Wilds: **{trainer['wilds']}** | Research: **{trainer['research']}**", inline=False)
                 rank += 1
@@ -9192,7 +9172,7 @@ async def extract_leaderboard(ctx):
                 for leaderboard_name in guild_leaderboards:
                     applicable_leaderboards.append(leaderboard_name)
 
-                    l_d = t_d.get(leaderboard_name, {})
+                    l_d = t_d.setdefault('leaderboard-stats',{}).get(leaderboard_name, {})
                     if l_d.get('wild_reports', 0) + l_d.get('raid_reports', 0) + l_d.get('egg_reports', 0) + l_d.get('research_reports', 0) > 0:
                         text = f"{text}\t\n [{user.mention}][{leaderboard_name}]{l_d.get('wild_reports',0)} Wild Reports, {l_d.get('raid_reports',0)} Raid Reports, {l_d.get('egg_reports',0)} Egg Reports, {l_d.get('research_reports',0)} Research Reports"
 
@@ -9214,14 +9194,17 @@ async def export_dict(ctx):
 
     Usage: !outputlog
     Output is a link to hastebin."""
+    try:
+        logdata = json.dumps(guild_dict[ctx.guild.id])
+        # logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
+        print(json.dumps(guild_dict[ctx.guild.id]))
+        outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))
 
-    logdata = json.dumps(guild_dict[ctx.guild.id])
-    # logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
-    outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))
-    await asyncio.sleep(20)
-    await ctx.message.delete()
-    await outputlog_message.delete()
-
+        await asyncio.sleep(20)
+        await ctx.message.delete()
+        await outputlog_message.delete()
+    except Exception as error:
+        print(error)
 
 def record_reported_by(guild_id, channel_name, author_id, report_type):
     print(f"record_reported_by( {author_id} )")
@@ -9239,8 +9222,8 @@ def record_reported_by(guild_id, channel_name, author_id, report_type):
                     applicable_leaderboards.append(leaderboard_name)
 
         for leaderboard in applicable_leaderboards:
-            existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) + 1
-            guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
+            existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault('leaderboard-stats', {}).setdefault(leaderboard, {}).setdefault(report_type, 0) + 1
+            guild_dict[guild_id]['trainers'][author_id]['leaderboard-stats'][leaderboard][report_type] = existing_reports
             print(f"{author_id} has reported {existing_reports} {report_type}")
 
     except Exception as error:
@@ -9262,8 +9245,8 @@ def record_error_reported_by(guild_id, channel_name, author_id, report_type):
                     applicable_leaderboards.append(leaderboard_name)
 
         for leaderboard in applicable_leaderboards:
-            existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault(leaderboard, {}).setdefault(report_type, 0) - 1
-            guild_dict[guild_id]['trainers'][author_id][leaderboard][report_type] = existing_reports
+            existing_reports = guild_dict[guild_id].setdefault('trainers', {}).setdefault(author_id, {}).setdefault('leaderboard-stats', {}).setdefault(leaderboard, {}).setdefault(report_type, 0) - 1
+            guild_dict[guild_id]['trainers'][author_id]['leaderboard-stats'][leaderboard][report_type] = existing_reports
             print(f"{author_id} has reported {existing_reports} {report_type}")
 
     except Exception as error:
@@ -9286,5 +9269,3 @@ finally:
     pass
 
 sys.exit(Clembot._shutdown_mode)
-
-
