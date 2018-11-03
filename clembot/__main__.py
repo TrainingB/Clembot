@@ -9201,9 +9201,9 @@ async def export_dict(ctx):
     Usage: !outputlog
     Output is a link to hastebin."""
     try:
-        logdata = json.dumps(guild_dict[ctx.guild.id])
+        logdata = json.dumps(guild_dict[ctx.guild.id]['trainers'])
         # logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
-        print(json.dumps(guild_dict[ctx.guild.id]))
+        # print(json.dumps(guild_dict[ctx.guild.id]))
         outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))
 
         await asyncio.sleep(20)
