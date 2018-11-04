@@ -33,10 +33,11 @@ class ConfigManager:
         if value:
             if key == 'timezone':
                 ctx.bot.guild_dict[ctx.guild.id]['offset'] = int(value)
+                await self.utilities._send_message(ctx.channel, f"**Timezone** is set to **{ctx.bot.guild_dict[ctx.guild.id]['offset']}**", user=ctx.author)
         else:
             await self.utilities._send_error_message(ctx.channel, f"no changes made!", user=ctx.author)
 
-        await self.utilities._send_message(ctx.channel, f"Timezone : {ctx.bot.guild_dict[ctx.guild.id]['offset']}", user=ctx.author)
+
 
     @commands.command(pass_context=True, hidden=True, aliases=["list-servers"])
     async def _list_servers(self, ctx):
