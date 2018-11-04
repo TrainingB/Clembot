@@ -8,6 +8,7 @@ from exts.utilities import RemoveComma
 from random import *
 import gymsql
 
+
 import json
 
 
@@ -20,6 +21,22 @@ class ConfigManager:
         self.utilities = Utilities()
 
 
+
+    @commands.group(pass_context=True, hidden=True, aliases=["config"])
+    async def _config(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await self.utilities._send_message(ctx.channel,
+                                               f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+
+    @_config.group(pass_context=True, hidden=True, aliases=["set"])
+    async def _config_set(self, ctx, key, value=None):
+        if value:
+            if key == 'timezone':
+                ctx.bot.guild_dict[ctx.guild.id]['offset'] = int(value)
+        else:
+            await self.utilities._send_error_message(ctx.channel, f"no changes made!", user=ctx.author)
+
+        await self.utilities._send_message(ctx.channel, f"Timezone : {ctx.bot.guild_dict[ctx.guild.id]['offset']}", user=ctx.author)
 
     @commands.command(pass_context=True, hidden=True, aliases=["list-servers"])
     async def _list_servers(self, ctx):
