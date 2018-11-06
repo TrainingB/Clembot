@@ -10,9 +10,7 @@ import asyncio
 import os,sys,inspect
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import gymsql
-
 import json
-
 
 class AutoResponder:
 
@@ -64,13 +62,15 @@ class AutoResponder:
     @_autoresponse.command(aliases=["clear-all"])
     async def _autoresponse_clear_all(self, ctx):
         try:
-            for channel_id in list(ctx.bot.guild_dict[ctx.guild.id].get('auto-responses', {}).keys()):
-                if not ctx.bot.guild_dict[ctx.guild.id].get('auto-responses', {}).get(channel_id, None) :
-                    print(ctx.bot.guild_dict[ctx.guild.id].get('auto-responses', {}).pop(channel_id,None))
 
-            for channel_id in list(ctx.bot.guild_dict[ctx.guild.id].get('auto-responses-image', {}).keys()):
-                if not ctx.bot.guild_dict[ctx.guild.id].get('auto-responses-image', {}).get(channel_id, None) :
-                    print(ctx.bot.guild_dict[ctx.guild.id].get('auto-responses-image', {}).pop(channel_id,None))
+            for guild_id in list(ctx.bot.guild_dict.keys()):
+                for channel_id in list(ctx.bot.guild_dict[guild_id].get('auto-responses', {}).keys()):
+                    if not ctx.bot.guild_dict[guild_id].get('auto-responses', {}).get(channel_id, None) :
+                        print(ctx.bot.guild_dict[guild_id].get('auto-responses', {}).pop(channel_id,None))
+
+                for channel_id in list(ctx.bot.guild_dict[guild_id].get('auto-responses-image', {}).keys()):
+                    if not ctx.bot.guild_dict[guild_id].get('auto-responses-image', {}).get(channel_id, None) :
+                        print(ctx.bot.guild_dict[guild_id].get('auto-responses-image', {}).pop(channel_id,None))
 
             await self.utilities._send_message(ctx.channel, f"auto-responses are cleaned up.", user=ctx.message.author)
         except Exception as error:
