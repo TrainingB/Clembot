@@ -94,7 +94,7 @@ custom_error_handling(Clembot, logger)
 try:
     with open(os.path.join('data', 'guilddict'), "rb") as fd:
         Clembot.guild_dict = pickle.load(fd)
-#    print(Clembot.guild_dict)
+#    print(json.dumps(Clembot.guild_dict))
     logger.info("Serverdict Loaded Successfully")
 except OSError:
     logger.info("Serverdict Not Found - Looking for Backup")
@@ -5016,10 +5016,10 @@ async def on_message(message):
         # logger.info(guild_dict)
         if message.guild is not None:
             content_without_prefix = message.content.replace(_get_prefix(Clembot, message), '')
-            ar_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses', {}).setdefault(message.channel.id,{}).get(content_without_prefix, None)
+            ar_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses', {}).get(message.channel.id,{}).get(content_without_prefix, None)
             if ar_message:
                 return await message.channel.send(ar_message)
-            ar_image_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses-image', {}).setdefault(message.channel.id,{}).get(content_without_prefix, None)
+            ar_image_message = guild_dict.setdefault(message.guild.id,{}).setdefault('auto-responses-image', {}).get(message.channel.id,{}).get(content_without_prefix, None)
             if ar_image_message:
                 return await _send_image_embed(message.channel, ar_image_message)
 
@@ -6611,7 +6611,7 @@ async def dump(ctx):
         await ctx.message.channel.send( content=error)
 
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["b","help"])
+@Clembot.command(pass_context=True, hidden=True, aliases=["b","helpx"])
 async def beep(ctx):
     try:
         footer = "Tip: < > denotes required and [ ] denotes optional arguments."
@@ -8911,7 +8911,7 @@ async def _bingo_card(ctx):
         embed_msg = "**!{0}!**".format(event_title_map.get(event_pokemon,"BingO"))
         embed = discord.Embed(title=embed_msg,colour=discord.Colour.gold())
         embed.set_image(url=file_url)
-        embed.set_footer(text="Generated for : {user} at {timestamp}".format(user=author.display_name, timestamp=timestamp))
+        embed.set_footer(text=f"Generated for : {author.display_name} at {timestamp}/ Requested by {ctx.author.display_name}")
 
         await message.channel.send(msg)
 
