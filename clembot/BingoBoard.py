@@ -15,13 +15,13 @@ class BingoBoard:
             script_path = os.path.dirname(os.path.realpath(__file__))
             dir_path = os.path.join(script_path, "..","data")
             file_path = os.path.join(script_path, "..","data", "templates")
-            y_position = 130
+            y_position = 190
             cell_width =  160
-            cell_height = 120
+            cell_height = 110
             margin = 10
             font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 24, encoding="unic")
             special_font = ImageFont.truetype(os.path.join(script_path, "..","data","fonts","DejaVuSansMono.ttf"), 40, encoding="unic")
-            small_font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 22, encoding="unic")
+            small_font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 24, encoding="unic")
 
             path  = os.path.join(file_path, template_file)
             print(path)
@@ -29,10 +29,10 @@ class BingoBoard:
             canvas = Image.open(os.path.join(file_path, template_file))
             draw = ImageDraw.Draw(canvas)
 
-            colors = ['black','black','black','black','gold','black','black','black','black']
+            colors = ['white','white','white','white','white','white','white','white','white']
             counter = 0
             for row in self.bingo_board:
-                x_position = 20
+                x_position = 25
                 for cell in row:
 
                     if len(cell) == 1:
@@ -44,10 +44,10 @@ class BingoBoard:
 
                         if len(cell[1]) == 1:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 65, y_position + 20 ), text, colors[counter], special_font)
+                            draw.text((x_position + 60, y_position + 10 ), text, colors[counter], special_font)
                         else:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 10 , y_position + 20), text, colors[counter], small_font)
+                            draw.text((x_position  , y_position + 20), text, colors[counter], small_font)
                     counter=counter+1
 
                     x_position += cell_width
