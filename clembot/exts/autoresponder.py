@@ -47,7 +47,7 @@ class AutoResponder:
     async def _autoresponse_add_image(self, ctx, *, ar_message_text):
         ar_key, _, ar_message = ar_message_text.partition(' ')
 
-        ctx.bot.guild_dict[ctx.guild.id].setdefault('auto-responses-image', {})[ctx.channel.id][ar_key] = ar_message
+        ctx.bot.guild_dict[ctx.guild.id].setdefault('auto-responses-image', {}).setdefault(ctx.channel.id,{})[ar_key] = ar_message
 
         await self.utilities._send_message(ctx.channel, f"{ar_key} has been set correctly.", user=ctx.message.author)
 
@@ -55,7 +55,7 @@ class AutoResponder:
     async def _autoresponse_add(self, ctx, *, ar_message_text):
         ar_key, _, ar_message = ar_message_text.partition(' ')
 
-        ctx.bot.guild_dict[ctx.guild.id].setdefault('auto-responses', {})[ctx.channel.id][ar_key] = ar_message
+        ctx.bot.guild_dict[ctx.guild.id].setdefault('auto-responses', {}).setdefault(ctx.channel.id,{})[ar_key] = ar_message
 
         await self.utilities._send_message(ctx.channel, f"{ar_key} has been set correctly.", user=ctx.message.author)
 
