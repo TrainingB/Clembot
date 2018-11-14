@@ -98,7 +98,7 @@ class ProfileManager:
 
             ign = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).setdefault('profile', {}).get('ign', '')
             if ign:
-                embed.add_field(name="**IGN**", value=f"**{', '.join(str(ign_entry) for ign_entry in ign)}**", inline=True)
+                embed.add_field(name="**IGN**", value=f"**{ign}**", inline=True)
             else:
                 embed.add_field(name="**IGN**", value="Set with **!profile ign <ign>**", inline=False)
 
@@ -119,13 +119,33 @@ class ProfileManager:
 
             await ctx.send(embed=embed)
 
-    @_profile.group(pass_context=True, hidden=True, aliases=["clear-all"])
-    async def _clear_all(self, ctx):
+    @_profile.group(pass_context=True, hidden=True, aliases=["cleanup"])
+    async def _cleanup(self, ctx):
         try:
             for guild_id in list(ctx.bot.guild_dict.keys()):
-
                 for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
-                    trainer_profile_dict = ctx.bot.guild_dict[guild_id].get('trainers', {}).get('profile',{}).get(trainer_id, {})
+
+                    trainer_profile_dict = ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).get('profile', {})
+                    print(trainer_profile_dict)
+                    if not trainer_profile_dict:
+                        ctx.bot.guild_dict[guild_id].get('trainers', {})[trainer_id].pop('profile',None)
+
+            await self.utilities._send_message(ctx.channel, f"profile has been moved.", user=ctx.message.author)
+        except Exception as error:
+            print(error)
+
+
+
+    @_profile.group(pass_context=True, hidden=True, aliases=["migrate"])
+    async def _clear_all(self, ctx):
+        try:
+            counter = 1
+
+            for guild_id in list(ctx.bot.guild_dict.keys()):
+                for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
+                    counter = counter + 1
+
+                    trainer_profile_dict = ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).get('profile',{})
                     trainer_dict = ctx.bot.guild_dict[guild_id]['trainers'][trainer_id]
 
                     if trainer_dict.get('ign', None):
@@ -141,19 +161,18 @@ class ProfileManager:
                     if trainer_dict.get('pokebattlerid', None):
                         trainer_profile_dict['poke-battler-id'] = trainer_dict['pokebattlerid']
 
-                    ctx.bot.guild_dict[guild_id].get('trainers', {})[trainer_id]['profile'] = trainer_profile_dict
+                    if trainer_profile_dict:
+                        ctx.bot.guild_dict[guild_id].get('trainers', {})[trainer_id]['profile'] = trainer_profile_dict
+                        ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).pop('ign', None)
+                        ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).pop('pokebattlerid', None)
+                        ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).pop('silphid', None)
+                        ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).pop('trainer_code', None)
 
-                for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
-                    trainer_profile = ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}) #.get('profile',None)
+                    if counter == 100:
+                        counter = 1
+                        await self.utilities._send_message(ctx.channel, f"{trainer_id} After {ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {})}")
 
-                    await self.utilities._send_message(ctx.channel, f"{trainer_id} After {trainer_profile}")
 
-                    # print(ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).pop('ign', None))
-                    # print(ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).pop('pokebattlerid', None))
-                    # print(ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).pop('silphid', None))
-                    # print(ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).pop('trainer_code', None))
-
-                    await self.utilities._send_message(ctx.channel, f"{trainer_id} After {trainer_profile}")
 
                 await self.utilities._send_message(ctx.channel, f"profile has been moved.", user=ctx.message.author)
         except Exception as error:
