@@ -98,7 +98,7 @@ class ProfileManager:
 
             ign = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).setdefault('profile', {}).get('ign', '')
             if ign:
-                embed.add_field(name="**IGN**", value=f"**{', '.join(list(ign))}**", inline=True)
+                embed.add_field(name="**IGN**", value=f"**{', '.join(str(ign_entry) for ign_entry in ign)}**", inline=True)
             else:
                 embed.add_field(name="**IGN**", value="Set with **!profile ign <ign>**", inline=False)
 
@@ -123,8 +123,6 @@ class ProfileManager:
     async def _clear_all(self, ctx):
         try:
             for guild_id in list(ctx.bot.guild_dict.keys()):
-
-                guild_id = ctx.guild.id
 
                 for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
                     trainer_profile_dict = ctx.bot.guild_dict[guild_id].get('trainers', {}).get('profile',{}).get(trainer_id, {})
