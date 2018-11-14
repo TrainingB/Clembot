@@ -8954,14 +8954,14 @@ async def profilex(ctx, user: discord.Member = None):
     Usage:!profile [user]"""
     if not user:
         user = ctx.message.author
-    silph = guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('silphid',None)
+    silph = guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).setdefault('profile',{}).get('silph-id',None)
     if silph:
         silph = f"[Traveler Card](https://sil.ph/{silph.lower()})"
     embed = discord.Embed(title=f"{user.display_name}\'s Trainer Profile", colour=user.colour)
     embed.set_thumbnail(url=user.avatar_url)
 
     embed.add_field(name="Silph Road", value=f"{silph}", inline=True)
-    embed.add_field(name="Pokebattler Id", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).get('pokebattlerid',None)}", inline=True)
+    embed.add_field(name="Pokebattler Id", value=f"{guild_dict[ctx.guild.id]['trainers'].setdefault(user.id,{}).setdefault('profile',{}).get('poke-battler-id',None)}", inline=True)
     author_id = user.id
     trainer_profile=guild_dict[ctx.guild.id]['trainers'].setdefault(author_id,{})
 
