@@ -2781,7 +2781,7 @@ async def _wild(message):
             }
             guild_dict[message.guild.id]['wildreport_dict'] = wild_dict
 
-            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'wild_reports')
+            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'wilds')
 
     except Exception as error:
         logger.info(error)
@@ -3986,7 +3986,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
     else:
         await raid_channel.send( content=_("Beep Beep! Hey {member}, if you can, set the time left on the raid using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
 
-    record_reported_by(message.guild.id, message.channel.name, message.author.id, 'raid_reports')
+    record_reported_by(message.guild.id, message.channel.name, message.author.id, 'raids')
 
 
     event_loop.create_task(expiry_check(raid_channel))
@@ -4463,7 +4463,7 @@ async def research(ctx, *, args = None):
                 await message.delete()
             except Exception:
                 pass
-            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'research_reports')
+            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'quests')
         else:
             research_embed.clear_fields()
             research_embed.add_field(name='**Research Report Cancelled**', value=_("Beep Beep! Your report has been cancelled because you {error}! Retry when you're ready.").format(error=error), inline=False)
@@ -5247,7 +5247,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
     if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
         await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
 
-    record_reported_by(message.guild.id, message.channel.name, message.author.id, 'egg_reports')
+    record_reported_by(message.guild.id, message.channel.name, message.author.id, 'eggs')
 
     event_loop.create_task(expiry_check(raid_channel))
     return
@@ -5589,7 +5589,7 @@ async def _raidegg(message):
 
             guild_dict[message.channel.guild.id].setdefault("configuration", {}).setdefault("settings", {}).setdefault("regional",{})
 
-            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'egg_reports')
+            record_reported_by(message.guild.id, message.channel.name, message.author.id, 'eggs')
 
             event_loop.create_task(expiry_check(raid_channel))
 
@@ -7227,7 +7227,7 @@ async def _remove_research(ctx, research_id=None):
                 quest_reported_by = research_dict[questid]['reportauthor']
                 if quest_research_id == research_id:
                     record_error_reported_by(ctx.message.guild.id, ctx.message.channel.name, quest_reported_by,
-                                             'research_reports')
+                                             'quests')
                     del research_dict[questid]
                     guild_dict[ctx.guild.id]['questreport_dict'] = research_dict
                     research_report = await ctx.channel.get_message(questid)
@@ -7611,9 +7611,9 @@ async def duplicate(ctx):
                 report_channel = discord.utils.get(ctx.message.guild.channels, id=report_city)
 
                 if 'egg' in raidmsg.content:
-                    record_error_reported_by(guild.id, report_channel.name, reporter.id, 'egg_reports')
+                    record_error_reported_by(guild.id, report_channel.name, reporter.id, 'eggs')
                 else:
-                    record_error_reported_by(guild.id, report_channel.name, reporter.id, 'raid_reports')
+                    record_error_reported_by(guild.id, report_channel.name, reporter.id, 'raids')
                 await expire_channel(channel)
                 return
         else:
@@ -8972,10 +8972,10 @@ async def profilex(ctx, user: discord.Member = None):
 
     for leaderboard in leaderboard_list:
 
-        reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard,{}).get('raid_reports',0) ,
-                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('egg_reports',0) ,
-                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('wild_reports',0),
-                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('research_reports',0) )
+        reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard,{}).get('raids',0) ,
+                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('eggs',0) ,
+                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('wilds',0),
+                                                                                        trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('quests',0) )
 
         embed.add_field(name="Leaderboard : {}".format(leaderboard.capitalize()), value=f"{reports_text}", inline=True)
 
@@ -9041,11 +9041,11 @@ async def leaderboard(ctx, lb_type="lifetime" , r_type="total"):
         trainers = copy.deepcopy(guild_dict[ctx.guild.id]['trainers'])
 
         for trainer in trainers.keys():
-            raids = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('raid_reports', 0)
-            wilds = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('wild_reports', 0)
+            raids = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('raids', 0)
+            wilds = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('wilds', 0)
             exraids = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('ex_reports', 0)
-            eggs = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('egg_reports', 0)
-            research = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('research_reports', 0)
+            eggs = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('eggs', 0)
+            research = trainers[trainer].setdefault('leaderboard-stats',{}).setdefault(leaderboard_type,{}).setdefault('quests', 0)
             total_reports = raids + wilds + exraids + eggs + research
             trainer_stats = {'trainer':trainer, 'total':total_reports, 'raids':raids, 'wilds':wilds, 'research':research, 'eggs':eggs}
             if trainer_stats[type] > 0:
@@ -9169,8 +9169,8 @@ async def extract_leaderboard(ctx):
                 t_d = dict.copy(guild_dict[ctx.guild.id]['trainers'])
 
                 text=f"[{user.mention}] "
-                if t_d.get('wild_reports',0) + t_d.get('raid_reports',0) + t_d.get('egg_reports',0) + t_d.get('research_reports',0) > 0:
-                    text = f"{text} {t_d.get('wild_reports',0)} Wild Reports, {t_d.get('raid_reports',0)} Raid Reports, {t_d.get('egg_reports',0)} Egg Reports, {t_d.get('research_reports',0)} Research Reports"
+                if t_d.get('wilds',0) + t_d.get('raids',0) + t_d.get('eggs',0) + t_d.get('quests',0) > 0:
+                    text = f"{text} {t_d.get('wilds',0)} Wild Reports, {t_d.get('raids',0)} Raid Reports, {t_d.get('eggs',0)} Egg Reports, {t_d.get('quests',0)} Research Reports"
 
                 guild_leaderboards = get_guild_local_leaderboard(guild_id)
                 guild_leaderboard_configuration = get_guild_leaderboard_configuration(guild_id)
@@ -9179,8 +9179,8 @@ async def extract_leaderboard(ctx):
                     applicable_leaderboards.append(leaderboard_name)
 
                     l_d = t_d.setdefault('leaderboard-stats',{}).get(leaderboard_name, {})
-                    if l_d.get('wild_reports', 0) + l_d.get('raid_reports', 0) + l_d.get('egg_reports', 0) + l_d.get('research_reports', 0) > 0:
-                        text = f"{text}\t\n [{user.mention}][{leaderboard_name}]{l_d.get('wild_reports',0)} Wild Reports, {l_d.get('raid_reports',0)} Raid Reports, {l_d.get('egg_reports',0)} Egg Reports, {l_d.get('research_reports',0)} Research Reports"
+                    if l_d.get('wilds', 0) + l_d.get('raids', 0) + l_d.get('eggs', 0) + l_d.get('quests', 0) > 0:
+                        text = f"{text}\t\n [{user.mention}][{leaderboard_name}]{l_d.get('wilds',0)} Wild Reports, {l_d.get('raids',0)} Raid Reports, {l_d.get('eggs',0)} Egg Reports, {l_d.get('quests',0)} Research Reports"
 
                 await utilities._send_message(ctx.channel, text)
 

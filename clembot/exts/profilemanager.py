@@ -1,6 +1,8 @@
 import re
 import discord
 import time_util
+import copy
+
 from discord.ext import commands
 from exts.utilities import Utilities
 
@@ -113,7 +115,7 @@ class ProfileManager:
             trainer_profile = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {})
 
             for leaderboard in leaderboard_list:
-                reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('raid_reports', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('egg_reports', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('wild_reports', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('research_reports', 0))
+                reports_text = "**Raids : {} | Eggs : {} | Wilds : {} | Research : {}**".format(trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('raids', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('eggs', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('wilds', 0), trainer_profile.setdefault('leaderboard-stats',{}).setdefault(leaderboard, {}).get('quests', 0))
 
                 embed.add_field(name="**Leaderboard ({}) :**".format(leaderboard.capitalize()), value=f"{reports_text}", inline=True)
 
@@ -131,6 +133,71 @@ class ProfileManager:
                         ctx.bot.guild_dict[guild_id].get('trainers', {})[trainer_id].pop('profile',None)
 
             await self.utilities._send_message(ctx.channel, f"profile has been moved.", user=ctx.message.author)
+        except Exception as error:
+            print(error)
+
+    @_profile.group(pass_context=True, hidden=True, aliases=["lb-cleanup"])
+    async def _profile_lb_cleanup(self, ctx):
+        try:
+
+            for guild_id in list(ctx.bot.guild_dict.keys()):
+                for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
+
+                    try:
+                        for leaderboard_type in list(ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].get('leaderboard-stats',{}).keys()):
+                            ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop(leaderboard_type,None)
+
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('egg_reports', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('wild_reports', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('research_reports', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('raid_reports', None)
+
+                    except Exception as error:
+                        pass
+
+            await self.utilities._send_message(ctx.channel, f"leaderboard-stats has been cleaned up.", user=ctx.message.author)
+        except Exception as error:
+            print(error)
+
+
+    @_profile.group(pass_context=True, hidden=True, aliases=["lb-migrate"])
+    async def _profile_lb_migrate(self, ctx):
+        try:
+
+            for guild_id in list(ctx.bot.guild_dict.keys()):
+                for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
+
+                    try:
+                        for leaderboard_type in list(ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].get('leaderboard-stats',{}).keys()):
+
+                            leaderboard_stats = copy.deepcopy(ctx.bot.guild_dict[guild_id]['trainers'][trainer_id]['leaderboard-stats'][leaderboard_type])
+
+                            if 'wild_reports' in leaderboard_stats:
+                                leaderboard_stats['wilds'] = leaderboard_stats['wild_reports']
+                                leaderboard_stats.pop('wild_reports')
+
+                            if 'raid_reports' in leaderboard_stats:
+                                leaderboard_stats['raids'] = leaderboard_stats['raid_reports']
+                                leaderboard_stats.pop('raid_reports')
+
+                            if 'research_reports' in leaderboard_stats:
+                                leaderboard_stats['quests'] = leaderboard_stats['research_reports']
+                                leaderboard_stats.pop('research_reports')
+
+                            if 'egg_reports' in leaderboard_stats:
+                                leaderboard_stats['eggs'] = leaderboard_stats['egg_reports']
+                                leaderboard_stats.pop('egg_reports')
+
+                            ctx.bot.guild_dict[guild_id]['trainers'][trainer_id]['leaderboard-stats'][leaderboard_type] = leaderboard_stats
+
+                            print(f"{leaderboard_stats}")
+
+                    except Exception as error:
+                        print(error)
+                        pass
+
+
+                await self.utilities._send_message(ctx.channel, f"leaderboard migration is complete.", user=ctx.message.author)
         except Exception as error:
             print(error)
 
