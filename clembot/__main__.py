@@ -3882,7 +3882,7 @@ async def _raid(message):
         entered_raid = await autocorrect(entered_raid, message.channel, message.author)
 
     if entered_raid not in get_raidlist() and entered_raid in pkmn_info['pokemon_list']:
-        await message.channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
+        await message.channel.send(_(f"Beep Beep! Last time I checked {entered_raid.capitalize()} didn't appear in raids! Please tag an admin to include {entered_raid.capitalize()} in list of raid bosses."))
         return
 
     raid_details = " ".join(raid_split)
@@ -5609,7 +5609,7 @@ async def _eggassume(args, raid_channel):
         return
     else:
         if entered_raid not in get_raidlist():
-            await raid_channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
+            await message.channel.send(_(f"Beep Beep! Last time I checked {entered_raid.capitalize()} didn't appear in raids! Please tag an admin to include {entered_raid.capitalize()} in list of raid bosses."))
             return
         else:
             if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
@@ -5658,7 +5658,7 @@ async def _eggtoraid(entered_raid, channel):
             return
         else:
             if entered_raid not in get_raidlist():
-                await channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
+                await message.channel.send(_(f"Beep Beep! Last time I checked {entered_raid.capitalize()} didn't appear in raids! Please tag an admin to include {entered_raid.capitalize()} in list of raid bosses."))
                 return
             else:
                 if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
@@ -8111,7 +8111,7 @@ async def add(ctx):
                 await ctx.message.channel.send( spellcheck(roster_loc_mon))
                 return
             if roster_loc_mon not in get_raidlist() and roster_loc_mon in pkmn_info['pokemon_list']:
-                await ctx.message.channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=roster_loc_mon.capitalize()))
+                await message.channel.send(_(f"Beep Beep! Last time I checked {roster_loc_mon.capitalize()} didn't appear in raids! Please tag an admin to include {roster_loc_mon.capitalize()} in list of raid bosses."))
                 return
         del args_split[0]
 
