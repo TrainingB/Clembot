@@ -593,14 +593,14 @@ def raise_admin_violation(message):
     raise Exception(_("Received admin command {command} from unauthorized user, {user}!").format(command=message.content, user=message.author))
 
 
-def spellcheck(word):
-    suggestion = spelling.correction(word)
-
-    # If we have a spellcheck suggestion
-    if suggestion != word:
-        return _("Beep Beep! \"{entered_word}\" is not a Pokemon! Did you mean \"{corrected_word}\"?").format(entered_word=word, corrected_word=spelling.correction(word))
-    else:
-        return _("Beep Beep! \"{entered_word}\" is not a Pokemon! Check your spelling!").format(entered_word=word)
+# def spellcheck(word):
+#     suggestion = spelling.correction(word)
+#
+#     # If we have a spellcheck suggestion
+#     if suggestion != word:
+#         return _("Beep Beep! \"{entered_word}\" is not a Pokemon! Did you mean \"{corrected_word}\"?").format(entered_word=word, corrected_word=spelling.correction(word))
+#     else:
+#         return _("Beep Beep! \"{entered_word}\" is not a Pokemon! Check your spelling!").format(entered_word=word)
 
 def spellcheck(word):
     suggestion = spelling.correction(word)
@@ -3690,7 +3690,7 @@ async def _newraid(message):
         await message.channel.send(spellcheck(entered_raid))
         return
     if entered_raid not in get_raidlist() and entered_raid in pkmn_info['pokemon_list']:
-        await message.channel.send( _("Beep Beep! The Pokemon {pokemon} does not appear in raids!").format(pokemon=entered_raid.capitalize()))
+        await message.channel.send( _(f"Beep Beep! Last time I checked {entered_raid.capitalize()} didn't appear in raids! Please tag an admin to include {entered_raid.capitalize()} in list of raid bosses."))
         return
 
     region_prefix = get_region_prefix(message)
@@ -9071,6 +9071,61 @@ async def _pokedex(ctx, pokemon=None):
     else:
         return await _send_error_message(ctx.channel, "!pokedex <pokemon>")
 
+@Clembot.command(pass_context=True, hidden=True, aliases=["new-raid-boss"])
+@commands.has_permissions(manage_guild=True)
+async def _new_raid_boss(ctx, level, pokemon_text):
+    try:
+        if not pokemon_text.isdigit():
+            if pokemon_text not in pkmn_info['pokemon_list']:
+                pokemon_text = await autocorrect(pokemon_text, ctx.message.channel, ctx.message.author)
+            pokemon = get_number(pokemon_text)
+        else:
+            pokemon = pokemon_text
+        if pokemon:
+            existing_list = raid_info['raid_eggs'][level]['pokemon']
+            newlist = existing_list.copy()
+            newlist.append(int(pokemon))
+            intlist = [int(x) for x in newlist]
+            msg = ''
+            msg += _('I will replace this:\n')
+            msg += _('**Level {level} raid list:** `{raidlist}` \n').format(level=level, raidlist=existing_list)
+            for pkmn in existing_list:
+                msg += '**{name}** ({number})'.format(name=get_name(pkmn), number=pkmn)
+                msg += ' '
+            msg += _('\n\nWith this:\n')
+            msg += _('**Level {level} raid list:** `{raidlist}` \n').format(level=level, raidlist=('[' + ', '.join([str(i) for i in newlist]) + ']'))
+            for pkmn in newlist:
+                msg += '**{name}** ({number})'.format(name=get_name(pkmn), number=pkmn)
+                msg += ' '
+            msg += _('\n\nContinue?')
+            question = await _send_message(ctx.channel, msg)
+            try:
+                timeout = False
+                res, reactuser = await ask(question, ctx.channel, ctx.author.id)
+            except TypeError:
+                timeout = True
+            if timeout or res.emoji == '❎':
+                await question.clear_reactions()
+                return
+            elif res.emoji == '✅':
+                with open(os.path.join('data', 'raid_info.json'), 'r') as fd:
+                    data = json.load(fd)
+                tmp = data['raid_eggs'][level]['pokemon']
+                data['raid_eggs'][level]['pokemon'] = intlist
+                with open(os.path.join('data', 'raid_info.json'), 'w') as fd:
+                    json.dump(data, fd, indent=2, separators=(', ', ': '))
+                load_config()
+                Clembot.raidlist = get_raidlist()
+                await question.clear_reactions()
+                await question.add_reaction('☑')
+            else:
+                return
+        else:
+            await _send_error_message(ctx.channel, f"{pokemon} '")
+
+    except Exception as error:
+        print(error)
+
 @Clembot.command(pass_context=True, hidden=True, aliases=["raid-boss"])
 @checks.is_owner()
 async def raid_boss(ctx, level=None, *, newlist=None):
@@ -9203,7 +9258,7 @@ async def export_dict(ctx):
     try:
         logdata = json.dumps(guild_dict[ctx.guild.id]['trainers'])
         # logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
-        # print(json.dumps(guild_dict[ctx.guild.id]))
+        # print(json.dumps(guild_dict[ctx.guild.id]['trainers']))
         outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))
 
         await asyncio.sleep(20)
