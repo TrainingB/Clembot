@@ -5609,7 +5609,7 @@ async def _eggassume(args, raid_channel):
         return
     else:
         if entered_raid not in get_raidlist():
-            await message.channel.send(_(f"Beep Beep! Last time I checked {entered_raid.capitalize()} didn't appear in raids! Please tag an admin to include {entered_raid.capitalize()} in list of raid bosses."))
+            await raid_channel.send(_(f"Beep Beep! Last time I checked {entered_raid.capitalize()} didn't appear in raids! Please tag an admin to include {entered_raid.capitalize()} in list of raid bosses."))
             return
         else:
             if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
@@ -5654,16 +5654,19 @@ async def _eggtoraid(entered_raid, channel):
             raidreportcontent = _("Beep Beep! The egg has hatched into a {pokemon} raid! Details: {location_details}. Coordinate in {raid_channel}").format(pokemon=entered_raid.capitalize(), location_details=egg_address, raid_channel=channel.mention)
 
         if entered_raid not in pkmn_info['pokemon_list']:
-            await channel.send( spellcheck(entered_raid))
+            entered_raid = await autocorrect(entered_raid, channel, raid_messageauthor)
+            # await channel.send( spellcheck(entered_raid))
+
+        if entered_raid not in get_raidlist():
+            try:
+                await channel.send(_(f"Beep Beep! Last time I checked {entered_raid.capitalize()} didn't appear in raids! Please tag an admin to include {entered_raid.capitalize()} in list of raid bosses."))
+            except Exception as someerror:
+                print(someerror)
             return
         else:
-            if entered_raid not in get_raidlist():
-                await message.channel.send(_(f"Beep Beep! Last time I checked {entered_raid.capitalize()} didn't appear in raids! Please tag an admin to include {entered_raid.capitalize()} in list of raid bosses."))
+            if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
+                await channel.send( _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
                 return
-            else:
-                if get_number(entered_raid) not in raid_info['raid_eggs'][egglevel]['pokemon']:
-                    await channel.send( _("Beep Beep! The Pokemon {pokemon} does not hatch from level {level} raid eggs!").format(pokemon=entered_raid.capitalize(), level=egglevel))
-                    return
 
         region_prefix = get_region_prefix_by_channel_id(guild_id=channel.guild.id, channel_id=reportcitychannel.id)
         if region_prefix:
@@ -8108,10 +8111,10 @@ async def add(ctx):
         roster_loc_mon = args_split[0].lower()
         if roster_loc_mon != "egg":
             if roster_loc_mon not in pkmn_info['pokemon_list']:
-                await ctx.message.channel.send( spellcheck(roster_loc_mon))
+                await ctx.message.channel.send(spellcheck(roster_loc_mon))
                 return
             if roster_loc_mon not in get_raidlist() and roster_loc_mon in pkmn_info['pokemon_list']:
-                await message.channel.send(_(f"Beep Beep! Last time I checked {roster_loc_mon.capitalize()} didn't appear in raids! Please tag an admin to include {roster_loc_mon.capitalize()} in list of raid bosses."))
+                await ctx.message.channel.send(_(f"Beep Beep! Last time I checked {roster_loc_mon.capitalize()} didn't appear in raids! Please tag an admin to include {roster_loc_mon.capitalize()} in list of raid bosses."))
                 return
         del args_split[0]
 
