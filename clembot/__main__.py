@@ -125,7 +125,7 @@ GOOGLE_API_KEY = ""
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
 INVITE_CODE = "AUzEXRU"
 SQLITE_DB = ""
-CACHE_VERSION = 9
+CACHE_VERSION = 10
 
 # Append path of this script to the path of
 # config files which we're loading.
@@ -9086,6 +9086,10 @@ async def _new_raid_boss(ctx, level, pokemon_text):
             pokemon = pokemon_text
         if pokemon:
             existing_list = raid_info['raid_eggs'][level]['pokemon']
+
+            if int(pokemon) in existing_list:
+                return await _send_error_message(ctx.channel, f"**{get_name(pokemon)}** is already in the list.")
+
             newlist = existing_list.copy()
             newlist.append(int(pokemon))
             intlist = [int(x) for x in newlist]

@@ -100,7 +100,7 @@ class ProfileManager:
 
             ign = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).setdefault('profile', {}).get('ign', '')
             if ign:
-                embed.add_field(name="**IGN**", value=f"**{ign}**", inline=True)
+                embed.add_field(name="**IGN**", value=f"**{', '.join(ign)}**", inline=True)
             else:
                 embed.add_field(name="**IGN**", value="Set with **!profile ign <ign>**", inline=False)
 
@@ -297,7 +297,7 @@ class ProfileManager:
                 pass
             return
 
-        ctx.bot.guild_dict[ctx.guild.id].get('trainers', {}).setdefault(ctx.author.id, {}).setdefault('profile', {})['ign'] = ign
+        ctx.bot.guild_dict[ctx.guild.id].get('trainers', {}).setdefault(ctx.author.id, {}).setdefault('profile', {}).setdefault('ign',[]).append(ign)
 
         await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** your IGN is set to **{ign}**!')))
 
