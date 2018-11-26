@@ -309,7 +309,7 @@ class ProfileManager:
 
         for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
             try:
-                if ign.upper() in (igns.upper() for igns in ctx.bot.guild_dict[ctx.guild.id].get('trainers', {}).get(ctx.author.id, {}).get('profile', {}).get('ign',[])):
+                if ign.upper() in (igns.upper() for igns in ctx.bot.guild_dict[guild_id].get('trainers', {}).get(trainer_id, {}).get('profile', {}).get('ign',[])):
 
                     guild = ctx.guild
                     user = guild.get_member(int(trainer_id))
