@@ -142,20 +142,18 @@ class ProfileManager:
 
             for guild_id in list(ctx.bot.guild_dict.keys()):
                 for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
-
                     try:
-                        for leaderboard_type in list(ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].get('leaderboard-stats',{}).keys()):
-                            ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop(leaderboard_type,None)
-
-                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('egg_reports', None)
-                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('wild_reports', None)
-                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('research_reports', None)
-                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('raid_reports', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('noho', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('glendale', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('sherman-oaks', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('north-hills', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('woodland-hills', None)
+                        ctx.bot.guild_dict[guild_id]['trainers'][trainer_id].pop('burbank', None)
 
                     except Exception as error:
                         pass
-
             await self.utilities._send_message(ctx.channel, f"leaderboard-stats has been cleaned up.", user=ctx.message.author)
+
         except Exception as error:
             print(error)
 
@@ -289,17 +287,42 @@ class ProfileManager:
     @_profile.command(aliases=["ign"])
     async def _profile_ign(self, ctx, ign=None):
 
-        if not ign:
-            await self.utilities._send_message(ctx, _(f'Beep Beep! **{ctx.message.author.display_name}**, IGN has been cleared.'))
+        if ctx.invoked_subcommand is None:
+            if not ign:
+                await self.utilities._send_message(ctx, _(f'Beep Beep! **{ctx.message.author.display_name}**, IGN has been cleared.'))
+                try:
+                    del ctx.bot.guild_dict[ctx.guild.id]['trainers'][ctx.author.id]['profile']['ign']
+                except:
+                    pass
+                return
+
+            ctx.bot.guild_dict[ctx.guild.id].get('trainers', {}).setdefault(ctx.author.id, {}).setdefault('profile', {}).setdefault('ign',[]).append(ign)
+
+            await self.utilities._send_message(ctx, f"**{ctx.message.author.display_name}** IGN **{ign}** has been added to your profile!", user=ctx.author)
+
+
+
+    @_profile.command(aliases=["search"])
+    async def _profile_search(self, ctx, ign=None):
+
+        guild_id = ctx.guild.id
+
+        for trainer_id in list(ctx.bot.guild_dict[guild_id].get('trainers', {}).keys()):
             try:
-                del ctx.bot.guild_dict[ctx.guild.id]['trainers'][ctx.author.id]['profile']['ign']
-            except:
-                pass
-            return
+                if ign.upper() in (igns.upper() for igns in ctx.bot.guild_dict[ctx.guild.id].get('trainers', {}).get(ctx.author.id, {}).get('profile', {}).get('ign',[])):
 
-        ctx.bot.guild_dict[ctx.guild.id].get('trainers', {}).setdefault(ctx.author.id, {}).setdefault('profile', {}).setdefault('ign',[]).append(ign)
+                    guild = ctx.guild
+                    user = guild.get_member(int(trainer_id))
+                    if user:
+                        await self.utilities._send_message(ctx, f" the IGN **{ign}** is linked with member {user.mention}." , user=ctx.author)
+                    return
+            except Exception as error:
+                print(error)
+                break
+        await self.utilities._send_error_message(ctx, f"the IGN **{ign}** has no matches!", user=ctx.author)
 
-        await self.utilities._send_message(ctx, (_(f'Beep Beep! **{ctx.message.author.display_name}** your IGN is set to **{ign}**!')))
+
+
 
     @_profile.command(aliases=["trainer-code", "code"])
     async def _profile_trainer_code(self, ctx, *parameters):
@@ -372,9 +395,11 @@ class ProfileManager:
 **!profile silph <traveler-card-id>** - to set silph card username in your profile.
 **!profile pokebattler <pokebattler-id>** - to set pokebattler id in your profile.
 **!profile trainer-code <code>** - to set the Pokemon Go trainer code in your profile.
-**!profile ign <ign>** - to set the Pokemon Go Name (IGN) in your profile.
+**!profile ign <ign>** - to add Pokemon Go Name (IGN) in your profile.
 
 **!profile** - brings up your profile.
+
+**!profile search <ign>** - to find if IGN is registered to a user.
 
 **!trainer-code** - to see your trainer code.
 **!trainer-code @user** - to see trainer code for any user.
