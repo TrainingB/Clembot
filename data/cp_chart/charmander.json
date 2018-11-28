@@ -1,242 +1,242 @@
 {
   "1": {
     "Level": 1,
-    "Min Co": 10,
-    "Max Cp": 11,
+    "Min CP": 10,
+    "Max CP": 11,
     "Spread": 1
   },
   "2": {
     "Level": 2,
-    "Min Co": 27,
-    "Max Cp": 36,
+    "Min CP": 27,
+    "Max CP": 36,
     "Spread": 2
   },
   "3": {
     "Level": 3,
-    "Min Co": 46,
-    "Max Cp": 61,
+    "Min CP": 46,
+    "Max CP": 61,
     "Spread": 4
   },
   "4": {
     "Level": 4,
-    "Min Co": 65,
-    "Max Cp": 87,
+    "Min CP": 65,
+    "Max CP": 87,
     "Spread": 4
   },
   "5": {
     "Level": 5,
-    "Min Co": 84,
-    "Max Cp": 112,
+    "Min CP": 84,
+    "Max CP": 112,
     "Spread": 5
   },
   "6": {
     "Level": 6,
-    "Min Co": 103,
-    "Max Cp": 137,
+    "Min CP": 103,
+    "Max CP": 137,
     "Spread": 6
   },
   "7": {
     "Level": 7,
-    "Min Co": 122,
-    "Max Cp": 162,
+    "Min CP": 122,
+    "Max CP": 162,
     "Spread": 6
   },
   "8": {
     "Level": 8,
-    "Min Co": 141,
-    "Max Cp": 187,
+    "Min CP": 141,
+    "Max CP": 187,
     "Spread": 8
   },
   "9": {
     "Level": 9,
-    "Min Co": 160,
-    "Max Cp": 212,
+    "Min CP": 160,
+    "Max CP": 212,
     "Spread": 8
   },
   "10": {
     "Level": 10,
-    "Min Co": 179,
-    "Max Cp": 237,
+    "Min CP": 179,
+    "Max CP": 237,
     "Spread": 8
   },
   "11": {
     "Level": 11,
-    "Min Co": 197,
-    "Max Cp": 261,
+    "Min CP": 197,
+    "Max CP": 261,
     "Spread": 10
   },
   "12": {
     "Level": 12,
-    "Min Co": 214,
-    "Max Cp": 285,
+    "Min CP": 214,
+    "Max CP": 285,
     "Spread": 10
   },
   "13": {
     "Level": 13,
-    "Min Co": 232,
-    "Max Cp": 308,
+    "Min CP": 232,
+    "Max CP": 308,
     "Spread": 10
   },
   "14": {
     "Level": 14,
-    "Min Co": 250,
-    "Max Cp": 332,
+    "Min CP": 250,
+    "Max CP": 332,
     "Spread": 10
   },
   "15": {
     "Level": 15,
-    "Min Co": 268,
-    "Max Cp": 356,
+    "Min CP": 268,
+    "Max CP": 356,
     "Spread": 10
   },
   "16": {
     "Level": 16,
-    "Min Co": 286,
-    "Max Cp": 380,
+    "Min CP": 286,
+    "Max CP": 380,
     "Spread": 12
   },
   "17": {
     "Level": 17,
-    "Min Co": 304,
-    "Max Cp": 403,
+    "Min CP": 304,
+    "Max CP": 403,
     "Spread": 12
   },
   "18": {
     "Level": 18,
-    "Min Co": 322,
-    "Max Cp": 427,
+    "Min CP": 322,
+    "Max CP": 427,
     "Spread": 12
   },
   "19": {
     "Level": 19,
-    "Min Co": 340,
-    "Max Cp": 451,
+    "Min CP": 340,
+    "Max CP": 451,
     "Spread": 12
   },
   "20": {
     "Level": 20,
-    "Min Co": 358,
-    "Max Cp": 475,
+    "Min CP": 358,
+    "Max CP": 475,
     "Spread": 12
   },
   "21": {
     "Level": 21,
-    "Min Co": 376,
-    "Max Cp": 498,
+    "Min CP": 376,
+    "Max CP": 498,
     "Spread": 16
   },
   "22": {
     "Level": 22,
-    "Min Co": 394,
-    "Max Cp": 522,
+    "Min CP": 394,
+    "Max CP": 522,
     "Spread": 16
   },
   "23": {
     "Level": 23,
-    "Min Co": 411,
-    "Max Cp": 546,
+    "Min CP": 411,
+    "Max CP": 546,
     "Spread": 16
   },
   "24": {
     "Level": 24,
-    "Min Co": 429,
-    "Max Cp": 570,
+    "Min CP": 429,
+    "Max CP": 570,
     "Spread": 16
   },
   "25": {
     "Level": 25,
-    "Min Co": 447,
-    "Max Cp": 593,
+    "Min CP": 447,
+    "Max CP": 593,
     "Spread": 16
   },
   "26": {
     "Level": 26,
-    "Min Co": 465,
-    "Max Cp": 617,
+    "Min CP": 465,
+    "Max CP": 617,
     "Spread": 20
   },
   "27": {
     "Level": 27,
-    "Min Co": 483,
-    "Max Cp": 641,
+    "Min CP": 483,
+    "Max CP": 641,
     "Spread": 20
   },
   "28": {
     "Level": 28,
-    "Min Co": 501,
-    "Max Cp": 665,
+    "Min CP": 501,
+    "Max CP": 665,
     "Spread": 20
   },
   "29": {
     "Level": 29,
-    "Min Co": 519,
-    "Max Cp": 688,
+    "Min CP": 519,
+    "Max CP": 688,
     "Spread": 20
   },
   "30": {
     "Level": 30,
-    "Min Co": 537,
-    "Max Cp": 712,
+    "Min CP": 537,
+    "Max CP": 712,
     "Spread": 20
   },
   "31": {
     "Level": 31,
-    "Min Co": 546,
-    "Max Cp": 724,
+    "Min CP": 546,
+    "Max CP": 724,
     "Spread": 24
   },
   "32": {
     "Level": 32,
-    "Min Co": 555,
-    "Max Cp": 736,
+    "Min CP": 555,
+    "Max CP": 736,
     "Spread": 24
   },
   "33": {
     "Level": 33,
-    "Min Co": 564,
-    "Max Cp": 748,
+    "Min CP": 564,
+    "Max CP": 748,
     "Spread": 24
   },
   "34": {
     "Level": 34,
-    "Min Co": 573,
-    "Max Cp": 760,
+    "Min CP": 573,
+    "Max CP": 760,
     "Spread": 24
   },
   "35": {
     "Level": 35,
-    "Min Co": 582,
-    "Max Cp": 771,
+    "Min CP": 582,
+    "Max CP": 771,
     "Spread": 24
   },
   "36": {
     "Level": 36,
-    "Min Co": 591,
-    "Max Cp": 783,
+    "Min CP": 591,
+    "Max CP": 783,
     "Spread": 28
   },
   "37": {
     "Level": 37,
-    "Min Co": 600,
-    "Max Cp": 795,
+    "Min CP": 600,
+    "Max CP": 795,
     "Spread": 28
   },
   "38": {
     "Level": 38,
-    "Min Co": 609,
-    "Max Cp": 807,
+    "Min CP": 609,
+    "Max CP": 807,
     "Spread": 28
   },
   "39": {
     "Level": 39,
-    "Min Co": 617,
-    "Max Cp": 819,
+    "Min CP": 617,
+    "Max CP": 819,
     "Spread": 28
   },
   "40": {
     "Level": 40,
-    "Min Co": 626,
-    "Max Cp": 831,
+    "Min CP": 626,
+    "Max CP": 831,
     "Spread": 28
   }
 }

@@ -8901,7 +8901,7 @@ async def _bingo_card(ctx):
             timestamp = existing_bingo_card_record['generated_at']
             file_url = existing_bingo_card_record['bingo_card_url']
         else:
-            bingo_card = bingo_generator.generate_card(event_pokemon)
+            bingo_card = bingo_generator.generate_mixed_card()
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
             file_path = bingo.generate_board(user_name=author.id, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
             repo_channel = await get_repository_channel(message)

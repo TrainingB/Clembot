@@ -20,32 +20,38 @@ def load_data():
 
     directory = os.path.join(script_path,"..","data","cp_chart")
     filenames = ["","bulbasaur.json"]
+    with open(os.path.join(directory, "pikachu.json"), "r") as fd:
+        pokemon_cp_level['pikachu'] = json.load(fd)
+
+    with open(os.path.join(directory, "dratini.json"), "r") as fd:
+        pokemon_cp_level['dratini'] = json.load(fd)
+
     with open(os.path.join(directory, "mareep.json"), "r") as fd:
         pokemon_cp_level['mareep'] = json.load(fd)
 
     with open(os.path.join(directory, "bulbasaur.json"), "r") as fd:
-        pokemon_cp_level['bulbasaur_cp'] = json.load(fd)
+        pokemon_cp_level['bulbasaur'] = json.load(fd)
 
     with open(os.path.join(directory, "charmander.json"), "r") as fd:
-        pokemon_cp_level['charmander_cp'] = json.load(fd)
+        pokemon_cp_level['charmander'] = json.load(fd)
 
     with open(os.path.join(directory, "larvitar.json"), "r") as fd:
-        pokemon_cp_level['larvitar_cp'] = json.load(fd)
+        pokemon_cp_level['larvitar'] = json.load(fd)
 
     with open(os.path.join(directory, "squirtle.json"), "r") as fd:
-        pokemon_cp_level['squirtle_cp'] = json.load(fd)
+        pokemon_cp_level['squirtle'] = json.load(fd)
 
     with open(os.path.join(directory, "eevee.json"), "r") as fd:
-        pokemon_cp_level['eevee_cp'] = json.load(fd)
+        pokemon_cp_level['eevee'] = json.load(fd)
 
     with open(os.path.join(directory, "chikorita.json"), "r") as fd:
-        pokemon_cp_level['chikorita_cp'] = json.load(fd)
+        pokemon_cp_level['chikorita'] = json.load(fd)
 
     with open(os.path.join(directory, "beldum.json"), "r") as fd:
-        pokemon_cp_level['beldum_cp'] = json.load(fd)
+        pokemon_cp_level['beldum'] = json.load(fd)
 
     with open(os.path.join(directory, "cyndaquil.json"), "r") as fd:
-        pokemon_cp_level['cyndaquil_cp'] = json.load(fd)
+        pokemon_cp_level['cyndaquil'] = json.load(fd)
 
 
 load_data()
@@ -78,6 +84,50 @@ gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2
                   }
 
 
+box_pokemon = [ 'free', 'charmander' , 'squirtle', 'beldum' , 'larvitar' , 'shiny', 'pikachu', 'bulbasaur', 'dratini', 'eevee' ]
+
+box_5_pokemon = [ 'free' , 'mareep', 'cyndaquil', 'chikorita' ]
+
+def generate_mixed_card ():
+
+
+    MALE_SIGN = u"\u2642"
+    FEMALE_SIGN = u"\u2640"
+
+    stats = ['Attack','Defense','Stamina']
+
+    category = []
+    size = ['XL','XL','XL','XL','XS','XS','XS','XS']
+    # gender = gender_master.get(event_pokemon,[u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"])
+
+    bingo_card = generate_default_card()
+
+    weight_box = randint(1, 4)
+    height_box = randint(6, 9)
+
+    for bingo_cell in list(bingo_card.keys()) :
+        range_multiplier = 1
+        box_pokemon_name = box_pokemon[int(bingo_cell)]
+        if int(bingo_cell) == 5:
+            box_pokemon_name = box_5_pokemon[randint(1,3)]
+            range_multiplier = 1.25
+        elif int(bingo_cell) == weight_box or int(bingo_cell) == height_box:
+            range_multiplier = 1.6
+
+        cell_level = randint(int(randint(10, 12)*range_multiplier), randint(22, 28))
+        cell_json = pokemon_cp_level[box_pokemon_name]["{0}".format(cell_level)]
+        cell_cp = randint(cell_json['Min CP'], cell_json['Max CP'])
+        cell_range = keep_number_in_range(cell_cp, int(randint(120, 160) * range_multiplier), cell_json['Min CP'], cell_json['Max CP'])
+        cell_value = ["CP : {:>0}".format(cell_range)]
+
+        bingo_card[bingo_cell] = cell_value
+
+    bingo_card[f"{weight_box}"] = [bingo_card[f"{weight_box}"][0], "Weight = {0}".format(size[randint(0, 7)])]
+    bingo_card[f"{height_box}"] = [bingo_card[f"{height_box}"][0], "Height = {0}".format(size[randint(0, 7)])]
+    bingo_card['5'] = ['']
+
+
+    return bingo_card
 
 def generate_card(event_pokemon="cyndaquil"):
 
@@ -205,7 +255,16 @@ def print_card_as_text(bingo_card):
 
 
 def main():
+    test1()
 
+def test1():
+    print_card(generate_mixed_card())
+
+    print_card(generate_mixed_card())
+
+    print_card(generate_mixed_card())
+
+def test():
     print_card(generate_default_card())
 
     print_card(generate_card())
@@ -225,7 +284,7 @@ def main():
     print(print_card_as_text(generate_card()))
 
 
-# main()
+main()
 
 
 # https://pokemongo.gamepress.gg/pokemon/133
