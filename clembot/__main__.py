@@ -2794,6 +2794,8 @@ reactionRoleManager = ReactionRoleManager(Clembot)
 async def on_raw_reaction_remove(reaction):
     print(f"removed {reaction.emoji} on {reaction.message_id}")
     try:
+        if Clembot.user.id == reaction.user_id:
+            return
         message_uuid = utilities._uuid(reaction.message_id)
         if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
             await reactionRoleManager.handle_reaction(reaction, 'remove')
@@ -2804,6 +2806,8 @@ async def on_raw_reaction_remove(reaction):
 @Clembot.event
 async def on_raw_reaction_add(reaction):
     try:
+        if Clembot.user.id == reaction.user_id:
+            return
         message_uuid = utilities._uuid(reaction.message_id)
         if message_uuid in guild_dict[reaction.guild_id].setdefault('reaction-roles', {}).keys():
             # print(f"added {reaction.emoji} = {utilities._normalize(reaction.emoji)} on {reaction.message_id}")
@@ -2974,14 +2978,14 @@ async def _get_roles_mention_for_notifications(guild, gym_code):
 
 
 def _get_role_for_notification(guild_id, gym_code):
-    role_id = None
+    role_id_list = []
     if 'notifications' in guild_dict[guild_id]:
         role_id = guild_dict[guild_id]['notifications']['gym_role_map'].get(gym_code, None)
 
         if role_id in guild_dict[guild_id]['notifications']['roles']:
-            return role_id
+            role_id_list.append(role_id)
 
-    return None
+    return role_id_list
 
 
 def _is_role_registered(guild_id, role_id):
@@ -3650,13 +3654,13 @@ async def _newraid(message):
             await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name} That's too long. Raids currently last no more than {raid_timer} minutes.")
             return
 
-    channel_role = None
+    channel_role_list = []
     gym_info = None
     if parameters.get('gym_info', None):
         gym_info = parameters['gym_info']
         raid_details = gym_info['gym_name']
-        channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
-        channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role_list = [ discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list ]
     else:
         raid_details = " ".join(parameters.get('others'))
 
@@ -3703,8 +3707,8 @@ async def _newraid(message):
     if gym_info:
         raid_gmaps_link = gym_info['gmap_link']
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
-        channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
-        channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list]
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(raid_details)
@@ -3901,7 +3905,7 @@ async def _raid(message):
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
 
-    channel_role = None
+    channel_role_list = None
     region_prefix = get_region_prefix(message)
     if region_prefix:
         prefix =  region_prefix + "-"
@@ -3910,8 +3914,9 @@ async def _raid(message):
     if gym_info:
         raid_gmaps_link = gym_info['gmap_link']
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
-        channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
-        channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in
+                             channel_role_id_list]
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(raid_details)
@@ -3972,8 +3977,9 @@ Please type `!beep status` if you need a refresher of Clembot commands!
         }
 
 
-    if channel_role:
-        await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+    if channel_role_list:
+        await _mention_roles_for(raid_channel, "Beep Beep! Notified roles : ", channel_role_list)
+        # await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
         # channel_mentions = _get_roles_mention_for_notifications(message.guild,gym_info['gym_code'])
         # if channel_mentions:
         #     await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_mentions))
@@ -3991,7 +3997,10 @@ Please type `!beep status` if you need a refresher of Clembot commands!
 
     event_loop.create_task(expiry_check(raid_channel))
 
+async def _mention_roles_for(channel, message_text, list_of_roles):
 
+    mention_list = ", ".join(role.mention for role in list_of_roles)
+    await channel.send(f"{message_text} {mention_list}")
 
 async def old_fetch_counters_dict(pkmn , weather:None):
 
@@ -6070,10 +6079,10 @@ async def _gyms(message):
         if gym_message_output:
             await _send_message(message.channel, gym_message_output)
         else:
-            await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.display_name,gym_code=gym_code, city=city))
+            await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(member=message.author.display_name,gym_code=gym_code, city=city))
     except Exception as error:
         logger.info(error)
-        await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code}** in **{city}**!".format(member=message.author.display_name,gym_code=gym_code, city=city))
+        await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(member=message.author.display_name,gym_code=gym_code, city=city))
 
 
 def _read_channel_city(message):

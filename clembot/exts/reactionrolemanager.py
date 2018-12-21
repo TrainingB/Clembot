@@ -11,6 +11,9 @@ import asyncio
 
 import json
 
+class CustomException(Exception):
+    pass
+
 class ReactionRoleManager:
 
     def __init__(self, bot):
@@ -31,13 +34,21 @@ class ReactionRoleManager:
                     "message_id" : 0
                 },
                 "emoji_role_map" : {
-                    "emoji1" :  "role one",
-                    "emoji1"  : "role two",
+                    "emoji1" : "role one",
+                    "emoji1" : "role two",
                     "emoji1" : "role three"
+                },
+                "reaction-groups": {
+                    "emoji1": "group one",
+                    "emoji1": "group two",
+                    "emoji1": "group three"
                 },
                 "options" : {
                     "exclusive": False,
                     "remove-roles" : True
+                },
+                "rsvp" : {
+                    "status" : ["trainer_name"]
                 }
             }
         }
@@ -45,8 +56,22 @@ class ReactionRoleManager:
 
     options= {
         "exclusive": False,
-        "remove-roles" : False
+        "remove-roles" : False,
+        "manage-roles" : False,
+        "display-rsvp" : False,
+        "single-use" : False
     }
+
+
+    toggle_option = ['single-use', 'exclusive' , 'remove-roles', 'display-rsvp', 'manage-roles']
+
+
+
+
+
+
+
+
 
     beep_react_role = ("""**{member}** here are the commands for Reaction Role management.
 
@@ -104,13 +129,56 @@ example:
 
 
     @commands.command(pass_context=True, hidden=True, aliases=["purge"])
-    async def _purge(self, ctx, message_count:int ):
+    async def _purge(self, ctx, message_count:int, message_id_to_stop: int = None):
 
-        if int(message_count) > 50:
+        if message_count > 50:
             message_count = 50
 
         async for message in ctx.channel.history(limit=message_count):
+            if message_id_to_stop and message.id == message_id_to_stop:
+                break
             await message.delete()
+
+    league_options = ['self-assign', 'manage-via-role' , 'remove-roles']
+
+    @commands.group(pass_context=True, hidden=True, aliases=["league"])
+    async def _league(self, ctx, title, body=None, channel: discord.TextChannel=None ):
+
+        if not channel:
+            channel = ctx.channel
+
+        message = await self.utilities._send_embed(channel, body, title, {'Current Members' : [] })
+
+        message_uuid = self.utilities._uuid(message.id)
+        message.embeds[0].set_footer(text=f"[{message_uuid}]")
+
+    @_league.command(pass_context=True, hidden=True, aliases=["register"])
+    async def _league_register(self, ctx, title, channel: discord.TextChannel = None):
+        await self.utilities._send_message(ctx.channel, f"League has been created!")
+
+
+    @commands.command(pass_context=True, hidden=True, aliases=["meetup"])
+    async def _meetup(self, ctx, title, body=None, channel: discord.TextChannel=None ):
+
+        if not channel:
+            channel = ctx.channel
+
+        meetup_message = await self.__send_message(channel, title, body)
+
+        if meetup_message:
+            message_uuid = self.utilities._uuid(meetup_message.id)
+            message_master = {
+                "message_id": message_id,
+                "channel_id": channel.id
+            }
+            options = {
+                "exclusive": False,
+                "remove-roles": False,
+                "display-rsvp": True
+            }
+            ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(message_uuid, {})['message_master'] = message_master
+            ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(message_uuid, {})['options'] = options
+
 
     @commands.command(pass_context=True, hidden=True, aliases=["say"])
     async def _say(self, ctx, title, body=None, channel: discord.TextChannel=None ):
@@ -118,11 +186,26 @@ example:
         if not channel:
             channel = ctx.channel
 
+        return await self.__send_message(channel, title, body)
+
+
+
+
+    async def __send_message(self, channel, title, body=None):
+
+        if not channel:
+            channel = ctx.channel
+
         message = await self.utilities._send_embed(channel, body, title)
 
         message_uuid = self.utilities._uuid(message.id)
+        message.embeds[0].set_footer(text=f"[{message_uuid}]")
 
-        await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(message_uuid))
+        return message
+
+
+
+
 
     @commands.group(pass_context=True, hidden=True, aliases=["reaction-role", "rtr"])
     async def _reaction_role(self, ctx):
@@ -140,31 +223,46 @@ example:
         await self.utilities._send_message(ctx.channel,f"```{json.dumps(ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).get(reference_id), indent=2)}```")
 
 
+    def __option_status(self, react_role_dict, option, default_value):
+        react_role_dict.setdefault('options', {}).setdefault(option, default_value)
+        return react_role_dict.get('options').get(option)
+
+    # options = {
+    #     "exclusive": False,
+    #     "single-use": False
+    # }
+
+    def __register_message(self, message, channel, options):
+
+        message_uuid = None
+        if message:
+            message_uuid = self.utilities._uuid(message.id)
+            message_master = {
+                "message_id": message.id,
+                "channel_id": channel.id
+            }
+            self.bot.guild_dict[message.guild.id].setdefault('reaction-roles', {}).setdefault(message_uuid, {})['message_master'] = message_master
+            self.bot.guild_dict[message.guild.id].setdefault('reaction-roles', {}).setdefault(message_uuid, {})['options'] = options
+        return message_uuid
+
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["register"])
     async def _reaction_role_register(self, ctx, message_id: int, channel: discord.TextChannel=None ):
+
+        options = {
+            "exclusive": False,
+            "single-use": False
+        }
+
         try:
             if not channel:
                 channel = ctx.channel
-
             message = await channel.get_message(id=message_id)
             if message:
-                message_uuid = self.utilities._uuid(message_id)
-                message_master = {
-                    "message_id": message_id,
-                    "channel_id": channel.id
-                }
-                options = {
-                    "exclusive" : False,
-                    "single-use" : False
-                }
-
-                ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(message_uuid,{})['message_master'] = message_master
-                ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(message_uuid, {})['options'] = options
-
-                await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(message_uuid, channel.name, message_id, None, None) )
+                message_uuid = self.__register_message(message, channel, options)
+                await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(message_uuid, channel.name, message_id, None, None), footer=f"[{message_uuid}]")
 
         except Exception as error:
-            print(error)
+            await self.utilities._send_error_message_and_cleanup(ctx.channel, error, ctx.author)
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["deregister"])
     async def _reation_role_deregister(self, ctx, reference_id ):
@@ -175,10 +273,14 @@ example:
         await self.utilities._send_message(ctx.channel, f"Reaction to `{message_id}` will not assign roles anymore!", user=ctx.author)
 
 
-    @_reaction_role.command(pass_context=True, hidden=True, aliases=["add-role"])
-    async def _reaction_role_add_role(self, ctx, reference_id, emoji, role):
 
+    async def _reaction_role_add_reaction_pair(self, ctx, reference_id, emoji, role_or_group, tracking_type):
         try:
+
+            tracking_group = 'emoji_role_map'
+            if tracking_type == 'group':
+                tracking_group = 'reaction-group'
+
             channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
             if not message:
                 await self.utilities._send_error_message((ctx.channel, f"No message found with `{message.id}`"),message.author)
@@ -188,17 +290,34 @@ example:
             await message.add_reaction(self.utilities._normalize(emoji))
 
             static_react_role_configuration = ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{}).setdefault(reference_id, {})
-            new_static_react_role_configuration = {emoji_id: role}
+            new_static_react_role_configuration = {emoji_id: role_or_group}
 
-            static_react_role_configuration.setdefault('emoji_role_map', {}).update(new_static_react_role_configuration)
+            static_react_role_configuration.setdefault(tracking_group, {}).update(new_static_react_role_configuration)
 
             ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {})[reference_id] = static_react_role_configuration
 
-            await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(reference_id, None, None, emoji, role))
-            # await self.utilities._send_message(ctx.channel,json.dumps(ctx.bot.guild_dict[ctx.guild.id]['reaction-roles'], indent=2))
+            log_message = await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(reference_id, None, None, emoji, role_or_group))
+            await asyncio.sleep(5)
+            if log_message:
+                await log_message.delete()
+
 
         except Exception as error:
             print(error)
+            await self.utilities._send_error_message_and_cleanup(ctx.channel, error, ctx.author)
+
+
+
+    @_reaction_role.command(pass_context=True, hidden=True, aliases=["add-role"])
+    async def _reaction_role_add_role(self, ctx, reference_id, emoji, role):
+        await self._reaction_role_add_reaction_pair(ctx, reference_id, emoji, role, 'role')
+
+
+    @_reaction_role.command(pass_context=True, hidden=True, aliases=["add-group", "ag"])
+    async def _reaction_role_add_group(self, ctx, reference_id, emoji, group):
+        await self._reaction_role_add_reaction_pair(ctx, reference_id, emoji, group, 'group')
+
+
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["remove-role"])
     async def _reaction_role_remove_role(self, ctx, reference_id, emoji):
@@ -224,25 +343,85 @@ example:
         except Exception as error:
             print(error)
 
-    toggle_option = ['single-use', 'exclusive' , 'remove-roles']
+
+
+
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["toggle"])
     async def _reaction_role_toggle(self, ctx, reference_id, option):
+        try:
+            if option in self.toggle_option:
 
-        if option in self.options.keys():
+                if reference_id not in ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{}).keys():
+                    await self.utilities._send_error_message(ctx.channel, f" :id: {reference_id} is not registered for Reaction Role.", ctx.author)
+                else:
+                    static_react_role_configuration = ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{}).setdefault(reference_id, {})
 
-            if reference_id not in ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{}).keys():
-                await self.utilities._send_error_message(ctx.channel, f" :id: {reference_id} is not registered for Reaction Role.", ctx.author)
+                    existing_value = static_react_role_configuration.get('options',self.options).get(option)
+
+                    ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(reference_id, {}).setdefault('options', self.options)[option] = not existing_value
+
+                    await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(reference_id, option=option, value=not existing_value))
             else:
-                static_react_role_configuration = ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{}).setdefault(reference_id, {})
+                await self.utilities._send_error_message(ctx.channel, f" available toggle options are: **{', '.join(list(self.options.keys()))}**", ctx.author)
 
-                existing_value = static_react_role_configuration.get('options',self.options).get(option)
 
-                ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(reference_id, {}).setdefault('options', self.options)[option] = not existing_value
+            if option == 'display-rsvp':
+                await self.__refresh_embed(ctx.guild.id, ctx.channel, reference_id)
 
-                await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(reference_id, option=option, value=not existing_value))
-        else:
-            await self.utilities._send_error_message(ctx.channel, f" available toggle options are: **{', '.join(list(self.options.keys()))}**", ctx.author)
+        except Exception as error:
+            print(error)
+
+    @commands.group(pass_context=True, hidden=True, aliases=["mini-event"])
+    async def _mini_event(self, ctx):
+
+        if ctx.invoked_subcommand is None:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["create"])
+    async def _mini_event_create(self, ctx, title, body=None, channel: discord.TextChannel = None):
+        mini_event_options = {
+            "exclusive": False,
+            "single-use": False,
+            "remove-roles" : False,
+            "display-rsvp" : False,
+            "manage-roles" : False
+        }
+
+        if not channel:
+            channel = ctx.channel
+
+        message = await self.__send_message(channel, title, body)
+
+        message_uuid = self.__register_message(message, channel, mini_event_options)
+
+        await self.__refresh_embed(message.guild.id, channel, message_uuid)
+
+        return message
+
+
+
+
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["clear-fields"])
+    async def _reaction_role_clear_fields(self, ctx, reference_id):
+        try:
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
+            message.embeds[0].clear_fields()
+
+            await message.edit(embed=message.embeds[0])
+
+        except Exception as error:
+            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
+
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["add-field"])
+    async def _reaction_role_add_field(self, ctx, reference_id, name, value):
+        try:
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
+            message.embeds[0].add_field(name=name, value=value)
+            await message.edit(embed=message.embeds[0])
+
+        except Exception as error:
+            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["edit"])
     async def _reaction_role_edit(self, ctx, reference_id, title=None, body=None, url=None ):
@@ -257,14 +436,83 @@ example:
                 url = message.embeds[0].url
             elif url == "None":
                 url = None
-            new_embed = discord.Embed(description=body, title=title, colour=message.embeds[0].colour.value)
-            if url:
-                new_embed.set_image(url=url)
-            await message.edit(embed=new_embed)
+
+            await self.__refresh_embed(ctx.guild.id, channel, reference_id, title, body, url)
 
             await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
         except Exception as error:
-            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=user)
+            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
+
+    async def __refresh_embed(self, guild_id, original_channel, message_or_reference_id, title=None, body=None, url=None ):
+        try:
+            if message_or_reference_id.isdigit():
+                reference_id = self.utilities._uuid(message_id)
+            else:
+                reference_id = message_or_reference_id
+
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, guild_id)
+
+            if not title:
+                title = message.embeds[0].title
+            if not body:
+                body = message.embeds[0].description
+            if not url:
+                url = message.embeds[0].url
+            elif url == "None":
+                url = None
+
+            new_embed = discord.Embed(description=body, title=title, colour=message.embeds[0].colour.value)
+            if url:
+                new_embed.set_image(url=url)
+            new_embed.set_footer(text=f"Managed by ID: [{reference_id}]")
+
+            static_react_role_configuration = self.bot.guild_dict[guild_id].setdefault('reaction-roles',{}).setdefault(reference_id,{})
+            if static_react_role_configuration['options'].get('display-rsvp', False) == True:
+                existing_fields = new_embed.fields
+                new_embed.clear_fields()
+                # copy non-role field over
+                for field in existing_fields:
+                    if field.name not in static_react_role_configuration['rsvp'].keys():
+                        new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
+                # add role fields now
+                for role_name in static_react_role_configuration['rsvp'].keys():
+                    list_of_users = static_react_role_configuration["rsvp"][role_name]
+                    if list_of_users.__len__() > 0 :
+                        new_embed.add_field(name=str(role_name).capitalize(), value=f'```{", ".join(static_react_role_configuration["rsvp"][role_name])}```')
+
+            await message.edit(embed=new_embed)
+
+        except Exception as error:
+            print(error)
+
+
+    @_reaction_role.command(pass_context=True, hidden=True, aliases=["refresh"])
+    @checks.is_owner()
+    async def _reaction_role_refresh(self, ctx, message_or_reference_id):
+
+        await self.__refresh_embed(ctx, ctx.guild.id, ctx.channel, message_or_reference_id)
+        await ctx.message.delete()
+
+
+    def _is_user_has_any_role(self, user, list_of_role_names):
+        for already_assigned_role in user.roles:
+            if already_assigned_role.name in role_name_list:
+                return True
+        return False
+
+    def _is_user_has_role(self, user, role):
+        if role in user.roles:
+            return True
+        return False
+
+    async def _assign_role_to_user(self, user, role, channel, message):
+
+        if role not in user.roles:
+            await user.add_roles(role)
+        else:
+            raise CustomException({"message" : "User already has role assigned."})
+
+        return
 
     async def handle_reaction(self, reaction, operation='add'):
         # print(f"handle_reaction_{operation} is called()")
@@ -278,52 +526,82 @@ example:
             emoji_id = self.utilities._normalize(reaction.emoji)
             static_react_role_dict = self.bot.guild_dict[reaction.guild_id].setdefault('reaction-roles',{}).setdefault(reference_id,{})
 
-            role_to_be_assigned_name = static_react_role_dict['emoji_role_map'].get(emoji_id,None)
+            is_exclusive = self.__option_status(static_react_role_dict, 'exclusive', False)
+            is_remove_roles = self.__option_status(static_react_role_dict, 'remove-roles', False)
+            is_display_rsvp = self.__option_status(static_react_role_dict, 'display-rsvp', False)
+            is_manage_roles = self.__option_status(static_react_role_dict, 'manage-roles', False)
 
+            role_to_be_assigned_name = static_react_role_dict.get('emoji_role_map',{}).get(emoji_id, None)
+            group_for_reaction = static_react_role_dict.get('reaction-group',{}).get(emoji_id, None)
+
+            if is_display_rsvp and group_for_reaction:
+                if operation == 'add':
+                    if user.display_name not in static_react_role_dict.setdefault('rsvp', {}).setdefault(group_for_reaction, []):
+                        static_react_role_dict['rsvp'].setdefault(group_for_reaction, []).append(user.display_name)
+                else:
+                    if user.display_name in static_react_role_dict.setdefault('rsvp', {}).setdefault(group_for_reaction, []):
+                        static_react_role_dict['rsvp'].setdefault(group_for_reaction, []).remove(user.display_name)
+
+                await self.__refresh_embed(guild.id, channel, reference_id)
+
+            if not is_manage_roles:
+                return
+
+            role_to_be_assigned = None
             if role_to_be_assigned_name:
                 role_to_be_assigned = discord.utils.get(message.guild.roles, name=static_react_role_dict['emoji_role_map'][emoji_id])
-            else:
-                return await self.utilities._send_error_message_and_cleanup(channel, f"reaction is not setup for role assingation!", user)
+                if role_to_be_assigned:
+                    pass
+                else:
+                    if group_for_reaction:
+                        pass
+                    else:
+                        return await self.utilities._send_error_message_and_cleanup(channel, f"reaction is not setup for role assingation!", user=user)
 
-            is_exclusive = static_react_role_dict['options']['exclusive']
-            is_remove_roles = static_react_role_dict['options'].get('remove-roles', False)
+
+
+
+
+            print(user)
+
+            role_name_list = static_react_role_dict['emoji_role_map'].values()
+
             if is_exclusive:
-                role_name_list = static_react_role_dict['emoji_role_map'].values()
-                for already_assigned_role in user.roles:
-                    if already_assigned_role.name in role_name_list:
-                        if operation == 'add':
-                            return await self.utilities._send_error_message_and_cleanup(channel, f"You already have one of the exclusive role **{already_assigned_role.name}** assigned. Please contact an admin if you want to switch roles!", user=user)
-                        else:
-                            return await self.utilities._send_error_message_and_cleanup(channel, f"removing exclusive role is not allowed. Please contact an admin.", user)
-            if role_to_be_assigned:
+                if self._is_user_has_any_role(user, role_name_list):
+                    if operation == 'add':
+                        return await self.utilities._send_error_message_and_cleanup(channel, f"You already have one of the exclusive role **{already_assigned_role.name}** assigned. Please contact an admin if you want to switch roles!", user=user)
+                    else :
+                        return await self.utilities._send_error_message_and_cleanup(channel, f"removing exclusive role is not allowed. Please contact an admin.", user)
 
+            log_message = None
+            if role_to_be_assigned:
                 if role_to_be_assigned not in user.roles:
                     if operation == 'add':
                         await user.add_roles(role_to_be_assigned)
                         log_message = await self.utilities._send_message(channel, f"you joined **{role_to_be_assigned.name}** {reaction.emoji}!", user=user)
                     else:
-                        return await self.utilities._send_error_message_and_cleanup(channel, f"your reaction and role assignation was out of sync. *Please react again to make changes!*", user)
+                        return await self.utilities._send_error_message_and_cleanup(channel, f"your reaction and role assignation was out of sync. *Please react again to make changes!*", user=user)
                 else:
                     if is_remove_roles:
                         if operation == 'remove':
                             await user.remove_roles(role_to_be_assigned)
                             log_message = await self.utilities._send_message(channel,f"you left **{role_to_be_assigned.name}** {reaction.emoji}!", user=user)
                         else:
-                            return await self.utilities._send_error_message_and_cleanup(channel,
-                                                                                        f"your reaction and role assignation was out of sync. *Please react again to make changes!*",
-                                                                                        user)
+                            return await self.utilities._send_error_message_and_cleanup(channel, f"your reaction and role assignation was out of sync. *Please react again to make changes!*", user=user)
                     else:
                         log_message = await self.utilities._send_message(channel, f"you already have **{role_to_be_assigned.name}** {reaction.emoji}!", user=user)
-            else:
-                log_message = await self.utilities._send_error_message(channel, f"The role **{static_react_role_dict['emoji_role_map'].get(emoji_id)}** associated with reaction {reaction.emoji} not found!", user=user)
+            # else:
+            #     log_message = await self.utilities._send_error_message(channel, f"The role **{static_react_role_dict['emoji_role_map'].get(emoji_id)}** associated with reaction {reaction.emoji} not found!", user=user)
 
             await asyncio.sleep(5)
-            await log_message.delete()
+            if log_message:
+                await log_message.delete()
             return
         except Exception as error:
-            log_message = await self.utilities._send_error_message(channel, f"{error}", user=user)
+            log_message = await self.utilities._send_error_message(channel, f"handle_reaction() : {error}")
             await asyncio.sleep(5)
-            await log_message.delete()
+            if log_message:
+                await log_message.delete()
 
 
     @classmethod
