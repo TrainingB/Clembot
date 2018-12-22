@@ -581,7 +581,7 @@ example:
             if is_exclusive:
                 if self._is_user_has_any_role(user, role_name_list):
                     if operation == 'add':
-                        return await self.utilities._send_error_message_and_cleanup(channel, f"You already have one of the exclusive role **{already_assigned_role.name}** assigned. Please contact an admin if you want to switch roles!", user=user)
+                        return await self.utilities._send_error_message_and_cleanup(channel, f"You already have one of the exclusive role assigned. Please contact an admin if you want to switch roles!", user=user)
                     else :
                         return await self.utilities._send_error_message_and_cleanup(channel, f"removing exclusive role is not allowed. Please contact an admin.", user)
 
