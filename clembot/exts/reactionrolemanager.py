@@ -399,8 +399,19 @@ example:
 
         return message
 
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["remove"])
+    @checks.is_owner()
+    async def _mini_event_remove(self, ctx, reference_id):
 
+        try:
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
 
+            await message.delete()
+            ctx.bot.guild_dict[ctx.guild.id]['reaction-roles'].pop(reference_id, None)
+            await self.utilities._send_message(ctx.channel, f"Message [{reference_id}] has been removed.", user=ctx.author)
+
+        except Exception as error:
+            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
 
     @_mini_event.command(pass_context=True, hidden=True, aliases=["clear-fields"])
     async def _reaction_role_clear_fields(self, ctx, reference_id):
@@ -466,6 +477,7 @@ example:
                 new_embed.set_image(url=url)
             new_embed.set_footer(text=f"Managed by ID: [{reference_id}]")
 
+            #new_embed.set_footer(text=f"Reported by @{message.author.display_name} | Managed by ID: [{reference_id}]" , icon_url=f"https://cdn.discordapp.com/avatars/{message.author.id}/{message.author.avatar}.jpg?size=32")
             static_react_role_configuration = self.bot.guild_dict[guild_id].setdefault('reaction-roles',{}).setdefault(reference_id,{})
             if static_react_role_configuration['options'].get('display-rsvp', False) == True:
                 existing_fields = new_embed.fields
