@@ -508,7 +508,7 @@ example:
 
     def _is_user_has_any_role(self, user, list_of_role_names):
         for already_assigned_role in user.roles:
-            if already_assigned_role.name in role_name_list:
+            if already_assigned_role.name in list_of_role_names:
                 return True
         return False
 
