@@ -181,6 +181,8 @@ def load_config():
     CACHE_VERSION = config.get('cache_version', CACHE_VERSION)
 
     gymsql.set_db_name(SQLITE_DB)
+    CACHE_VERSION = gymsql.find_clembot_config('cache-version')
+    print(f"Cache version : {CACHE_VERSION}")
     # gymutil.load_gyms()
     bingo_template[347397406033182721] = "bingo_template_bur.png"
     bingo_template[329013844427014145] = "bingo_template_qcy.png"
@@ -2980,11 +2982,13 @@ async def _get_roles_mention_for_notifications(guild, gym_code):
 def _get_role_for_notification(guild_id, gym_code):
     role_id_list = []
     if 'notifications' in guild_dict[guild_id]:
-        role_id = guild_dict[guild_id]['notifications']['gym_role_map'].get(gym_code, None)
-
-        if role_id in guild_dict[guild_id]['notifications']['roles']:
-            role_id_list.append(role_id)
-
+        subscribed_roles_list = guild_dict[guild_id]['notifications']['gym_role_map'].get(gym_code, None)
+        if type(subscribed_roles_list) == __builtins__.list:
+            for role_id in subscribed_roles_list:
+                if role_id in guild_dict[guild_id]['notifications']['roles']:
+                    role_id_list.append(role_id)
+        else:
+            logger.error(f"Error: {guild_id} notifications are not setup correctly. {guild_dict[guild_id]['notifications']['gym_role_map']}")
     return role_id_list
 
 
@@ -3027,8 +3031,8 @@ async def _show_register(ctx, ex_raid_role_name=None):
             role_id_to_filter = role.id
             for gym_code in notifications['gym_role_map'].keys():
                 try:
-                    role_id = notifications['gym_role_map'][gym_code]
-                    if role_id == role_id_to_filter:
+                    role_id_list = notifications['gym_role_map'][gym_code]
+                    if role_id_to_filter in role_id_list:
                         role_gym_map.setdefault(ex_raid_role_name, []).append(gym_code)
                 except Exception as error:
                     print(error)
@@ -3036,21 +3040,27 @@ async def _show_register(ctx, ex_raid_role_name=None):
         else:
             await utilities._send_error_message(ctx.message.channel, f"The `{ex_raid_role_name}` isn't subscribed.", ctx.author)
     else:
-        for role_id in notifications['roles']:
-            role = discord.utils.get(ctx.message.guild.roles, id=role_id)
+        for role_id_to_filter in notifications['roles']:
+            role = discord.utils.get(ctx.message.guild.roles, id=role_id_to_filter)
             if role:
                 new_notifications_map['notifications']['roles'].append(role.name)
-                role_map[role_id] = role.name
+                role_map[role_id_to_filter] = role.name
 
         await _send_message(ctx.message.channel, "**Registered Roles**\n{}".format(json.dumps(new_notifications_map['notifications']['roles'], indent=4, sort_keys=True)))
 
         role_gym_map = {}
 
-
+        print(notifications)
         for gym_code in notifications['gym_role_map'].keys():
             try:
-                role_name = role_map[notifications['gym_role_map'][gym_code]]
-                role_gym_map.setdefault(role_name, []).append(gym_code)
+                if type(notifications['gym_role_map'][gym_code]) == type([]):
+                    for role_id in notifications['gym_role_map'][gym_code]:
+                        role_name = role_map[role_id]
+                        role_gym_map.setdefault(role_name, []).append(gym_code)
+                else:
+                    role_name = role_map[notifications['gym_role_map'][gym_code]]
+                    role_gym_map.setdefault(role_name, []).append(gym_code)
+
             except Exception as error:
                 print(error)
 
@@ -3292,7 +3302,15 @@ registers a role and a gym
 
         # {'notifications': {'roles': [], 'gym_role_map': {}}}
         gym_role_map = {gym_code: role.id}
-        guild_dict[message.guild.id]['notifications']['gym_role_map'].update(gym_role_map)
+
+        existing_role_list = guild_dict[message.guild.id]['notifications']['gym_role_map'].get(gym_code, None)
+
+        if type(existing_role_list) != __builtins__.list:
+            guild_dict[message.guild.id]['notifications']['gym_role_map'][gym_code] = []
+            guild_dict[message.guild.id]['notifications']['gym_role_map'].setdefault(gym_code, []).append(role.id)
+        else:
+            if role.id not in existing_role_list:
+                guild_dict[message.guild.id]['notifications']['gym_role_map'].setdefault(gym_code, []).append(role.id)
 
         list_of_accepted_gyms.append(gym_info['gym_name'])
 
@@ -3763,7 +3781,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
         'suggested_start': False
         }
 
-    if channel_role:
+    if channel_role_list:
         await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
 
     if raidexp is not False:
@@ -3915,8 +3933,7 @@ async def _raid(message):
         raid_gmaps_link = gym_info['gmap_link']
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
         channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
-        channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in
-                             channel_role_id_list]
+        channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list]
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(raid_details)
@@ -5164,8 +5181,8 @@ async def __exraid(ctx):
     if parameters.get('gym_info', None):
         gym_info = parameters['gym_info']
         raid_details = gym_info['gym_name']
-        channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
-        channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+        # channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        # channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
         location_prefix = " ".join(parameters.get('others',[]))
 
         if len(location_prefix) >= 1:
@@ -5250,8 +5267,8 @@ Please type `!beep status` if you need a refresher of Clembot commands!
 
     await raid_channel.send(content=_('Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <date and time>** so others can check it with **!timer**. **<date and time>** can just be written exactly how it appears on your EX Raid Pass.').format(member=message.author.mention))
 
-    if channel_role:
-        await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+    # if channel_role_list:
+    #     await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
 
     if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
         await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
@@ -5479,7 +5496,6 @@ async def _raidegg(message):
         argument_text = message.clean_content.lower()
         parameters = Parser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
         logger.info(parameters)
-        logger.info(parameters)
         if parameters['length'] <= 2:
             await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
             return
@@ -5502,13 +5518,13 @@ async def _raidegg(message):
                 await message.channel.send(_("Beep Beep...that's too long. Raid Eggs currently last no more than {egg_timer} minutes...".format(egg_timer=egg_timer)))
                 return
 
-        channel_role = None
+        channel_role_list = None
         gym_info = None
         if parameters.get('gym_info', None):
             gym_info = parameters['gym_info']
             raid_details = gym_info['gym_name']
-            channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
-            channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
+            channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+            channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list]
         else:
             raid_details = " ".join(parameters.get('others'))
 
@@ -5588,8 +5604,9 @@ async def _raidegg(message):
             else:
                 await raid_channel.send(content=_("Beep Beep! Hey {member}, if you can, set the time left until the egg hatches using **!timerset <minutes>** so others can check it with **!timer**.").format(member=message.author.mention))
 
-            if channel_role:
-                await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
+            if channel_role_list:
+                await _mention_roles_for(raid_channel, "Beep Beep! Notified roles : ", channel_role_list)
+
 
             if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
                 await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)

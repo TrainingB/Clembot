@@ -457,7 +457,7 @@ example:
     async def __refresh_embed(self, guild_id, original_channel, message_or_reference_id, title=None, body=None, url=None ):
         try:
             if message_or_reference_id.isdigit():
-                reference_id = self.utilities._uuid(message_id)
+                reference_id = self.utilities._uuid(message_or_reference_id)
             else:
                 reference_id = message_or_reference_id
 
@@ -544,8 +544,12 @@ example:
             is_manage_roles = self.__option_status(static_react_role_dict, 'manage-roles', False)
 
             role_to_be_assigned_name = static_react_role_dict.get('emoji_role_map',{}).get(emoji_id, None)
-            group_for_reaction = static_react_role_dict.get('reaction-group',{}).get(emoji_id, None)
+            if role_to_be_assigned_name:
+                group_for_reaction = role_to_be_assigned_name
+            else:
+                group_for_reaction = static_react_role_dict.get('reaction-group',{}).get(emoji_id, None)
 
+            static_react_role_dict.setdefault('rsvp', {})
             if is_display_rsvp and group_for_reaction:
                 if operation == 'add':
                     if user.display_name not in static_react_role_dict.setdefault('rsvp', {}).setdefault(group_for_reaction, []):
