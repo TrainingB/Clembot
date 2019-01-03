@@ -469,28 +469,32 @@ example:
                 body = message.embeds[0].description
             if not url:
                 url = message.embeds[0].url
+                if not url:
+                    url = message.embeds[0].image.url
             elif url == "None":
                 url = None
+
 
             new_embed = discord.Embed(description=body, title=title, colour=message.embeds[0].colour.value)
             if url:
                 new_embed.set_image(url=url)
+
             new_embed.set_footer(text=f"Managed by ID: [{reference_id}]")
 
             #new_embed.set_footer(text=f"Reported by @{message.author.display_name} | Managed by ID: [{reference_id}]" , icon_url=f"https://cdn.discordapp.com/avatars/{message.author.id}/{message.author.avatar}.jpg?size=32")
             static_react_role_configuration = self.bot.guild_dict[guild_id].setdefault('reaction-roles',{}).setdefault(reference_id,{})
             if static_react_role_configuration['options'].get('display-rsvp', False) == True:
-                existing_fields = new_embed.fields
+                existing_fields = message.embeds[0].fields
                 new_embed.clear_fields()
                 # copy non-role field over
                 for field in existing_fields:
-                    if field.name not in static_react_role_configuration['rsvp'].keys():
+                    if field.name.lower() not in static_react_role_configuration['rsvp'].keys():
                         new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
                 # add role fields now
                 for role_name in static_react_role_configuration['rsvp'].keys():
                     list_of_users = static_react_role_configuration["rsvp"][role_name]
                     if list_of_users.__len__() > 0 :
-                        new_embed.add_field(name=str(role_name).capitalize(), value=f'```{", ".join(static_react_role_configuration["rsvp"][role_name])}```')
+                        new_embed.add_field(name=str(role_name).capitalize(), value=f'```{", ".join(static_react_role_configuration["rsvp"][role_name])}```', inline=False)
 
             await message.edit(embed=new_embed)
 
@@ -573,12 +577,6 @@ example:
                         pass
                     else:
                         return await self.utilities._send_error_message_and_cleanup(channel, f"reaction is not setup for role assingation!", user=user)
-
-
-
-
-
-            print(user)
 
             role_name_list = static_react_role_dict['emoji_role_map'].values()
 
