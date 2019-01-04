@@ -3297,7 +3297,7 @@ registers a role and a gym
         gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
 
         if gym_info == None:
-            await channel.send(f"Beep Beep! Hmmm... Gym code {gym_code} not found!")
+            await channel.send(f"[{gym_code}] not found!")
             continue
         # {'notifications': {'roles': [], 'gym_role_map': {}}}
         gym_role_map = {gym_code: role.id}
@@ -3313,8 +3313,8 @@ registers a role and a gym
 
         list_of_accepted_gyms.append(gym_info['gym_name'])
 
-
-    await _send_message(ctx.message.channel, _("Beep Beep! **{member}**, Any raid reported at **{gym_names}** will notify {role}").format(member=ctx.message.author.display_name, gym_code=gym_code.upper(), role=role.mention, gym_names=", ".join(list_of_accepted_gyms)))
+    if list_of_accepted_gyms:
+        await _send_message(ctx.message.channel, _("Beep Beep! **{member}**, Any raid reported at **{gym_names}** will notify {role}").format(member=ctx.message.author.display_name, gym_code=gym_code.upper(), role=role.mention, gym_names=", ".join(list_of_accepted_gyms)))
 
     return
 
