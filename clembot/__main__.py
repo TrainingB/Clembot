@@ -3286,14 +3286,14 @@ registers a role and a gym
         await channel.send( content=_("Beep Beep! The role {role_name} is not registered for notifications. Please use `!register-role role-name` to create/register the role!"))
         return
 
-    if len(args) == 0 or len(args) > 1:
-        await channel.send( content=_("Beep Beep! Please provide a gym-code to register. `!register role-name gym-code`"))
-        return
+    # if len(args) == 0 or len(args) > 1:
+    #     await channel.send( content=_("Beep Beep! Please provide a gym-code to register. `!register role-name gym-code`"))
+    #     return
 
     list_of_accepted_gyms = []
 
     for gym_code in args:
-        gym_code = args[0].upper()
+        gym_code = gym_code.upper()
         gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
 
         if gym_info == None:
@@ -6580,6 +6580,7 @@ beep_notifications = ("""**{member}** here are the commands for notifications.
 **__Admin Only__**
 **!register-role role-name** registers a role for raid-notifications
 **!register-gym role-name gym-code** associates a gym-code with raid-notifications role
+**!register-gym role-name gym-code1 gym-code2** associates gym-code(s) with raid-notifications role
 
 **!show-register** to show the current register
 **!reset-register** removes all raid-notifications roles
