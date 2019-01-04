@@ -3283,7 +3283,7 @@ registers a role and a gym
         return
 
     if role.id not in guild_dict[guild.id]['notifications']['roles']:
-        await channel.send( content=_("Beep Beep! The role {role_name} is not registered for notifications. Please use `!register-role role-name` to create/register the role!"))
+        await channel.send( content=_(f"Beep Beep! The role {role_name} is not registered for notifications. Please use `!register-role role-name` to create/register the role!"))
         return
 
     # if len(args) == 0 or len(args) > 1:
@@ -3298,7 +3298,7 @@ registers a role and a gym
 
         if gym_info == None:
             await channel.send(f"Beep Beep! Hmmm... Gym code {gym_code} not found!")
-
+            continue
         # {'notifications': {'roles': [], 'gym_role_map': {}}}
         gym_role_map = {gym_code: role.id}
 
