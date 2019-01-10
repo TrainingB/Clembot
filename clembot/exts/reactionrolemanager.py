@@ -495,7 +495,9 @@ example:
                     list_of_users = static_react_role_configuration["rsvp"][role_name]
                     if list_of_users.__len__() > 0 :
                         new_embed.add_field(name=str(role_name).capitalize(), value=f'```{", ".join(static_react_role_configuration["rsvp"][role_name])}```', inline=False)
-
+            else:
+                for field in message.embeds[0].fields:
+                    new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
             await message.edit(embed=new_embed)
 
         except Exception as error:

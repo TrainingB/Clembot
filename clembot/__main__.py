@@ -67,6 +67,8 @@ from exts.configmanager import ConfigManager
 from exts.utilities import Utilities
 from exts.utilities import HandleAngularBrackets
 
+from clembot.bot import ClembotDiscordBot
+
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
 if os.name == 'nt':
@@ -87,7 +89,9 @@ def _get_prefix(bot, message):
     return set_prefix or default_prefix
 
 
-Clembot = commands.Bot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
+Clembot = ClembotDiscordBot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
+
+# Clembot = commands.Bot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
 Clembot.remove_command("help")
 custom_error_handling(Clembot, logger)
 
@@ -4754,25 +4758,19 @@ async def validate_start_time(channel, start_time):
 
 
 @Clembot.command(pass_context=True, hidden=True)
-async def embed(ctx):
-    message = ctx.message
-    raid_img_url = "https://cdn.discordapp.com/attachments/354694475089707039/371000826522632192/15085243648140.png"
+async def embed(ctx, title, content=None, colour=None,
+                     icon_url=None, image_url=None, thumbnail_url=None,
+                     plain_msg=''):
+    """Build and post an embed in the current channel.
 
-    bosslist1 = ["Line 1", "Line 2"]
-    bosslist2 = ["Line 1", "Line 2"]
-
-    raid_title = _("Beep Beep! Here is the current member status!")
-
-    raid_embed = discord.Embed(title=raid_title, url="", colour=message.guild.me.colour)
-
-    raid_embed.add_field(name="**Interested:**", value=_("{bosslist1}").format(bosslist1="\n".join(bosslist1)), inline=True)
-    raid_embed.add_field(name="**Coming:**", value=_("{bosslist2}").format(bosslist2="\n".join(bosslist2)), inline=True)
-    raid_embed.add_field(name="**Here:**", value=_("{bosslist2}").format(bosslist2="\n".join(bosslist2)), inline=True)
-    raid_embed.set_footer(text=_("Reported by {author}").format(author=message.author.display_name), icon_url=message.author.avatar_url)
-    raid_embed.set_thumbnail(url=raid_img_url)
-    raidreport = await message.channel.send( content=_("Beep Beep! {member} here you go!").format(member=message.author.mention), embed=raid_embed)
-
-    return
+    Note: Always use quotes to contain multiple words within one argument.
+    """
+    try:
+        await ctx.embed(title=title, description=content, colour=colour,
+                        icon=icon_url, image=image_url,
+                        thumbnail=thumbnail_url, plain_msg=plain_msg)
+    except Exception as error:
+        print(error)
 
 
 
@@ -5038,6 +5036,8 @@ async def _cancel(message):
 @Clembot.event
 async def on_message(message):
     try:
+        if message.author == message.guild.me:
+            return
         # logger.info(guild_dict)
         if message.guild is not None:
             content_without_prefix = message.content.replace(_get_prefix(Clembot, message), '')
@@ -8927,7 +8927,7 @@ async def _bingo_card(ctx):
             timestamp = existing_bingo_card_record['generated_at']
             file_url = existing_bingo_card_record['bingo_card_url']
         else:
-            bingo_card = bingo_generator.generate_mixed_card()
+            bingo_card = bingo_generator.generate_card()
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
             file_path = bingo.generate_board(user_name=author.id, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
             repo_channel = await get_repository_channel(message)

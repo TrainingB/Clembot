@@ -53,6 +53,8 @@ def load_data():
     with open(os.path.join(directory, "cyndaquil.json"), "r") as fd:
         pokemon_cp_level['cyndaquil'] = json.load(fd)
 
+    with open(os.path.join(directory, "totodile.json"), "r") as fd:
+        pokemon_cp_level['totodile'] = json.load(fd)
 
 load_data()
 
@@ -81,6 +83,7 @@ gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2
                   'chikorita' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
                   'beldum': ["", "", "", "", "", "", "", ""],
                   'cyndaquil' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                  'totodile' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
                   }
 
 
@@ -129,9 +132,9 @@ def generate_mixed_card ():
 
     return bingo_card
 
-def generate_card(event_pokemon="cyndaquil"):
+def generate_card(event_pokemon="totodile"):
 
-    pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level[f'{event_pokemon}_cp'])
+    pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level[f'{event_pokemon}'])
 
 
     MALE_SIGN = u"\u2642"
@@ -284,7 +287,7 @@ def test():
     print(print_card_as_text(generate_card()))
 
 
-main()
+test()
 
 
 # https://pokemongo.gamepress.gg/pokemon/133
