@@ -5144,7 +5144,7 @@ async def process_map_link(message, newloc=None):
     except:
         pass
     try:
-        oldreportmsg.edit(new_content=oldreportmsg.content, embed=newembed)
+        await oldreportmsg.edit(new_content=oldreportmsg.content, embed=newembed)
     except:
         pass
 
