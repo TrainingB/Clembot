@@ -202,7 +202,17 @@ class BadgeManager:
         except Exception as error:
             print (error)
 
+    @_badge.command(pass_context=True, hidden=True, aliases=["test"])
+    @commands.has_permissions(manage_guild=True)
+    async def _badge_test(self, ctx, emoji):
+        try:
+            emoji = self._get_emoji(emoji)
+            if emoji == ':medal:':
+                return await self.utilities._send_error_message(ctx.channel, f"only custom emojis owned by community can be used to create badges.", ctx.author)
 
+            await ctx.embed(title="Emoji Found", description=f"Emoji is available for the bot: {emoji}")
+        except Exception as error:
+            await ctx.embed(title="Error Occurred",description=f"{error}")
 
     @_badge.command(pass_context=True, hidden=True, aliases=["create"])
     @commands.has_permissions(manage_guild=True)
