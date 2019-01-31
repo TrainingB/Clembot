@@ -8,8 +8,9 @@ from exts.utilities import Utilities
 import checks
 from random import *
 import asyncio
-
+import gymsql
 import json
+from datetime import datetime
 
 class CustomException(Exception):
     pass
@@ -67,6 +68,11 @@ class BadgeManager:
         m = re.search(EMOJI_REGEX, emoji)
         if m:
             return {"id" : int(m.group(2)), "name" : m.group(1) }
+
+        EMOJI_HACK_REGEX = "^(\w+)-(\d+)"
+        m = re.search(EMOJI_HACK_REGEX, emoji)
+        if m:
+            return {"id": int(m.group(2)), "name": m.group(1)}
 
         return None
 
@@ -139,8 +145,37 @@ class BadgeManager:
 
     @commands.group(pass_context=True, hidden=True, aliases=["badge"])
     async def _badge(self, ctx):
-        if ctx.invoked_subcommand is None:
-            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+        try:
+
+            if ctx.invoked_subcommand is None:
+
+                footer = "Tip: < > denotes required and [ ] denotes optional arguments."
+                await ctx.embed(title="Help - Badge Management",
+                                description=self.beep_badge.format(member=ctx.message.author.display_name),
+                                footer=footer)
+        except Exception as error:
+            print(error)
+
+    @_badge.command(pass_context=True, hidden=True, aliases=["profile"])
+    async def _badge_profile(self, ctx, user:discord.Member ):
+        try:
+            if user:
+
+                badge_info = ""
+                badges = self._get_badges_from_trainer_profile(ctx.guild.id, user)
+                if badges:
+                    for badge_id in badges:
+                        badge = self._get_badge(ctx.guild.id, badge_id)
+                        if badge:
+                            # badge_fields.update({f"{badge['emoji']} {badge['name']} (#{badge['id']})" : f"{badge['description']}"})
+                            badge_info = f"{badge_info}\n{badge['emoji']} {badge['name']} (#{badge['id']})"
+
+            return await ctx.embed(title="Badge Profile", icon=user.avatar_url,
+                               description=f"{user.display_name} has earned the following badges:\n{badge_info}")
+
+        except Exception as error:
+            print(error)
+
 
     @_badge.command(pass_context=True, hidden=True, aliases=["help"])
     async def _badge_help(self, ctx):
@@ -170,6 +205,7 @@ class BadgeManager:
 
 
     @_badge.command(pass_context=True, hidden=True, aliases=["create"])
+    @commands.has_permissions(manage_guild=True)
     async def _badge_create(self, ctx, emoji, name, description=None):
 
         try:
@@ -201,6 +237,7 @@ class BadgeManager:
             print(error)
 
     @_badge.command(pass_context=True, hidden=True, aliases=["update"])
+    @commands.has_permissions(manage_guild=True)
     async def _badge_update(self, ctx, badge_id:int, emoji, name, description=None):
 
         try:
@@ -232,6 +269,7 @@ class BadgeManager:
 
 
     @_badge.command(pass_context=True, hidden=True, aliases=["delete"])
+    @commands.has_permissions(manage_guild=True)
     async def _badge_delete(self, ctx, badge_id:int ):
 
         try:
@@ -271,6 +309,89 @@ class BadgeManager:
                                 footer_icon=self.bot.get_guild(current_badge['guild_id']).icon_url, inline=True)
             else:
                 return await self.utilities._send_error_message(ctx.channel, f"no badge found with id {badge_id}.", ctx.author)
+        except Exception as error:
+            print(error)
+
+
+    def _add_badge_to_trainer_profile(self, guild_id, user, badge_id):
+        badge_list = self.bot.guild_dict[guild_id].setdefault('trainers',{}).setdefault(user.id, {}).setdefault('badges',[])
+        badge_list.append(badge_id)
+        self.bot.guild_dict[guild_id].setdefault('trainers', {}).setdefault(user.id, {})['badges']=badge_list
+
+
+    def _remove_badge_from_trainer_profile(self, guild_id, user, badge_id):
+
+        badge_list = self.bot.guild_dict[guild_id].setdefault('trainers',{}).setdefault(user.id, {}).setdefault('badges',[])
+        badge_list = [x for x in badge_list if x != badge_id]
+        self.bot.guild_dict[guild_id].setdefault('trainers',{}).setdefault(user.id, {})['badges'] = badge_list
+        print(self.bot.guild_dict[guild_id].setdefault('trainers',{}).setdefault(user.id, {})['badges'])
+
+    def _get_badges_from_trainer_profile(self, guild_id, user):
+        return self.bot.guild_dict[guild_id].setdefault('trainers',{}).setdefault(user.id, {}).setdefault('badges',[])
+
+    @_badge.command(pass_context=True, hidden=True, aliases=["revoke"])
+    async def _badge_revoke(self, ctx, badge_id:int, user:discord.Member):
+        try:
+            current_badge = self._get_badge(ctx.guild.id, badge_id)
+            emoji = self._get_emoji(current_badge['emoji'])
+            if current_badge:
+
+                if current_badge['id'] in self._get_badges_from_trainer_profile(ctx.guild.id, user):
+                    self._remove_badge_from_trainer_profile(ctx.guild.id, user, current_badge['id'])
+
+                    current_badge.update({"id": badge_id, "trainers_earned": current_badge["trainers_earned"] - 1,
+                                          "last_awarded_on": datetime.strptime(when, '%Y-%m-%d').date(), "active": True})
+
+                    self._save_badge(ctx.guild.id, current_badge)
+
+                    return await ctx.embed(
+                        title="Badge Revoked",
+                        thumbnail=emoji.url,
+                        icon=self.bot.user.avatar_url,
+                        description=f"**{current_badge['emoji']} {current_badge['name']}** has been revoked from **{user.display_name}**."
+                    )
+                else:
+                    await ctx.embed(
+                        title="Badge Revoke Failed",
+                        thumbnail=emoji.url,
+                        icon=self.bot.user.avatar_url,
+                        description=f"**{user.display_name}** doesn't have **{current_badge['emoji']} {current_badge['name']}**."
+                    )
+
+
+            else:
+                return await self.utilities._send_error_message(ctx.channel, f"no badge found with id {badge_id}.", ctx.author)
+
+            return
+        except Exception as error:
+            print(error)
+
+
+    @_badge.command(pass_context=True, hidden=True, aliases=["grant"])
+    async def _badge_grant(self, ctx, badge_id:int, user:discord.Member):
+        try:
+            current_badge = self._get_badge(ctx.guild.id, badge_id)
+            emoji = self._get_emoji(current_badge['emoji'])
+            if current_badge:
+                if current_badge['id'] in self._get_badges_from_trainer_profile(ctx.guild.id, user):
+                    return await self.utilities._send_error_message(ctx.channel, f"**{user.display_name}** already has the badge **{current_badge['emoji']} {current_badge['name']}**.",
+                                                                    ctx.author)
+                self._add_badge_to_trainer_profile(ctx.guild.id, user, badge_id)
+
+                current_badge.update({"id": badge_id, "trainers_earned" : current_badge["trainers_earned"] + 1, "last_awarded_on": datetime.today(), "active": True})
+
+                self._save_badge(ctx.guild.id, current_badge)
+
+                await ctx.embed(
+                    title="Badge Granted",
+                    thumbnail=emoji.url,
+                    icon=self.bot.user.avatar_url,
+                    description=f"**{user.display_name}** has been granted **{current_badge['emoji']} {current_badge['name']}**."
+                )
+            else:
+                return await self.utilities._send_error_message(ctx.channel, f"no badge found with id {badge_id}.", ctx.author)
+
+            return
         except Exception as error:
             print(error)
 
