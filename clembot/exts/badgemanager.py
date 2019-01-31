@@ -213,6 +213,8 @@ class BadgeManager:
             if emoji == ':medal:':
                 return await self.utilities._send_error_message(ctx.channel, f"only custom emojis owned by community can be used to create badges.", ctx.author)
 
+            print(f"trying to create a badge for {emoji}")
+
             if self._find_badge(ctx.guild.id, emoji.id, name):
                 return await self.utilities._send_error_message(ctx.channel, f"either the Emoji {emoji} or the Name **{name}** has been used for another badge.", ctx.author)
 
