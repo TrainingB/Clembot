@@ -3816,7 +3816,6 @@ async def __raid(ctx, pokemon, *, location:commands.clean_content(fix_channel_me
     Clembot's message will also include the type weaknesses of the boss.
 
     Finally, Clembot will create a separate channel for the raid report, for the purposes of organizing the raid."""
-    await ctx.embed(title="Test", fields=test_fields)
 
     try:
         if pokemon.isdigit():
