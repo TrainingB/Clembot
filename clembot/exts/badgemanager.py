@@ -168,7 +168,7 @@ class BadgeManager:
                         badge = self._get_badge(ctx.guild.id, badge_id)
                         if badge:
                             # badge_fields.update({f"{badge['emoji']} {badge['name']} (#{badge['id']})" : f"{badge['description']}"})
-                            badge_info = f"{badge_info}\n{badge['emoji']} {badge['name']} (#{badge['id']})"
+                            badge_info = f"{badge_info}\n{badge['emoji']} {badge['name']} *(#{badge['id']})*"
 
             return await ctx.embed(title="Badge Profile", icon=user.avatar_url,
                                description=f"{user.display_name} has earned the following badges:\n{badge_info}")
@@ -195,7 +195,7 @@ class BadgeManager:
             if badges:
                 for badge_key in badges.keys():
                     badge = badges[badge_key]
-                    badge_fields.update({f"{badge['emoji']} {badge['name']} (#{badge['id']})" : f"{badge['description']}"})
+                    badge_fields.update({f"{badge['emoji']} {badge['name']} *(#{badge['id']})*" : f"{badge['description']}"})
 
             await ctx.embed(title="Available Badges", description="The following badges are available from this community", fields=badge_fields)
 
@@ -230,7 +230,7 @@ class BadgeManager:
                             title="Badge Created",
                             thumbnail=emoji.url,
                             icon=self.bot.user.avatar_url,
-                            description=f"{current_badge['emoji']} {current_badge['name']} ({current_badge['id']}) has been added successfully."
+                            description=f"{current_badge['emoji']} {current_badge['name']} *(#{current_badge['id']})* has been added successfully."
                             )
 
         except Exception as error:
@@ -261,7 +261,7 @@ class BadgeManager:
                             title="Badge Updated",
                             thumbnail=emoji.url,
                             icon=self.bot.user.avatar_url,
-                            description=f"{current_badge['emoji']} {current_badge['name']} ({current_badge['id']}) has been updated successfully."
+                            description=f"{current_badge['emoji']} {current_badge['name']} *(#{current_badge['id']})* has been updated successfully."
                             )
 
         except Exception as error:
@@ -281,7 +281,7 @@ class BadgeManager:
                     title="Badge Removed",
                     thumbnail=emoji.url,
                     icon=self.bot.user.avatar_url,
-                    description=f"{removed_badge['emoji']} {removed_badge['name']} ({removed_badge['id']}) has been removed successfully."
+                    description=f"{removed_badge['emoji']} {removed_badge['name']} *({removed_badge['id']})* has been removed successfully."
                 )
 
         except Exception as error:
@@ -404,7 +404,7 @@ class BadgeManager:
                     description=f"**{user.display_name}** has been granted **{current_badge['emoji']} {current_badge['name']}**."
                 )
             else:
-                return await self.utilities._send_error_message(ctx.channel, f"no badge found with id {badge_id}.", ctx.author)
+                return await self.utilities._send_error_message(ctx.channel, f"no badge found with id #{badge_id}.", ctx.author)
 
             return
         except Exception as error:
