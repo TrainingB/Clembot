@@ -70,7 +70,7 @@ class Context(commands.Context):
 
     async def embed(self, title, description=None, plain_msg='', *,
                     msg_type=None, title_url=None, colour=None,
-                    icon=None, thumbnail='', image='', fields: dict = None,
+                    icon='', thumbnail='', image='', fields: dict = None,
                     footer=None, footer_icon=None, send=True, inline=False):
         """Send or build an embed using context details."""
 

@@ -30,7 +30,6 @@ from PIL import ImageEnhance
 import requests
 import aiohttp
 from io import BytesIO
-import checks
 import hastebin
 from operator import itemgetter
 from errors import custom_error_handling
@@ -52,6 +51,9 @@ from random import *
 import pytz
 from pytz import timezone
 import jsonpickle
+import checks
+
+
 import bingo_generator
 from WowBingo import WowBingo
 from exts.argparser import ArgParser
@@ -66,8 +68,11 @@ from exts.rostermanager import RosterManager
 from exts.configmanager import ConfigManager
 from exts.utilities import Utilities
 from exts.utilities import HandleAngularBrackets
+from exts.badgemanager import BadgeManager
+
 
 from clembot.bot import ClembotDiscordBot
+
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -187,6 +192,7 @@ def load_config():
     gymsql.set_db_name(SQLITE_DB)
     CACHE_VERSION = gymsql.find_clembot_config('cache-version')
     print(f"Cache version : {CACHE_VERSION}")
+
     # gymutil.load_gyms()
     bingo_template[347397406033182721] = "bingo_template_bur.png"
     bingo_template[329013844427014145] = "bingo_template_qcy.png"
@@ -206,7 +212,8 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 
 default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager',
                 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder',
-                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator','exts.reactionrolemanager']
+                'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator','exts.reactionrolemanager',
+                'exts.badgemanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities','exts.staticreactrolemanager']
 for ext in default_exts:
     try:
@@ -245,6 +252,7 @@ MyTradeManager = TradeManager(Clembot)
 MyAutoResponder = AutoResponder(Clembot)
 MyRosterManager = RosterManager(Clembot)
 MyConfigManager = ConfigManager(Clembot)
+MyBadgeManager = BadgeManager(Clembot)
 """
 
 ======================
@@ -973,7 +981,7 @@ async def channel_cleanup(loop=True):
                     # list channel for deletion from save data
                     dict_channel_delete.append(channelid)
                     logger.info(log_str + " - DOESN'T EXIST IN DISCORD")
-                # otherwise, if meowth can still see the channel in discord
+                # otherwise, if Clembot can still see the channel in discord
                 else:
                     logger.info(
                         ((log_str + ' (') + channel.name) + ') - EXISTS IN DISCORD')
@@ -1553,7 +1561,7 @@ async def prefix(ctx, prefix=None):
 @_get.command()
 @commands.has_permissions(manage_guild=True)
 async def perms(ctx, channel_id = None):
-    """Show Meowth's permissions for the guild and channel."""
+    """Show Clembot's permissions for the guild and channel."""
     channel = discord.utils.get(ctx.bot.get_all_channels(), id=channel_id)
     guild = channel.guild if channel else ctx.guild
     channel = channel or ctx.channel
@@ -3803,15 +3811,18 @@ async def __raid(ctx, pokemon, *, location:commands.clean_content(fix_channel_me
     """Report an ongoing raid or a raid egg.
 
     Usage: !raid <species/level> <location> [weather] [minutes]
-    Meowth will insert <location> into a
+    Clembot will insert <location> into a
     Google maps link and post the link to the same channel the report was made in.
-    Meowth's message will also include the type weaknesses of the boss.
+    Clembot's message will also include the type weaknesses of the boss.
 
-    Finally, Meowth will create a separate channel for the raid report, for the purposes of organizing the raid."""
+    Finally, Clembot will create a separate channel for the raid report, for the purposes of organizing the raid."""
+    await ctx.embed(title="Test", fields=test_fields)
+
     try:
         if pokemon.isdigit():
             await _raidegg(ctx.message)
         else:
+
             await _raid(ctx.message)
 
     except Exception as error:
@@ -4207,6 +4218,10 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
     except Exception as error:
         logger.info(error)
 
+
+@Clembot.command(pass_context=True, hidden=True, aliases= ["test"])
+async def __test(ctx): # guild, pkmn, weather=None):
+    logger.info(Clembot.emojis)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases= ["movesets"])
@@ -6727,7 +6742,7 @@ async def counters(ctx, *, args = None):
 
     Usage: !counters [pokemon] [weather] [user]
     See !help weather for acceptable values for weather.
-    If [user] is a valid Pokebattler user id, Meowth will simulate the Raid with that user's Pokebox.
+    If [user] is a valid Pokebattler user id, Clembot will simulate the Raid with that user's Pokebox.
     Only usable in raid channels. Uses current boss and weather by default.
     """
     channel = ctx.channel
@@ -7616,7 +7631,7 @@ async def duplicate(ctx):
     dupecount += 1
     rc_d['duplicate'] = dupecount
 
-    if dupecount >= 3:
+    if dupecount >= 2:
         rusure = await channel.send( _("Beep Beep! Are you sure you wish to remove this raid?"))
         res = await ask(rusure, channel, author.id)
         if res is not None:
@@ -7624,7 +7639,7 @@ async def duplicate(ctx):
                 await rusure.delete()
                 confirmation = await channel.send(_('Duplicate Report cancelled.'))
                 logger.info((('Duplicate Report - Cancelled - ' + channel.name) + ' - Report by ') + author.display_name)
-                dupecount = 2
+                dupecount = 1
                 guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
                 await asyncio.sleep(10)
                 await confirmation.delete()
@@ -7649,7 +7664,7 @@ async def duplicate(ctx):
             await rusure.delete()
             confirmation = await channel.send(_('Duplicate Report Timed Out.'))
             logger.info((('Duplicate Report - Timeout - ' + channel.name) + ' - Report by ') + author.display_name)
-            dupecount = 2
+            dupecount = 1
             guild_dict[guild.id]['raidchannel_dict'][channel.id]['duplicate'] = dupecount
             await asyncio.sleep(10)
             await confirmation.delete()
@@ -9159,8 +9174,10 @@ async def _new_raid_boss(ctx, level, pokemon_text):
     except Exception as error:
         print(error)
 
+
+
 @Clembot.command(pass_context=True, hidden=True, aliases=["raid-boss"])
-@checks.is_owner()
+@checks.is_trusted()
 async def raid_boss(ctx, level=None, *, newlist=None):
     try:
         'Edits or displays raid_info.json\n\n    Usage: !raid_json [level] [list]'
@@ -9289,7 +9306,7 @@ async def export_dict(ctx):
     Usage: !outputlog
     Output is a link to hastebin."""
     try:
-        logdata = json.dumps(guild_dict[ctx.guild.id]['trainers'])
+        logdata = json.dumps(guild_dict) # [ctx.guild.id]['trainers']
         # logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
         # print(json.dumps(guild_dict[ctx.guild.id]['trainers']))
         outputlog_message = await _send_message(ctx.message.channel, hastebin.post(logdata))

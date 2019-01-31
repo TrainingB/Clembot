@@ -2,6 +2,20 @@ from discord.ext import commands
 import discord.utils
 import errors
 
+def is_trusted_check(ctx):
+    print(ctx.author.id)
+    if is_dev_check(ctx) or is_owner_check(ctx):
+        return True
+    else:
+        author = ctx.author.id
+        dev_list = [289657500167438336, 339586795136090114]
+        return author in dev_list
+
+
+def is_trusted():
+    return commands.check(is_trusted_check)
+
+
 def is_owner_check(ctx):
     author = ctx.author.id
     owner = ctx.bot.config['master']
@@ -15,6 +29,7 @@ def is_dev_check(ctx):
     dev_list = [289657500167438336]
     return author in dev_list
 
+
 def is_dev_or_owner():
     def predicate(ctx):
         if is_dev_check(ctx) or is_owner_check(ctx):
@@ -22,6 +37,7 @@ def is_dev_or_owner():
         else:
             return False
     return commands.check(predicate)
+
 def check_permissions(ctx, perms):
     if (not perms):
         return False
