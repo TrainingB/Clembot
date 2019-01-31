@@ -203,36 +203,14 @@ class BadgeManager:
         except Exception as error:
             print (error)
 
-    @_badge.command(pass_context=True, hidden=True, aliases=["test"])
-    @commands.has_permissions(manage_guild=True)
-    async def _badge_test(self, ctx, emoji, guild_id:int):
-        try:
-            emoji = self._get_emoji(emoji)
-            if emoji == ':medal:':
-                return await self.utilities._send_error_message(ctx.channel, f"only custom emojis owned by community can be used to create badges.", ctx.author)
-
-            await ctx.embed(title="Emoji Found", description=f"Emoji is available for the bot: {emoji}")
-
-            guild = self.bot.get_guild(guild_id)
-            for emoji in guild.emojis:
-                print(emoji)
-                await ctx.embed(title="Emoji Found", description=f"Emoji is available for the bot: {emoji}")
-
-        except Exception as error:
-            await ctx.embed(title="Error Occurred",description=f"{error}")
-
-
-
     @_badge.command(pass_context=True, hidden=True, aliases=["create"])
     @commands.has_permissions(manage_guild=True)
     async def _badge_create(self, ctx, emoji, name, description=None):
 
         try:
             emoji = self._get_emoji(emoji)
-            if emoji == ':medal:':
+            if not emoji or emoji == ':medal:':
                 return await self.utilities._send_error_message(ctx.channel, f"only custom emojis owned by community can be used to create badges.", ctx.author)
-
-            print(f"trying to create a badge for {emoji}")
 
             if self._find_badge(ctx.guild.id, emoji.id, name):
                 return await self.utilities._send_error_message(ctx.channel, f"either the Emoji {emoji} or the Name **{name}** has been used for another badge.", ctx.author)
