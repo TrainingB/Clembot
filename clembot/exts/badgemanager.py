@@ -338,9 +338,9 @@ class BadgeManager:
 
                 if current_badge['id'] in self._get_badges_from_trainer_profile(ctx.guild.id, user):
                     self._remove_badge_from_trainer_profile(ctx.guild.id, user, current_badge['id'])
-
+                    current_date = self._fetch_current_date()
                     current_badge.update({"id": badge_id, "trainers_earned": current_badge["trainers_earned"] - 1,
-                                          "last_awarded_on": datetime.strptime(when, '%Y-%m-%d').date(), "active": True})
+                                          "last_awarded_on": current_date,"active": True})
 
                     self._save_badge(ctx.guild.id, current_badge)
 
@@ -355,6 +355,7 @@ class BadgeManager:
                         title="Badge Revoke Failed",
                         thumbnail=emoji.url,
                         icon=self.bot.user.avatar_url,
+                        colour=discord.Color.red(),
                         description=f"**{user.display_name}** doesn't have **{current_badge['emoji']} {current_badge['name']}**."
                     )
 
@@ -366,19 +367,33 @@ class BadgeManager:
         except Exception as error:
             print(error)
 
+    def _fetch_current_date(self):
+
+        current_date = datetime.today().strftime('%Y-%m-%d')
+
+        return current_date
+
 
     @_badge.command(pass_context=True, hidden=True, aliases=["grant"])
-    async def _badge_grant(self, ctx, badge_id:int, user:discord.Member):
+    async def _badge_grant(self, ctx, badge_id:int, user:discord.Member, channel: discord.TextChannel = None):
         try:
             current_badge = self._get_badge(ctx.guild.id, badge_id)
             emoji = self._get_emoji(current_badge['emoji'])
             if current_badge:
                 if current_badge['id'] in self._get_badges_from_trainer_profile(ctx.guild.id, user):
-                    return await self.utilities._send_error_message(ctx.channel, f"**{user.display_name}** already has the badge **{current_badge['emoji']} {current_badge['name']}**.",
-                                                                    ctx.author)
-                self._add_badge_to_trainer_profile(ctx.guild.id, user, badge_id)
+                    return await ctx.embed(
+                        title="Badge Grant Failed",
+                        thumbnail=emoji.url,
+                        icon=self.bot.user.avatar_url,
+                        colour=discord.Color.red(),
+                        description=f"**{user.display_name}** already has the badge **{current_badge['emoji']} {current_badge['name']}**."
+                    )
 
-                current_badge.update({"id": badge_id, "trainers_earned" : current_badge["trainers_earned"] + 1, "last_awarded_on": datetime.today(), "active": True})
+                self._add_badge_to_trainer_profile(ctx.guild.id, user, badge_id)
+                current_date = self._fetch_current_date()
+                current_badge.update({"id": badge_id, "trainers_earned": current_badge["trainers_earned"] + 1,
+                                      "last_awarded_on": current_date,
+                                      "active": True})
 
                 self._save_badge(ctx.guild.id, current_badge)
 
