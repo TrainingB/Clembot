@@ -388,22 +388,20 @@ class BadgeManager:
     @_badge.command(pass_context=True, hidden=True, aliases=["grant"])
     @checks.guildowner_or_permissions(manage_guild=True)
     async def _badge_grant(self, ctx, badge_id:int, user:discord.Member):
-        try:
-
-            for user in ctx.message.mentions:
-
+        for user in ctx.message.mentions:
+            try:
                 current_badge = self._get_badge(ctx.guild.id, badge_id)
                 emoji = self._get_emoji(current_badge['emoji'])
                 if current_badge:
                     if current_badge['id'] in self._get_badges_from_trainer_profile(ctx.guild.id, user):
-                        return await ctx.embed(
+                        await ctx.embed(
                             title="Badge Grant Failed",
                             thumbnail=emoji.url,
                             icon=self.bot.user.avatar_url,
                             colour=discord.Color.red(),
                             description=f"**{user.display_name}** already has the badge **{current_badge['emoji']} {current_badge['name']}**."
                         )
-
+                        continue
                     self._add_badge_to_trainer_profile(ctx.guild.id, user, badge_id)
                     current_date = self._fetch_current_date()
                     current_badge.update({"id": badge_id, "trainers_earned": current_badge["trainers_earned"] + 1,
@@ -419,11 +417,10 @@ class BadgeManager:
                         description=f"**{user.display_name}** has been granted **{current_badge['emoji']} {current_badge['name']}**."
                     )
                 else:
-                    return await self.utilities._send_error_message(ctx.channel, f"no badge found with id #{badge_id}.", ctx.author)
+                    await self.utilities._send_error_message(ctx.channel, f"no badge found with id #{badge_id}.", ctx.author)
 
-            return
-        except Exception as error:
-            print(error)
+            except Exception as error:
+                print(error)
 
 
 def setup(bot):
