@@ -387,36 +387,39 @@ class BadgeManager:
 
     @_badge.command(pass_context=True, hidden=True, aliases=["grant"])
     @checks.guildowner_or_permissions(manage_guild=True)
-    async def _badge_grant(self, ctx, badge_id:int, user:discord.Member, channel: discord.TextChannel = None):
+    async def _badge_grant(self, ctx, badge_id:int, user:discord.Member):
         try:
-            current_badge = self._get_badge(ctx.guild.id, badge_id)
-            emoji = self._get_emoji(current_badge['emoji'])
-            if current_badge:
-                if current_badge['id'] in self._get_badges_from_trainer_profile(ctx.guild.id, user):
-                    return await ctx.embed(
-                        title="Badge Grant Failed",
+
+            for user in ctx.message.mentions:
+
+                current_badge = self._get_badge(ctx.guild.id, badge_id)
+                emoji = self._get_emoji(current_badge['emoji'])
+                if current_badge:
+                    if current_badge['id'] in self._get_badges_from_trainer_profile(ctx.guild.id, user):
+                        return await ctx.embed(
+                            title="Badge Grant Failed",
+                            thumbnail=emoji.url,
+                            icon=self.bot.user.avatar_url,
+                            colour=discord.Color.red(),
+                            description=f"**{user.display_name}** already has the badge **{current_badge['emoji']} {current_badge['name']}**."
+                        )
+
+                    self._add_badge_to_trainer_profile(ctx.guild.id, user, badge_id)
+                    current_date = self._fetch_current_date()
+                    current_badge.update({"id": badge_id, "trainers_earned": current_badge["trainers_earned"] + 1,
+                                          "last_awarded_on": current_date,
+                                          "active": True})
+
+                    self._save_badge(ctx.guild.id, current_badge)
+
+                    await ctx.embed(
+                        title="Badge Granted",
                         thumbnail=emoji.url,
                         icon=self.bot.user.avatar_url,
-                        colour=discord.Color.red(),
-                        description=f"**{user.display_name}** already has the badge **{current_badge['emoji']} {current_badge['name']}**."
+                        description=f"**{user.display_name}** has been granted **{current_badge['emoji']} {current_badge['name']}**."
                     )
-
-                self._add_badge_to_trainer_profile(ctx.guild.id, user, badge_id)
-                current_date = self._fetch_current_date()
-                current_badge.update({"id": badge_id, "trainers_earned": current_badge["trainers_earned"] + 1,
-                                      "last_awarded_on": current_date,
-                                      "active": True})
-
-                self._save_badge(ctx.guild.id, current_badge)
-
-                await ctx.embed(
-                    title="Badge Granted",
-                    thumbnail=emoji.url,
-                    icon=self.bot.user.avatar_url,
-                    description=f"**{user.display_name}** has been granted **{current_badge['emoji']} {current_badge['name']}**."
-                )
-            else:
-                return await self.utilities._send_error_message(ctx.channel, f"no badge found with id #{badge_id}.", ctx.author)
+                else:
+                    return await self.utilities._send_error_message(ctx.channel, f"no badge found with id #{badge_id}.", ctx.author)
 
             return
         except Exception as error:
