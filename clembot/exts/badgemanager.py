@@ -104,12 +104,8 @@ class BadgeManager:
 
 
     beep_badge = ("""**{member}** here are the commands for badge management.
-
-**!badge create emoji name description** - to create a badge from custom emoji
-
 **!badge info badge_id** - to get the badge information
-**!badge update badge_id emoji name description** - to update a badge details
-
+**!badge profile @user** - to list badges for a user
 
 """)
 
@@ -158,18 +154,18 @@ class BadgeManager:
             print(error)
 
     @_badge.command(pass_context=True, hidden=True, aliases=["profile"])
-    async def _badge_profile(self, ctx, user:discord.Member ):
+    async def _badge_profile(self, ctx, user:discord.Member = None ):
         try:
-            if user:
-
-                badge_info = ""
-                badges = self._get_badges_from_trainer_profile(ctx.guild.id, user)
-                if badges:
-                    for badge_id in badges:
-                        badge = self._get_badge(ctx.guild.id, badge_id)
-                        if badge:
-                            # badge_fields.update({f"{badge['emoji']} {badge['name']} (#{badge['id']})" : f"{badge['description']}"})
-                            badge_info = f"{badge_info}\n{badge['emoji']} {badge['name']} *(#{badge['id']})*"
+            if not user:
+                user = ctx.author
+            badge_info = ""
+            badges = self._get_badges_from_trainer_profile(ctx.guild.id, user)
+            if badges:
+                for badge_id in badges:
+                    badge = self._get_badge(ctx.guild.id, badge_id)
+                    if badge:
+                        # badge_fields.update({f"{badge['emoji']} {badge['name']} (#{badge['id']})" : f"{badge['description']}"})
+                        badge_info = f"{badge_info}\n{badge['emoji']} {badge['name']} *(#{badge['id']})*"
 
             return await ctx.embed(title="Badge Profile", icon=user.avatar_url,
                                description=f"{user.display_name} has earned the following badges:\n{badge_info}")
@@ -203,8 +199,23 @@ class BadgeManager:
         except Exception as error:
             print (error)
 
+    @_badge.command(pass_context=True, hidden=True, aliases=["test"])
+    @checks.guildowner_or_permissions(manage_guild=True)
+    async def _badge_test(self, ctx, emoji):
+        try:
+            emoji = self._get_emoji(emoji)
+            if not emoji or emoji == ':medal:':
+                return await self.utilities._send_error_message(ctx.channel, f"only custom emojis owned by community can be used to create badges.", ctx.author)
+
+            await ctx.embed(title="Emoji Found", description=f"Emoji is available for the bot: {emoji}")
+
+        except Exception as error:
+            await ctx.embed(title="Error Occurred",description=f"{error}")
+
+
+
     @_badge.command(pass_context=True, hidden=True, aliases=["create"])
-    @commands.has_permissions(manage_guild=True)
+    @checks.guildowner_or_permissions(manage_guild=True)
     async def _badge_create(self, ctx, emoji, name, description=None):
 
         try:
@@ -236,12 +247,12 @@ class BadgeManager:
             print(error)
 
     @_badge.command(pass_context=True, hidden=True, aliases=["update"])
-    @commands.has_permissions(manage_guild=True)
+    @checks.guildowner_or_permissions(manage_guild=True)
     async def _badge_update(self, ctx, badge_id:int, emoji, name, description=None):
 
         try:
             emoji = self._get_emoji(emoji)
-            if emoji == ':medal:':
+            if not emoji or emoji == ':medal:':
                 return await self.utilities._send_error_message(ctx.channel, f"only custom emojis owned by community can be used to create badges.", ctx.author)
 
             existing_badge = self._find_badge(ctx.guild.id, emoji.id, name)
@@ -268,7 +279,7 @@ class BadgeManager:
 
 
     @_badge.command(pass_context=True, hidden=True, aliases=["delete"])
-    @commands.has_permissions(manage_guild=True)
+    @checks.guildowner_or_permissions(manage_guild=True)
     async def _badge_delete(self, ctx, badge_id:int ):
 
         try:
@@ -329,6 +340,7 @@ class BadgeManager:
         return self.bot.guild_dict[guild_id].setdefault('trainers',{}).setdefault(user.id, {}).setdefault('badges',[])
 
     @_badge.command(pass_context=True, hidden=True, aliases=["revoke"])
+    @checks.guildowner_or_permissions(manage_guild=True)
     async def _badge_revoke(self, ctx, badge_id:int, user:discord.Member):
         try:
             current_badge = self._get_badge(ctx.guild.id, badge_id)
@@ -374,6 +386,7 @@ class BadgeManager:
 
 
     @_badge.command(pass_context=True, hidden=True, aliases=["grant"])
+    @checks.guildowner_or_permissions(manage_guild=True)
     async def _badge_grant(self, ctx, badge_id:int, user:discord.Member, channel: discord.TextChannel = None):
         try:
             current_badge = self._get_badge(ctx.guild.id, badge_id)
