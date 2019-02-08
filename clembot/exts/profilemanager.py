@@ -284,6 +284,11 @@ class ProfileManager:
             print(error)
 
 
+    @_profile.command(aliases=["init"])
+    async def _profile_init(self, ctx, ign=None):
+        ctx.bot.guild_dict[ctx.guild.id].setdefault('trainers', {})
+        await self.utilities._send_message(ctx, f"profiles have been initialized!", user=ctx.author)
+
     @_profile.command(aliases=["ign"])
     async def _profile_ign(self, ctx, ign=None):
 
