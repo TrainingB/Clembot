@@ -65,9 +65,15 @@ class ReactionRoleManager:
 
     toggle_option = ['single-use', 'exclusive' , 'remove-roles', 'display-rsvp', 'manage-roles']
 
+    beep_mini_event = ("""**{member}** here are the commands for Mini Event management.
 
-
-
+    **!mini-event create title description #channel** - send an embed post for mini-event in #channel.
+    
+    
+    **!mini-event edit message_id new_title new_description image_url** - update the message.
+    **!mini-event update-fields name value [name value]** - updates the message with fields with name value pair.
+    **!mini-event remove-fields name** - to remove fields from the message.
+        """)
 
 
 
@@ -96,18 +102,20 @@ example:
     async def _fetch_channel_message_from_reference(self, reference_id, guild_id):
         try:
             if reference_id not in self.bot.guild_dict[guild_id].setdefault('reaction-roles', {}).keys():
-                raise ValueError(f":id: {reference_id} is not registered for Reaction Role.")
+                reference_id = self.utilities._uuid(reference_id)
+                if reference_id not in self.bot.guild_dict[guild_id].setdefault('reaction-roles', {}).keys():
+                    raise ValueError(f":id: {reference_id} is not registered for Reaction Role.")
                 # await self.utilities._send_error_message(ctx.channel, f" :id: {reference_id} is not registered for Reaction Role.", ctx.author)
-            else:
-                static_react_role_configuration = self.bot.guild_dict[guild_id].setdefault('reaction-roles',{}).setdefault(reference_id,{})
 
-                message_id = static_react_role_configuration['message_master']['message_id']
-                channel_id = static_react_role_configuration['message_master']['channel_id']
+            static_react_role_configuration = self.bot.guild_dict[guild_id].setdefault('reaction-roles',{}).setdefault(reference_id,{})
 
-                channel = self.bot.get_channel(id=channel_id)
-                message = await channel.get_message(id=message_id)
+            message_id = static_react_role_configuration['message_master']['message_id']
+            channel_id = static_react_role_configuration['message_master']['channel_id']
 
-                return (channel, message)
+            channel = self.bot.get_channel(id=channel_id)
+            message = await channel.get_message(id=message_id)
+
+            return (channel, message)
         except Exception as error:
             raise ValueError(error)
 
@@ -156,30 +164,6 @@ example:
     async def _league_register(self, ctx, title, channel: discord.TextChannel = None):
         await self.utilities._send_message(ctx.channel, f"League has been created!")
 
-
-    @commands.command(pass_context=True, hidden=True, aliases=["meetup"])
-    async def _meetup(self, ctx, title, body=None, channel: discord.TextChannel=None ):
-
-        if not channel:
-            channel = ctx.channel
-
-        meetup_message = await self.__send_message(channel, title, body)
-
-        if meetup_message:
-            message_uuid = self.utilities._uuid(meetup_message.id)
-            message_master = {
-                "message_id": message_id,
-                "channel_id": channel.id
-            }
-            options = {
-                "exclusive": False,
-                "remove-roles": False,
-                "display-rsvp": True
-            }
-            ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(message_uuid, {})['message_master'] = message_master
-            ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(message_uuid, {})['options'] = options
-
-
     @commands.command(pass_context=True, hidden=True, aliases=["say"])
     async def _say(self, ctx, title, body=None, channel: discord.TextChannel=None ):
 
@@ -187,9 +171,6 @@ example:
             channel = ctx.channel
 
         return await self.__send_message(channel, title, body)
-
-
-
 
     async def __send_message(self, channel, title, body=None):
 
@@ -205,12 +186,18 @@ example:
 
 
 
-
-
     @commands.group(pass_context=True, hidden=True, aliases=["reaction-role", "rtr"])
     async def _reaction_role(self, ctx):
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+
+    @commands.group(pass_context=True, hidden=True, aliases=["mini-event", "me"])
+    async def _mini_event(self, ctx):
+
+        if ctx.invoked_subcommand is None:
+            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+
+
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["purge"])
     @checks.is_owner()
@@ -221,6 +208,15 @@ example:
     @checks.is_owner()
     async def _reaction_role_status(self, ctx, reference_id):
         await self.utilities._send_message(ctx.channel,f"```{json.dumps(ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).get(reference_id), indent=2)}```")
+
+    @_reaction_role.command(pass_context=True, hidden=True, aliases=["reset"])
+    @checks.is_owner()
+    async def _reaction_role_reset(self, ctx, reference_id):
+        self.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(reference_id, {}).pop('emoji_role_map')
+        self.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(reference_id, {}).pop('rsvp')
+        self.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(reference_id, {}).pop('reaction-group')
+        await self.utilities._send_message(ctx.channel,f"```{json.dumps(ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).get(reference_id), indent=2)}```")
+
 
 
     def __option_status(self, react_role_dict, option, default_value):
@@ -317,12 +313,21 @@ example:
     async def _reaction_role_add_group(self, ctx, reference_id, emoji, group):
         await self._reaction_role_add_reaction_pair(ctx, reference_id, emoji, group, 'group')
 
-
-
-    @_reaction_role.command(pass_context=True, hidden=True, aliases=["remove-role"])
+    @_reaction_role.command(pass_context=True, hidden=True, aliases=["remove-role", "rr"])
     async def _reaction_role_remove_role(self, ctx, reference_id, emoji):
+        await self._reaction_role_remove_reaction_pair(ctx, reference_id, emoji, 'role')
 
+    @_reaction_role.command(pass_context=True, hidden=True, aliases=["remove-group", "rg"])
+    async def _reaction_role_remove_group(self, ctx, reference_id, emoji):
+        await self._reaction_role_remove_reaction_pair(ctx, reference_id, emoji, 'group')
+
+
+    async def _reaction_role_remove_reaction_pair(self, ctx, reference_id, emoji, tracking_type):
         try:
+
+            tracking_group = 'emoji_role_map'
+            if tracking_type == 'group':
+                tracking_group = 'reaction-group'
 
             channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
             if not message:
@@ -335,7 +340,7 @@ example:
                     async for user_reacted in reaction.users():
                         await message.remove_reaction(self.utilities._normalize(emoji), user_reacted)
 
-            del ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{})[message_id]['emoji_role_map'][emoji_id]
+            ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{})[reference_id][tracking_group].pop(emoji_id, None)
 
             await self.utilities._send_embed(ctx.channel, f"Reaction has been removed successfully. `{message.id}`", "Reaction Removed",
                                              self._generate_addtional_fields(reference_id, channel.name, message.id, emoji, None))
@@ -344,39 +349,34 @@ example:
             print(error)
 
 
-
-
-
-    @_reaction_role.command(pass_context=True, hidden=True, aliases=["toggle"])
-    async def _reaction_role_toggle(self, ctx, reference_id, option):
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["toggle"])
+    async def _mini_event_toggle(self, ctx, reference_id, *options):
         try:
-            if option in self.toggle_option:
+            if reference_id not in ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).keys():
+                await self.utilities._send_error_message(ctx.channel, f" :id: {reference_id} is not registered for Reaction Role.", ctx.author)
 
-                if reference_id not in ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{}).keys():
-                    await self.utilities._send_error_message(ctx.channel, f" :id: {reference_id} is not registered for Reaction Role.", ctx.author)
-                else:
+            for option in options:
+                if option in self.toggle_option:
                     static_react_role_configuration = ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles',{}).setdefault(reference_id, {})
-
                     existing_value = static_react_role_configuration.get('options',self.options).get(option)
-
                     ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(reference_id, {}).setdefault('options', self.options)[option] = not existing_value
-
                     await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(reference_id, option=option, value=not existing_value))
-            else:
-                await self.utilities._send_error_message(ctx.channel, f" available toggle options are: **{', '.join(list(self.options.keys()))}**", ctx.author)
-
+                else:
+                    await self.utilities._send_error_message(ctx.channel, f" available toggle options are: **{', '.join(list(self.options.keys()))}**", ctx.author)
 
             if option == 'display-rsvp':
-                await self.__refresh_embed(ctx.guild.id, ctx.channel, reference_id)
+                await self.__refresh_embed_fields(ctx.guild.id, ctx.channel, reference_id)
 
         except Exception as error:
             print(error)
 
-    @commands.group(pass_context=True, hidden=True, aliases=["mini-event"])
-    async def _mini_event(self, ctx):
 
-        if ctx.invoked_subcommand is None:
-            await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["help"])
+    async def _mini_event_help(self, ctx):
+
+        footer = "Tip: < > denotes required and [ ] denotes optional arguments."
+        await ctx.embed(title="Help - Mini Event Management", description=self.beep_mini_event.format(member=ctx.message.author.display_name), footer=footer)
+
 
     @_mini_event.command(pass_context=True, hidden=True, aliases=["create"])
     async def _mini_event_create(self, ctx, title, body=None, channel: discord.TextChannel = None):
@@ -395,7 +395,7 @@ example:
 
         message_uuid = self.__register_message(message, channel, mini_event_options)
 
-        await self.__refresh_embed(message.guild.id, channel, message_uuid)
+        await self.__refresh_embed_fields(message.guild.id, channel, message_uuid)
 
         return message
 
@@ -424,18 +424,53 @@ example:
         except Exception as error:
             await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
 
-    @_mini_event.command(pass_context=True, hidden=True, aliases=["add-field"])
-    async def _reaction_role_add_field(self, ctx, reference_id, name, value):
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["update-fields", "add-fields"])
+    async def _mini_event_update_fields(self, ctx, reference_id, *args):
         try:
+            args_dict = dict(zip(args[::2], args[1::2]))
             channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
-            message.embeds[0].add_field(name=name, value=value)
-            await message.edit(embed=message.embeds[0])
 
+            for index, field in enumerate(list(message.embeds[0].fields), start=0):
+                if field.name in list(args_dict.keys()):
+                    message.embeds[0].set_field_at(index, name=field.name, value=args_dict[field.name], inline=False)
+                    args_dict.pop(field.name)
+
+            for key in list(args_dict.keys()):
+                message.embeds[0].add_field(name=key , value=args_dict[key])
+
+            await message.edit(embed=message.embeds[0])
+            await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
         except Exception as error:
             await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
 
-    @_reaction_role.command(pass_context=True, hidden=True, aliases=["edit"])
-    async def _reaction_role_edit(self, ctx, reference_id, title=None, body=None, url=None ):
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["remove-fields"])
+    async def _mini_event_remove_fields(self, ctx, reference_id, *args):
+        try:
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
+
+            for index, field in enumerate(list(message.embeds[0].fields), start=0):
+                if field.name in list(args):
+                    message.embeds[0].remove_field(index)
+
+            await message.edit(embed=message.embeds[0])
+            await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
+        except Exception as error:
+            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
+
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["add-image"])
+    async def _mini_event_add_image(self, ctx, reference_id, url):
+        try:
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
+            if not url:
+                url = message.embeds[0].url
+            elif url == "None":
+                url = None
+            await self.__refresh_embed(ctx.guild.id, channel, reference_id, url=url)
+        except Exception as error:
+            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
+
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["edit"])
+    async def _mini_event_edit(self, ctx, reference_id, title=None, body=None, url=None ):
         try:
             channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
 
@@ -449,12 +484,42 @@ example:
                 url = None
 
             await self.__refresh_embed(ctx.guild.id, channel, reference_id, title, body, url)
-
+            await self.__refresh_embed_fields(ctx.guild.id, channel, reference_id)
             await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
         except Exception as error:
             await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
 
+
+    async def __refresh_embed_fields(self, guild_id, original_channel, reference_id):
+        print(f"__refresh_embed_fields({reference_id})")
+        try:
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, guild_id)
+
+            static_react_role_configuration = self.bot.guild_dict[guild_id].setdefault('reaction-roles', {}).setdefault(reference_id, {})
+            if static_react_role_configuration['options'].get('display-rsvp', False) == True:
+                existing_fields = message.embeds[0].fields
+
+                rsvp_roles_dict = dict(static_react_role_configuration['rsvp'])
+
+                for index, field in enumerate(list(message.embeds[0].fields), start=0):
+                    if field.name in list(rsvp_roles_dict.keys()):
+                        if rsvp_roles_dict[field.name].__len__() > 0:
+                            message.embeds[0].set_field_at(index, name=field.name, value=f'```{", ".join(rsvp_roles_dict[field.name])}```', inline=False)
+                        else:
+                            message.embeds[0].remove_field(index)
+                        rsvp_roles_dict.pop(field.name)
+
+                for key in list(rsvp_roles_dict.keys()):
+                    if rsvp_roles_dict[key].__len__() > 0:
+                        message.embeds[0].add_field(name=key, value=f'```{", ".join(rsvp_roles_dict[key])}```', inline=False)
+            message.embeds[0].set_footer(text=f"Managed by ID: [{reference_id}]")
+            await message.edit(embed=message.embeds[0])
+        except Exception as error:
+            print(error)
+
+
     async def __refresh_embed(self, guild_id, original_channel, message_or_reference_id, title=None, body=None, url=None ):
+        print(f"__refresh_embed({message_or_reference_id})")
         try:
             if message_or_reference_id.isdigit():
                 reference_id = self.utilities._uuid(message_or_reference_id)
@@ -474,32 +539,12 @@ example:
             elif url == "None":
                 url = None
 
-
             new_embed = discord.Embed(description=body, title=title, colour=message.embeds[0].colour.value)
             if url:
                 new_embed.set_image(url=url)
 
             new_embed.set_footer(text=f"Managed by ID: [{reference_id}]")
-
-            #new_embed.set_footer(text=f"Reported by @{message.author.display_name} | Managed by ID: [{reference_id}]" , icon_url=f"https://cdn.discordapp.com/avatars/{message.author.id}/{message.author.avatar}.jpg?size=32")
-            static_react_role_configuration = self.bot.guild_dict[guild_id].setdefault('reaction-roles',{}).setdefault(reference_id,{})
-            if static_react_role_configuration['options'].get('display-rsvp', False) == True:
-                existing_fields = message.embeds[0].fields
-                new_embed.clear_fields()
-                # copy non-role field over
-                for field in existing_fields:
-                    if field.name.lower() not in static_react_role_configuration['rsvp'].keys():
-                        new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
-                # add role fields now
-                for role_name in static_react_role_configuration['rsvp'].keys():
-                    list_of_users = static_react_role_configuration["rsvp"][role_name]
-                    if list_of_users.__len__() > 0 :
-                        new_embed.add_field(name=str(role_name).capitalize(), value=f'```{", ".join(static_react_role_configuration["rsvp"][role_name])}```', inline=False)
-            else:
-                for field in message.embeds[0].fields:
-                    new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
             await message.edit(embed=new_embed)
-
         except Exception as error:
             print(error)
 
@@ -508,7 +553,7 @@ example:
     @checks.is_owner()
     async def _reaction_role_refresh(self, ctx, message_or_reference_id):
 
-        await self.__refresh_embed(ctx, ctx.guild.id, ctx.channel, message_or_reference_id)
+        await self.__refresh_embed_fields(ctx, ctx.guild.id, ctx.channel, message_or_reference_id)
         await ctx.message.delete()
 
 
@@ -563,8 +608,8 @@ example:
                 else:
                     if user.display_name in static_react_role_dict.setdefault('rsvp', {}).setdefault(group_for_reaction, []):
                         static_react_role_dict['rsvp'].setdefault(group_for_reaction, []).remove(user.display_name)
-
-                await self.__refresh_embed(guild.id, channel, reference_id)
+                print(static_react_role_dict['rsvp'])
+                await self.__refresh_embed_fields(guild.id, channel, reference_id)
 
             if not is_manage_roles:
                 return

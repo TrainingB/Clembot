@@ -4218,9 +4218,6 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
         logger.info(error)
 
 
-@Clembot.command(pass_context=True, hidden=True, aliases= ["test"])
-async def __test(ctx): # guild, pkmn, weather=None):
-    logger.info(Clembot.emojis)
 
 
 @Clembot.command(pass_context=True, hidden=True, aliases= ["movesets"])
@@ -5790,6 +5787,79 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         logger.info(error)
     event_loop.create_task(expiry_check(channel))
 
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["change-raid"])
+@checks.raidset()
+async def _changeraid(ctx, newraid):
+    """Changes raid boss.
+
+    Usage: !changeraid <new pokemon or level>
+    Only usable by admins."""
+
+    try:
+        message = ctx.message
+        guild = message.guild
+        channel = message.channel
+        if (not channel) or (channel.id not in guild_dict[guild.id]['raidchannel_dict']):
+            await channel.send(_('The channel you entered is not a raid channel.'))
+            return
+        if newraid.isdigit():
+            raid_channel_name = _('level-{egg_level}-egg-').format(egg_level=newraid)
+            raid_channel_name += sanitize_channel_name(guild_dict[guild.id]['raidchannel_dict'][channel.id]['address'])
+            guild_dict[guild.id]['raidchannel_dict'][channel.id]['egglevel'] = newraid
+            guild_dict[guild.id]['raidchannel_dict'][channel.id]['pokemon'] = ''
+            changefrom = guild_dict[guild.id]['raidchannel_dict'][channel.id]['type']
+            guild_dict[guild.id]['raidchannel_dict'][channel.id]['type'] = 'egg'
+            egg_img = raid_info['raid_eggs'][newraid]['egg_img']
+            boss_list = []
+            for p in raid_info['raid_eggs'][newraid]['pokemon']:
+                p_name = get_name(p).title()
+                p_type = get_type(message.guild, p)
+                boss_list.append((((p_name + ' (') + str(p)) + ') ') + ''.join(p_type))
+            raid_img_url = get_egg_image_url(newraid)
+            raid_message = await channel.get_message(guild_dict[guild.id]['raidchannel_dict'][channel.id]['raidmessage'])
+            report_channel = Clembot.get_channel(raid_message.raw_channel_mentions[0])
+            report_message = await report_channel.get_message(guild_dict[guild.id]['raidchannel_dict'][channel.id]['raidreport'])
+            oldembed = raid_message.embeds[0]
+            raid_embed = discord.Embed(title=oldembed.title, url=oldembed.url, colour=message.guild.me.colour)
+            if len(raid_info['raid_eggs'][newraid]['pokemon']) > 1:
+                raid_embed.add_field(name=_('**Possible Bosses:**'), value=_('{bosslist1}').format(bosslist1='\n'.join(boss_list[::2])), inline=True)
+                raid_embed.add_field(name='\u200b', value=_('{bosslist2}').format(bosslist2='\n'.join(boss_list[1::2])), inline=True)
+            else:
+                raid_embed.add_field(name=_('**Possible Bosses:**'), value=_('{bosslist}').format(bosslist=''.join(boss_list)), inline=True)
+                raid_embed.add_field(name='\u200b', value='\u200b', inline=True)
+            # raid_embed.add_field(name=oldembed.fields[2].name, value=oldembed.fields[2].value, inline=True)
+            # raid_embed.add_field(name=oldembed.fields[3].name, value=oldembed.fields[3].value, inline=True)
+            raid_embed.set_footer(text=oldembed.footer.text, icon_url=oldembed.footer.icon_url)
+            raid_embed.set_thumbnail(url=raid_img_url)
+            for field in oldembed.fields:
+                t = _('team')
+                s = _('status')
+                if (t in field.name.lower()) or (s in field.name.lower()):
+                    raid_embed.add_field(name=field.name, value=field.value, inline=field.inline)
+            if changefrom == "egg":
+                raid_message.content = re.sub(_('level\s\d'), _('Level {}').format(newraid), raid_message.content, flags=re.IGNORECASE)
+                report_message.content = re.sub(_('level\s\d'), _('Level {}').format(newraid), report_message.content, flags=re.IGNORECASE)
+            else:
+                raid_message.content = re.sub(_('Meowth!\s.*\sraid\sreported'),_('Meowth! Level {} reported').format(newraid), raid_message.content, flags=re.IGNORECASE)
+                report_message.content = re.sub(_('Meowth!\s.*\sraid\sreported'),_('Meowth! Level {}').format(newraid), report_message.content, flags=re.IGNORECASE)
+            await raid_message.edit(new_content=raid_message.content, embed=raid_embed, content=raid_message.content)
+            try:
+                await report_message.edit(new_content=report_message.content, embed=raid_embed, content=report_message.content)
+            except (discord.errors.NotFound, AttributeError):
+                pass
+            await channel.edit(name=raid_channel_name, topic=channel.topic)
+        elif newraid and not newraid.isdigit():
+            # What a hack, subtract raidtime from exp time because _eggtoraid will add it back
+            egglevel = guild_dict[guild.id]['raidchannel_dict'][channel.id]['egglevel']
+            if egglevel == "0":
+                egglevel = get_level(newraid)
+            # guild_dict[guild.id]['raidchannel_dict'][channel.id]['exp'] -= 60 * get_raid_timer(None, newraid)
+
+            await _eggtoraid(newraid, channel)
+    except Exception as error:
+        print(error)
 
 def get_guild_local_leaderboard(guild_id):
     configuration = gymsql.read_guild_configuration(guild_id=guild_id)
@@ -7880,7 +7950,7 @@ async def _mention(ctx):
 
         name_list = []
         for trainer in trainer_dict.keys():
-            if status_to_check == None or trainer_dict[trainer]['status'] == status_to_check:
+            if trainer_dict[trainer]['status'] != None and ( status_to_check == None or trainer_dict[trainer]['status'] == status_to_check ):
                 user = await Clembot.get_user_info(trainer)
                 name_list.append(user.mention)
 
