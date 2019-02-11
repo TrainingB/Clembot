@@ -466,7 +466,6 @@ example:
             elif url == "None":
                 url = None
             await self.__refresh_embed(ctx.guild.id, channel, reference_id, url=url)
-            await self.__refresh_embed_fields(ctx.guild.id, channel, reference_id)
         except Exception as error:
             await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
 
@@ -485,7 +484,6 @@ example:
                 url = None
 
             await self.__refresh_embed(ctx.guild.id, channel, reference_id, title, body, url)
-            await self.__refresh_embed_fields(ctx.guild.id, channel, reference_id)
             await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
         except Exception as error:
             await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
@@ -543,6 +541,9 @@ example:
             new_embed = discord.Embed(description=body, title=title, colour=message.embeds[0].colour.value)
             if url:
                 new_embed.set_image(url=url)
+
+            for field in message.embeds[0].fields:
+                new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
 
             new_embed.set_footer(text=f"Managed by ID: [{reference_id}]")
             await message.edit(embed=new_embed)
