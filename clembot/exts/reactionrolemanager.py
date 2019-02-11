@@ -469,6 +469,18 @@ example:
         except Exception as error:
             await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
 
+    @_mini_event.command(pass_context=True, hidden=True, aliases=["add-thumbnail"])
+    async def _mini_event_add_thumbnail(self, ctx, reference_id, url):
+        try:
+            channel, message = await self._fetch_channel_message_from_reference(reference_id, ctx.guild.id)
+            if not url:
+                url = message.embeds[0].thumbnail
+            elif url == "None":
+                url = None
+            await self.__refresh_embed(ctx.guild.id, channel, reference_id, thumbnail=url)
+        except Exception as error:
+            await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
+
     @_mini_event.command(pass_context=True, hidden=True, aliases=["edit"])
     async def _mini_event_edit(self, ctx, reference_id, title=None, body=None, url=None ):
         try:
@@ -517,7 +529,7 @@ example:
             print(error)
 
 
-    async def __refresh_embed(self, guild_id, original_channel, message_or_reference_id, title=None, body=None, url=None ):
+    async def __refresh_embed(self, guild_id, original_channel, message_or_reference_id, title=None, body=None, url=None, thumbnail=None ):
         print(f"__refresh_embed({message_or_reference_id})")
         try:
             if message_or_reference_id.isdigit():
@@ -535,13 +547,16 @@ example:
                 url = message.embeds[0].url
                 if not url:
                     url = message.embeds[0].image.url
+            if not thumbnail:
+                thumbnail = message.embeds[0].thumbnail
             elif url == "None":
                 url = None
 
             new_embed = discord.Embed(description=body, title=title, colour=message.embeds[0].colour.value)
             if url:
                 new_embed.set_image(url=url)
-
+            if thumbnail:
+                new_embed.set_thumbnail(url=thumbnail)
             for field in message.embeds[0].fields:
                 new_embed.add_field(name=field.name, value=field.value, inline=field.inline)
 
