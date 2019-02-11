@@ -436,7 +436,7 @@ example:
                     args_dict.pop(field.name)
 
             for key in list(args_dict.keys()):
-                message.embeds[0].add_field(name=key , value=args_dict[key])
+                message.embeds[0].add_field(name=key , value=args_dict[key], inline=False)
 
             await message.edit(embed=message.embeds[0])
             await self.utilities._send_message(ctx.channel, f"Message has been updated.", user=ctx.author)
@@ -466,6 +466,7 @@ example:
             elif url == "None":
                 url = None
             await self.__refresh_embed(ctx.guild.id, channel, reference_id, url=url)
+            await self.__refresh_embed_fields(ctx.guild.id, channel, reference_id)
         except Exception as error:
             await self.utilities._send_error_message_and_cleanup(channel, f"{error}", user=ctx.author)
 
