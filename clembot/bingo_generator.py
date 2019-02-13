@@ -132,7 +132,19 @@ def generate_mixed_card ():
 
     return bingo_card
 
-def generate_card(event_pokemon="totodile"):
+
+def load_pokemon_data(pokemon):
+    try:
+        directory = os.path.join(script_path, "..", "data", "cp_chart")
+        with open(os.path.join(directory, f"{pokemon}.json"), "r") as fd:
+            pokemon_cp_level[pokemon] = json.load(fd)
+    except Exception as error:
+        print(error)
+
+def generate_card(event_pokemon='swinub'):
+
+    if event_pokemon not in pokemon_cp_level.keys():
+        load_pokemon_data(event_pokemon)
 
     pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level[f'{event_pokemon}'])
 
@@ -176,7 +188,7 @@ def generate_card(event_pokemon="totodile"):
     cell_4_range = keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP']) #cell_4_json['Spread'] * 2
     cell_4_value = ["CP : {0} ".format(cell_4_range) , "{0}".format(gender[randint(0,7)])] #
 
-    cell_5_value = ["{0}".format(event_pokemon.capitalize().center(15, ' ')), "✩"]
+    cell_5_value = ["{0}".format(event_pokemon.capitalize().center(13, ' ')), "✩"]
 
     cell_6_level = randint(22, 25)
     cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
