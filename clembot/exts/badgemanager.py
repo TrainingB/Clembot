@@ -384,11 +384,8 @@ class BadgeManager:
 
         return current_date
 
-
-    @_badge.command(pass_context=True, hidden=True, aliases=["grant"])
-    @checks.guildowner_or_permissions(manage_guild=True)
-    async def _badge_grant(self, ctx, badge_id:int, user:discord.Member):
-        for user in ctx.message.mentions:
+    async def _badge_grant_to_users(self, ctx, badge_id: int, list_of_users):
+        for user in list_of_users:
             try:
                 current_badge = self._get_badge(ctx.guild.id, badge_id)
                 emoji = self._get_emoji(current_badge['emoji'])
@@ -417,10 +414,21 @@ class BadgeManager:
                         description=f"**{user.display_name}** has been granted **{current_badge['emoji']} {current_badge['name']}**."
                     )
                 else:
-                    await self.utilities._send_error_message(ctx.channel, f"no badge found with id #{badge_id}.", ctx.author)
+                    await self.utilities._send_error_message(ctx.channel, f"no badge found with id #{badge_id}.",
+                                                             ctx.author)
 
             except Exception as error:
                 print(error)
+
+    @_badge.command(pass_context=True, hidden=True, aliases=["grant"])
+    @checks.guildowner_or_permissions(manage_guild=True)
+    async def _badge_grant_member(self, ctx, badge_id:int, user_or_role):
+
+        if ctx.message.role_mentions:
+            role = ctx.message.role_mentions[0]
+            await self._badge_grant_to_users(ctx, badge_id, role.members)
+        else :
+            await self._badge_grant_to_users(ctx, badge_id, ctx.message.mentions)
 
 
 def setup(bot):

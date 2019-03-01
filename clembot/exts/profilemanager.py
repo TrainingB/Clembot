@@ -28,9 +28,16 @@ class ProfileManager:
 
     }
 
+    @commands.command(pass_context=True, hicdden=True, aliases=["in-role"])
+    async def _in_role(self, ctx, role_name):
 
+        role = discord.utils.get(ctx.guild.roles, name=role_name)
+        member_list = ""
+        for member in role.members:
+            member_list = member_list + "\n" + member.display_name
 
-
+        return await self.utilities._send_message(ctx.message.channel, f"{member_list}", title="Roles")
+        return
 
     @commands.group(pass_context=True, hicdden=True, aliases=["tc","trainer-code"])
     async def _trainer_code(self, ctx):
