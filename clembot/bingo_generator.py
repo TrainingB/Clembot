@@ -56,6 +56,10 @@ def load_data():
     with open(os.path.join(directory, "totodile.json"), "r") as fd:
         pokemon_cp_level['totodile'] = json.load(fd)
 
+    with open(os.path.join(directory, "treecko.json"), "r") as fd:
+        pokemon_cp_level['treecko'] = json.load(fd)
+
+
 load_data()
 
 
@@ -84,7 +88,7 @@ gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2
                   'beldum': ["", "", "", "", "", "", "", ""],
                   'cyndaquil' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
                   'totodile' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
-                  }
+                }
 
 
 box_pokemon = [ 'free', 'charmander' , 'squirtle', 'beldum' , 'larvitar' , 'shiny', 'pikachu', 'bulbasaur', 'dratini', 'eevee' ]
@@ -141,7 +145,7 @@ def load_pokemon_data(pokemon):
     except Exception as error:
         print(error)
 
-def generate_card(event_pokemon='swinub'):
+def generate_card(event_pokemon='treecko'):
 
     if event_pokemon not in pokemon_cp_level.keys():
         load_pokemon_data(event_pokemon)
@@ -156,7 +160,7 @@ def generate_card(event_pokemon='swinub'):
 
     category = []
     size = ['XL','XL','XL','XL','XS','XS','XS','XS']
-    gender = gender_master.get(event_pokemon,[u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"])
+    gender = gender_master.get(event_pokemon,[MALE_SIGN, MALE_SIGN, MALE_SIGN, FEMALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN])
 
     bingo_card = {}
 
