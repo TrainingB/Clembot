@@ -115,7 +115,7 @@ class DatabaseInterface:
 
     async def execute_query_json(self, query, *query_args):
         result = []
-        print(f"Query: {query} Parameters: {query_args}")
+        # print(f"Query: {query} Parameters: {query_args}")
         rcrds_dict = []
         try:
             if not self.pool:
@@ -143,7 +143,7 @@ class DatabaseInterface:
 
     async def execute_query(self, query, *query_args):
         result = []
-        print(f"Query: {query} Parameters: {query_args}")
+        # print(f"Query: {query} Parameters: {query_args}")
         try:
             if not self.pool:
                 await self.start()
@@ -163,7 +163,7 @@ class DatabaseInterface:
     async def execute_transaction(self, query, *query_args):
         result = []
         try:
-            print(f"execute_transaction() : {query} {query_args}")
+            # print(f"execute_transaction() : {query} {query_args}")
 
             if not self.pool:
                 await self.start()
@@ -235,19 +235,19 @@ async def cleanup():
     await dbi.stop()
 
 async def _data(table_name = 'clembot_config'):
-    print("calling _data()")
+    # print("calling _data()")
     table = dbi.table(table_name)
     channel_query = dbi.table(table_name).query().select().where(table['gym_code_key'].like('%GL%'))
     _data = channel_query
     return_data = await _data.get()
-    print(f"{len(return_data)} record(s) found!")
-    print(return_data[0]['gmap_url'])
-    print(return_data[0]['json'])
+    # print(f"{len(return_data)} record(s) found!")
+    # print(return_data[0]['gmap_url'])
+    # print(return_data[0]['json'])
     return return_data
 
 
 async def select_from(table_name = 'sample_test'):
-    print("called select_from()")
+    # print("called select_from()")
 
     sample_test = dbi.table('sample_test')
     query = sample_test.query().select()

@@ -191,9 +191,9 @@ class GymManager:
                 gym_code_query = gym_master.query().select().where(gym_master['gym_code_key'].like(f'%{gym_code_or_name}%'), city_state_key=city)
 
                 list_of_gym = await gym_code_query.getjson()
-                print(f"{len(list_of_gym)} record(s) found!")
+                print(f"_query_gym_master({gym_code_or_name}, {city}) : {len(list_of_gym)} record(s) found!")
                 if len(list_of_gym) == 0:
-                    gym_name_query = self.dbi.table('gym_master').query().select().where(gym_master['original_gym_name'].ilike(f'%{gym_code}%'),city_state_key=city)
+                    gym_name_query = self.dbi.table('gym_master').query().select().where(gym_master['original_gym_name'].ilike(f'%{gym_code_or_name}%'),city_state_key=city)
                     list_of_gym = await gym_name_query.getjson()
                 return list_of_gym
 

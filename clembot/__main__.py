@@ -6175,38 +6175,34 @@ async def status(ctx):
 
 
 @Clembot.command(pass_context=True, hidden=True)
-async def gyms(ctx):
-    await _gyms(ctx.message)
+async def gyms(ctx, gym_code_or_name = None):
+    await _gyms(ctx.message, gym_code_or_name)
 
 
-async def _gyms(message):
-    args = message.content
-    args_split = args.split(" ")
-    del args_split[0]
+async def _gyms(message, gym_code_or_name = None):
 
-    gym_code = args_split[0].upper()
+    gym_code_or_name = gym_code_or_name.upper()
 
-    if len(gym_code) < 1:
+    if len(gym_code_or_name) < 1:
         await _send_error_message(message.channel, "Beep Beep... **{member}** I need at-least one character for lookup!".format(member=message.author.display_name))
         return
 
-    city = _read_channel_city(message)
     gym_message_output = ""
     try:
+        city_state = await MyGymManager.get_city_for_channel(message.guild.id, message.channel.id)
 
-        if not city:
-            return await _send_error_message(message.channel, "Beep Beep... **{member}** this channel doesn't have a city assigned. Please contact an admin to assign a city.".format(
-                                          member=message.author.display_name))
-        list_of_gyms = await _get_gym_info_list(message, gym_code)
+        if not city_state:
+            return await _send_error_message(message.channel, "Beep Beep... **{member}** this channel doesn't have a city assigned. Please contact an admin to assign a city.".format( member=message.author.display_name))
+        list_of_gyms = await MyGymManager.find_gym_list_by(gym_code_or_name, city_state)
 
         if len(list_of_gyms) < 1:
-            await _send_error_message(message.channel, "Beep Beep... **{member}** I could not find any gym starting with **{gym_code}** for **{city}**!".format(member=message.author.display_name, city=city, gym_code=gym_code))
+            await _send_error_message(message.channel, "Beep Beep... **{member}** I could not find any gym starting with **{gym_code_or_name}** for **{city}**!".format(member=message.author.display_name, city=city, gym_code=gym_code_or_name))
             return
 
-        gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format(member=message.author.display_name, city=city)
+        gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format(member=message.author.display_name, city=city_state)
 
         for gym_info in list_of_gyms:
-            new_gym_info = "**{gym_code}** - {gym_name}\n".format(gym_code=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
+            new_gym_info = "**{gym_code_or_name}** - {gym_name}\n".format(gym_code_or_name=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
 
             if len(gym_message_output) + len(new_gym_info) > 1990:
                 await _send_message(message.channel, gym_message_output)
@@ -6217,10 +6213,10 @@ async def _gyms(message):
         if gym_message_output:
             await _send_message(message.channel, gym_message_output)
         else:
-            await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(member=message.author.display_name,gym_code=gym_code, city=city))
+            await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code_or_name}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(member=message.author.display_name,gym_code=gym_code, city=city))
     except Exception as error:
         logger.info(error)
-        await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(member=message.author.display_name,gym_code=gym_code, city=city))
+        await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code_or_name}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(member=message.author.display_name,gym_code=gym_code, city=city))
 
 
 def _read_channel_city(message):
@@ -6475,32 +6471,18 @@ async def gym(ctx, gym_code=None):
                 parent_city_id = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id].get('reportcity', 0)
 
             channel_city = await MyGymManager.get_city_for_channel(guild.id, channel.id, parent_city_id)
-            gym_info_list = await MyGymManager.find_gyms_for_city(ctx.message, gym_code, channel_city)
+            gym_info = await MyGymManager.find_gym_by_gym_code(gym_code, channel_city)
 
-            if len(gym_info_list) > 1:
-                gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format(member=message.author.display_name, city=channel_city)
+            # gym_info = await _get_gym_info(ctx.message, gym_code)
 
-                for gym_info in gym_info_list:
-                    new_gym_info = "**{gym_code}** - {gym_name}\n".format(
-                        gym_code=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
-
-                    if len(gym_message_output) + len(new_gym_info) > 1990:
-                        await _send_message(message.channel, gym_message_output)
-                        gym_message_output = ""
-
-                    gym_message_output += new_gym_info
-                if gym_message_output:
-                    await _send_message(message.channel, gym_message_output)
-            elif len(gym_info_list) == 1:
-                gym_info = gym_info_list[0]
-                if gym_info:
-                    await _generate_gym_embed(ctx.message, gym_info)
-                    if is_raid_channel:
-                        await _update_channel_with_link(ctx.message, gym_info['gmap_url'])
-                        guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['address'] = gym_info['gym_name']
-                        await _change_channel_name(ctx.message, gym_info)
+            if gym_info:
+                await _generate_gym_embed(ctx.message, gym_info)
+                if is_raid_channel:
+                    await _update_channel_with_link(ctx.message, gym_info['gmap_url'])
+                    guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['address'] = gym_info['gym_name']
+                    await _change_channel_name(ctx.message, gym_info)
             else:
-                await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}** No gyms found with **{gym_code}** in **{channel_city}**. Please use **!gyms** to see the list of gyms.")
+                await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}** No gyms found with gym-code **{gym_code}** in **{channel_city}**. Please use **!gyms** to see the list of gyms.")
         else:
             await _send_error_message(ctx.message.channel, "Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
             return
@@ -8837,7 +8819,10 @@ async def _generate_gym_embed(message, gym_info):
 
 async def _get_gym_info_list(message, gym_code):
     logger.info("_get_gym_info_list")
-    city = _read_channel_city(message)
+
+    city_state = await MyGymManager.get_city_for_channel(message.guild.id, message.channel.id)
+    gym_info_list = await MyGymManager.find_gym_list_by(gym_code, city_state)
+
 
     gym_info_list = gymsql.get_gym_list_by_code(city_state_key=city, gym_code_key=gym_code)
 
