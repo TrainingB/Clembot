@@ -1,78 +1,55 @@
+import asyncio
+import calendar
+import copy
+import datetime
+import functools
+import gettext
+import json
 import os
+import pickle
+import re
 import sys
 import tempfile
-import asyncio
-import gettext
-import re
-import pickle
-import json
-import time
-import datetime
-from os import name
-
-from dateutil.relativedelta import relativedelta
-from dateutil import tz
-import copy
-import functools
 import textwrap
+import time
+import traceback
+from datetime import timedelta
+from operator import itemgetter
+from random import *
 from time import strftime
 
-from discord.client import log
-from discord.colour import Colour
-
-from logs import init_loggers
-import discord
-from discord.ext import commands
-import spelling
-from PIL import Image
-from PIL import ImageFilter
-from PIL import ImageEnhance
-import requests
 import aiohttp
-from io import BytesIO
-import hastebin
-from operator import itemgetter
-from errors import custom_error_handling
-import dateparser
-import textwrap
-import io
-import traceback
-from contextlib import redirect_stdout
+import bingo_generator
+import checks
+import discord
 # --B--
 # ---- dependencies
 import gymsql
-import operator
-
-import time
-from datetime import timedelta
-import calendar
-import copy
-from random import *
-import pytz
-from pytz import timezone
+import hastebin
 import jsonpickle
-import checks
-
-
-import bingo_generator
+import spelling
 from WowBingo import WowBingo
+from dateutil import tz
+from dateutil.relativedelta import relativedelta
+from discord.ext import commands
+from errors import custom_error_handling
 from exts.argparser import ArgParser
-from exts.propertieshandler import PropertiesHandler
-from exts.profilemanager import ProfileManager
-from exts.trademanager import TradeManager
-from exts.utilities import Utilities
-from exts.reactrolemanager import ReactRoleManager
-from exts.reactionrolemanager import ReactionRoleManager
 from exts.autoresponder import AutoResponder
-from exts.rostermanager import RosterManager
-from exts.configmanager import ConfigManager
-from exts.utilities import Utilities
-from exts.utilities import HandleAngularBrackets
 from exts.badgemanager import BadgeManager
+from exts.configmanager import ConfigManager
+from exts.gymmanager import GymManager
+from exts.profilemanager import ProfileManager
+from exts.propertieshandler import PropertiesHandler
+from exts.reactionrolemanager import ReactionRoleManager
+from exts.reactrolemanager import ReactRoleManager
+from exts.rostermanager import RosterManager
+from exts.trademanager import TradeManager
+from exts.utilities import HandleAngularBrackets
+from exts.utilities import Utilities
 
-
-from clembot.bot import ClembotDiscordBot
-
+from clembot.cogs.dbi import DatabaseInterface
+import config_template
+from logs import init_loggers
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -94,12 +71,12 @@ def _get_prefix(bot, message):
     return set_prefix or default_prefix
 
 
-Clembot = ClembotDiscordBot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
 
-# Clembot = commands.Bot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
+Clembot = commands.Bot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
 Clembot.remove_command("help")
 custom_error_handling(Clembot, logger)
-
+Clembot.loop = None
+Clembot.loop = asyncio.get_event_loop() if Clembot.loop is None else Clembot.loop
 try:
     with open(os.path.join('data', 'guilddict'), "rb") as fd:
         Clembot.guild_dict = pickle.load(fd)
@@ -119,7 +96,7 @@ except OSError:
         logger.info("Serverdict Created")
 
 guild_dict = Clembot.guild_dict
-
+pokemon_master = {}
 Clembot.raidlist = {}
 bingo_template = {}
 config = {}
@@ -140,10 +117,11 @@ CACHE_VERSION = 10
 # config files which we're loading.
 # Assumes that config files will always live in the same directory.
 script_path = os.path.dirname(os.path.realpath(__file__))
-
+dbi = None
 
 
 def load_config():
+    global pokemon_master
     global config
     global pkmn_info
     global type_chart
@@ -155,6 +133,10 @@ def load_config():
     global SQLITE_DB
     global raidlist
     global CACHE_VERSION
+    global dbi
+
+    dbi = DatabaseInterface(**config_template.db_config_details)
+    Clembot.dbi = dbi
     # Load configuration
     with open("config.json", "r") as fd:
         config = json.load(fd)
@@ -179,6 +161,9 @@ def load_config():
 
     with open(os.path.join('data', "icon.json"), "r") as fd:
         icon_list = json.load(fd)
+
+    with open(os.path.join('data', "pokemon.json"), "r") as fd:
+        pokemon_master = json.load(fd)
 
     # Set spelling dictionary to our list of Pokemon
     spelling.set_dictionary(pkmn_info['pokemon_list'])
@@ -213,7 +198,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities', 'exts.trademanager',
                 'exts.profilemanager','exts.reactrolemanager','exts.gymmanager','exts.autoresponder',
                 'exts.rostermanager', 'exts.configmanager', 'exts.cpcalculator','exts.reactionrolemanager',
-                'exts.badgemanager']
+                'exts.badgemanager','exts.gymmanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities','exts.staticreactrolemanager']
 for ext in default_exts:
     try:
@@ -253,6 +238,7 @@ MyAutoResponder = AutoResponder(Clembot)
 MyRosterManager = RosterManager(Clembot)
 MyConfigManager = ConfigManager(Clembot)
 MyBadgeManager = BadgeManager(Clembot)
+MyGymManager = GymManager(Clembot)
 """
 
 ======================
@@ -342,8 +328,7 @@ def get_egg_image_url(egg_level):
 def _set_prefix(bot, guild, prefix):
     bot.guild_dict[guild.id]["prefix"] = prefix
 
-
-def get_city_list(message):
+async def get_city_list(message):
     city_list = []
     try:
         city_channel = guild_dict[message.guild.id]['city_channels'].get(message.channel.name)
@@ -351,11 +336,14 @@ def get_city_list(message):
             city_list.append(city_channel.replace(" ", "").upper())
             return city_list
 
-        city_channel = gymsql.read_channel_city(message.guild.id, message.channel.id)
+        # city_channel = gymsql.read_channel_city(message.guild.id, message.channel.id)
+
+        city_channel = await MyGymManager.get_city_for_channel(message.guild.id, message.channel.id)
+
         if city_channel:
             city_list.append(city_channel)
         else:
-            guild_channel = gymsql.read_guild_city(message.guild.id)
+            guild_channel = city_channel = await MyGymManager.get_city_for_channel(message.guild.id, None)
             if guild_channel:
                 city_list.append(guild_channel)
         return city_list
@@ -402,8 +390,10 @@ def get_name(pkmn_number):
 
 
 def get_number(pkm_name):
-    number = pkmn_info['pokemon_list'].index(pkm_name) + 1
-    return number
+    if pkm_name:
+        number = pkmn_info['pokemon_list'].index(pkm_name) + 1
+        return number
+    return -1
 
 
 def get_level(pkmn):
@@ -917,6 +907,46 @@ async def expire_channel(channel):
                 pass
     except Exception as error:
         logger.info(error)
+
+def clean_type(pokemon_type:str):
+    return pokemon_type.replace('POKEMON_TYPE_','').capitalize()
+
+def clean_quick_move(pokemon_type:str):
+    return pokemon_type.replace('_FAST','').replace('_',' ').title()
+
+def clean_cinematic_move(pokemon_type:str):
+    return pokemon_type.replace('_',' ').title()
+
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["info"])
+async def _info(ctx, *pokemon_list):
+
+    mon_list = []
+    for pokemon in pokemon_list:
+        mon_info = {}
+        for mon in pokemon_master['pokemon']:
+            try:
+                if mon['pokedex']['pokemonId'] == pokemon.upper():
+
+                    mon_info['pokemon'] = mon['pokedex']['pokemonId'].title()
+
+
+                    mon_info.setdefault('type',[]).append(clean_type(mon['type']))
+                    if mon.get('type2',False):
+                        mon_info.setdefault('type', []).append(clean_type(mon['type2']))
+
+                    mon_info['cinematicMoves'] = [clean_cinematic_move(move) for move in mon['cinematicMoves']]
+                    mon_info['quickMoves']=[clean_quick_move(move) for move in mon['quickMoves']]
+
+                    mon_list.append(mon_info)
+            except Exception as error:
+                await _send_message(ctx.channel, error)
+
+    await _send_message(ctx.channel, json.dumps(mon_list))
+
+
+
 
 @Clembot.command(pass_context=True, hidden=True, aliases=["archive"])
 async def _archive(ctx):
@@ -3252,7 +3282,7 @@ registers a role and a gym
         return
 
     gym_code = args[0].upper()
-    gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
+    gym_info = await get_gym_info_wrapper(message, gym_code=gym_code)
 
     if gym_info == None:
         await channel.send( content=_("Beep Beep! Hmmm... I could not find this gym code!"))
@@ -3306,7 +3336,7 @@ registers a role and a gym
 
     for gym_code in args:
         gym_code = gym_code.upper()
-        gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
+        gym_info = await get_gym_info_wrapper(message, gym_code=gym_code)
 
         if gym_info == None:
             await channel.send(f"[{gym_code}] not found!")
@@ -3331,16 +3361,16 @@ registers a role and a gym
     return
 
 
-def get_gym_by_code_message(gym_code, message):
-    return get_gym_info_wrapper(message,gym_code)
+async def get_gym_by_code_message(gym_code, message):
+    return await get_gym_info_wrapper(message,gym_code)
 
-def get_gym_info_wrapper(message, gym_code):
+async def get_gym_info_wrapper(message, gym_code):
 
-    city_state = _read_channel_city(message)
-    gym_info_new_format = gymsql.get_gym_by_code(gym_code_key=gym_code, city_state_key=city_state)
+    city_state = await MyGymManager.get_city_for_channel(message.guild.id, message.channel.id)
+    gym_info_new_format = await MyGymManager.find_gym_by_gym_code(gym_code, city_state)
 
     if gym_info_new_format:
-        return gymsql.convert_into_gym_info(gym_info_new_format)
+            return gymsql.convert_into_gym_info(gym_info_new_format)
 
     return None
 
@@ -3648,10 +3678,10 @@ async def _newraid(message):
             await message.channel.send( _("Beep Beep! Please restrict raid reports to a city channel!"))
             return
 
-
     argument_text = message.clean_content.lower()
-    parameters = Parser.parse_arguments(argument_text, raid_SYNTAX_ATTRIBUTE, {'pokemon' : is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
-    logger.info(parameters)
+    parameters = await Parser.parse_arguments(argument_text, raid_SYNTAX_ATTRIBUTE, {'pokemon' : is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
+    logger.info(f"{argument_text} => {parameters}")
+    print(f"{argument_text} => {parameters}")
 
     if fromegg and parameters['length'] > 2:
         await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
@@ -3678,7 +3708,7 @@ async def _newraid(message):
 
 
     if raidexp is not False:
-        raid_timer = get_raid_timer(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['egglevel'], entered_raid)
+        raid_timer = get_raid_timer(None, entered_raid)
         if _timercheck(raidexp, raid_timer):
             await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name} That's too long. Raids currently last no more than {raid_timer} minutes.")
             return
@@ -3714,10 +3744,6 @@ async def _newraid(message):
         else:
             await message.channel.send( _("Beep Beep! Please wait until the egg has hatched before changing it to an open raid!"))
             return
-    elif len(raid_split) <= 1:
-        await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raid <pokemon name> <location>**"))
-        return
-
 
     if entered_raid not in pkmn_info['pokemon_list']:
         await message.channel.send(spellcheck(entered_raid))
@@ -3732,15 +3758,19 @@ async def _newraid(message):
     else:
         prefix = ""
 
+    direction_description = ""
 
     if gym_info:
         raid_gmaps_link = gym_info['gmap_link']
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
         channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
         channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list]
+        direction_description = f"**{gym_info['gym_name']}** [click here for directions]({raid_gmaps_link})"
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(raid_details)
+        direction_description = f"{raid_details} [Click here for directions]({raid_gmaps_link})"
+
 
     raid_channel = None
     try :
@@ -3759,7 +3789,8 @@ async def _newraid(message):
     raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
     raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
     raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
-    raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=message.guild.me.colour)
+    raid_embed = discord.Embed(colour=message.guild.me.colour) # title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link,
+    raid_embed.add_field(name="**Where:**", value=direction_description, inline=False)
     raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(message.guild, raid_number)), inline=True))
     raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(message.guild, get_weaknesses(entered_raid))), inline=True)
     raid_embed.set_footer(text=_("Reported by @{author}").format(author=message.author.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=message.author, format="jpg", size=32)))
@@ -3822,7 +3853,7 @@ async def __raid(ctx, pokemon, *, location:commands.clean_content(fix_channel_me
             await _raidegg(ctx.message)
         else:
 
-            await _raid(ctx.message)
+            await _newraid(ctx.message)
 
     except Exception as error:
         print(error)
@@ -3885,7 +3916,7 @@ async def _raid(message):
 
     gym_code = raid_split[-1].upper()
 
-    gym_info = get_gym_info_wrapper(message, gym_code=gym_code)
+    gym_info = await get_gym_info_wrapper(message, gym_code=gym_code)
 
     if gym_info:
         del raid_split[-1]
@@ -3932,7 +3963,7 @@ async def _raid(message):
     if gym_info is None and 2 <= raid_details.__len__() <= 6:
         raid_details_gym_code = raid_details.upper()
         # raid_details_gym_info = gymutil.get_gym_info(raid_details_gym_code, city_state=get_city_list(message))
-        raid_details_gym_info = get_gym_info_wrapper(message, gym_code=raid_details_gym_code)
+        raid_details_gym_info = await get_gym_info_wrapper(message, gym_code=raid_details_gym_code)
         if raid_details_gym_info:
             gym_info = raid_details_gym_info
 
@@ -5177,7 +5208,7 @@ async def exraid(ctx):
 async def __exraid(ctx):
     message = ctx.message
     argument_text = ctx.message.clean_content.lower()
-    parameters = Parser.parse_arguments(argument_text, exraid_SYNTAX_ATTRIBUTE, {'gym_info' : get_gym_by_code_message}, {'message' : ctx.message})
+    parameters = await Parser.parse_arguments(argument_text, exraid_SYNTAX_ATTRIBUTE, {'gym_info' : get_gym_by_code_message}, {'message' : ctx.message})
     logger.info(parameters)
     logger.info(parameters)
 
@@ -5504,8 +5535,9 @@ async def _raidegg(message):
             await _send_error_message(message.channel, "Please use this command in a region channel.")
             return
         argument_text = message.clean_content.lower()
-        parameters = Parser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
-        logger.info(parameters)
+        parameters = await Parser.parse_arguments(argument_text, raidegg_SYNTAX_ATTRIBUTE, {'egg' : is_egg_level_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
+        logger.info(f"{argument_text} => {parameters}")
+        print(f"{argument_text} => {parameters}")
         if parameters['length'] <= 2:
             await message.channel.send(_("Beep Beep! Give more details when reporting! Usage: **!raidegg <level> <location>**"))
             return
@@ -5559,12 +5591,17 @@ async def _raidegg(message):
             else:
                 prefix = ""
 
+            direction_description = ""
             if gym_info:
                 raid_gmaps_link = gym_info['gmap_link']
                 raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
+                direction_description = f"**{gym_info['gym_name']}** [click here for directions]({raid_gmaps_link})"
             else:
                 raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
                 raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(raid_details)
+                direction_description = f"[Click here for directions]({raid_gmaps_link})"
+
+
             try:
                 raid_channel_category = get_category(message.channel, egg_level)
                 raid_channel = await message.guild.create_text_channel(raid_channel_name, overwrites=dict(message.channel.overwrites), category=raid_channel_category)
@@ -5574,7 +5611,9 @@ async def _raidegg(message):
                 return
 
             raid_img_url = get_egg_image_url(egg_level)
-            raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the coming raid!"), url=raid_gmaps_link, colour=message.guild.me.colour)
+
+            raid_embed = discord.Embed(colour=message.guild.me.colour)
+            raid_embed.add_field(name="**Where:**", value=direction_description, inline=False)
             if len(egg_info['pokemon']) > 1:
                 raid_embed.add_field(name="**Possible Bosses:**", value=_("{bosslist1}").format(bosslist1="\n".join(boss_list[::2])), inline=True)
                 raid_embed.add_field(name="\u200b", value=_("{bosslist2}").format(bosslist2="\n".join(boss_list[1::2])), inline=True)
@@ -5617,13 +5656,12 @@ async def _raidegg(message):
             if channel_role_list:
                 await _mention_roles_for(raid_channel, "Beep Beep! Notified roles : ", channel_role_list)
 
-
+            guild_dict[message.channel.guild.id].setdefault("configuration", {}).setdefault("settings", {}).setdefault("regional", {})
             if len(raid_info['raid_eggs'][egg_level]['pokemon']) == 1:
                 await _eggassume("assume " + get_name(raid_info['raid_eggs'][egg_level]['pokemon'][0]), raid_channel)
-            elif egg_level == "5" and get_number(guild_dict[raid_channel.guild.id]['configuration']['settings'].get('regional', None)) in raid_info['raid_eggs']["5"]['pokemon']:
+            elif egg_level == "5" and get_number(guild_dict[raid_channel.guild.id]['configuration'].get('settings',{}).get('regional', None)) in raid_info['raid_eggs']["5"]['pokemon']:
                 await _eggassume('assume ' + guild_dict[raid_channel.guild.id]['configuration']['settings']['regional'], raid_channel)
 
-            guild_dict[message.channel.guild.id].setdefault("configuration", {}).setdefault("settings", {}).setdefault("regional",{})
 
             record_reported_by(message.guild.id, message.channel.name, message.author.id, 'eggs')
 
@@ -6275,9 +6313,12 @@ def get_beep_embed(title, description, usage=None, available_value_title=None, a
     help_embed.set_footer(text=footer)
     return help_embed
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["import-gymx"])
+
+
+
+@Clembot.command(pass_context=True, hidden=True, aliases=["import-gym"])
 @commands.has_permissions(manage_channels=True)
-async def _importx(ctx, *, gym_list_in_json_text):
+async def _importx(ctx, *, gym_list_in_json_text=None):
     try:
 
         gym_info_1 = {}
@@ -6364,7 +6405,7 @@ async def nest(ctx):
         message=ctx.message
 
         argument_text = message.clean_content
-        parameters = Parser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
+        parameters = await Parser.parse_arguments(argument_text, nest_SYNTAX_ATTRIBUTE, {'link': extract_link_from_text, 'pokemon': is_pokemon_valid, 'gym_info' : get_gym_by_code_message}, {'message' : message})
 
         if parameters.get('length') <= 2:
             return await _send_error_message(ctx.message.channel, "**{0}**, Please use **!beep nest** to see the correct usage.".format(message.author.display_name))
@@ -6407,34 +6448,64 @@ async def nest(ctx):
     await ctx.message.delete()
 
 
-@Clembot.command(pass_context=True, hidden=True)
-async def gym(ctx):
-    try:
-        args = ctx.message.content
-        args_split = args.split(" ")
-        del args_split[0]
+def convert_row_to_dict(row, col_names)-> {}:
 
-        gym_code = args_split[0].upper()
+    gym_info_dict = {}
+    for i in range(0, len(col_names) - 1):
+        gym_info_dict[col_names[i]] = row[i]
+
+    return gym_info_dict
+
+
+
+
+@Clembot.command(pass_context=True, hidden=True)
+async def gym(ctx, gym_code=None):
+    try:
+        guild = ctx.guild
+        channel=ctx.channel
+        message=ctx.message
+        parent_city_id = None
+        is_raid_channel = check_raid_channel(ctx.message.channel.id)
+
 
         if gym_code:
+            gym_code = gym_code.upper()
+            if is_raid_channel:
+                parent_city_id = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id].get('reportcity', 0)
 
-            gym_info = await _get_gym_info(ctx.message, gym_code)
-            if gym_info:
-                await _update_channel_with_link(ctx.message, gym_info['gmap_url'])
-                guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['address'] = gym_info['gym_name']
-                await _change_channel_name(ctx.message, gym_info)
-            # else:
-            #     gym_info = await _get_gym_info_old(ctx.message, gym_code)
-            #     if gym_info:
-            #         await _update_channel_with_link(ctx.message, gym_info['gmap_link'])
+            channel_city = await MyGymManager.get_city_for_channel(guild.id, channel.id, parent_city_id)
+            gym_info_list = await MyGymManager.find_gyms_for_city(ctx.message, gym_code, channel_city)
 
+            if len(gym_info_list) > 1:
+                gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format(member=message.author.display_name, city=channel_city)
 
+                for gym_info in gym_info_list:
+                    new_gym_info = "**{gym_code}** - {gym_name}\n".format(
+                        gym_code=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
 
+                    if len(gym_message_output) + len(new_gym_info) > 1990:
+                        await _send_message(message.channel, gym_message_output)
+                        gym_message_output = ""
+
+                    gym_message_output += new_gym_info
+                if gym_message_output:
+                    await _send_message(message.channel, gym_message_output)
+            elif len(gym_info_list) == 1:
+                gym_info = gym_info_list[0]
+                if gym_info:
+                    await _generate_gym_embed(ctx.message, gym_info)
+                    if is_raid_channel:
+                        await _update_channel_with_link(ctx.message, gym_info['gmap_url'])
+                        guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['address'] = gym_info['gym_name']
+                        await _change_channel_name(ctx.message, gym_info)
+            else:
+                await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}** No gyms found with **{gym_code}** in **{channel_city}**. Please use **!gyms** to see the list of gyms.")
         else:
             await _send_error_message(ctx.message.channel, "Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
             return
     except Exception as error:
-        logger.info(error)
+        print(error)
         logger.info(error)
 
 async def _generate_gym_embed_old(message, gym_info):
@@ -6498,7 +6569,7 @@ async def _update_channel_with_link(message, link):
 
 def check_raid_channel(channel_id):
     channel = Clembot.get_channel(channel_id)
-    type = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['type']
+    type = guild_dict[channel.guild.id]['raidchannel_dict'].get(channel.id,{}).get('type',None)
 
     if type == 'raid' or type == 'egg':
         return True
@@ -8117,7 +8188,7 @@ async def update(ctx):
 
         arg = args_split[0].lower()
         # gym_info = gymutil.get_gym_info(arg, city_state=get_city_list(ctx.message))
-        gym_info = get_gym_info_wrapper(ctx.message, gym_code=arg)
+        gym_info = await get_gym_info_wrapper(ctx.message, gym_code=arg)
 
         if gym_info:
             roster_loc['gym_name'] = gym_info['gym_name']
@@ -8230,7 +8301,7 @@ async def add(ctx):
 
         roster_loc_gym_code = args_split[0]
         # gym_info = gymutil.get_gym_info(roster_loc_gym_code, city_state=get_city_list(ctx.message))
-        gym_info = get_gym_info_wrapper(ctx.message, gym_code=roster_loc_gym_code)
+        gym_info = await get_gym_info_wrapper(ctx.message, gym_code=roster_loc_gym_code)
 
         if gym_info:
             del args_split[0]
@@ -9432,8 +9503,22 @@ def record_error_reported_by(guild_id, channel_name, author_id, report_type):
     except Exception as error:
         logger.error("Error while recording in leaderboard " + error )
 
+
+#
+# def dbi():
+#     global dbi
+#     if dbi.
+
+
+# try:
+#     event_loop.run_until_complete(initializae_dbInterface())
+# except Exception as error:
+#     print(error)
+
 try:
+
     event_loop.run_until_complete(Clembot.start(config['bot_token']))
+    print("started!")
 except discord.LoginFailure:
     logger.critical("Invalid token")
     event_loop.run_until_complete(Clembot.logout())

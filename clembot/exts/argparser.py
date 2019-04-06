@@ -61,7 +61,7 @@ class ArgParser:
         return newloc
 
     @classmethod
-    def parse_arguments(self, text, list_of_options, options_methods={}, options_method_optional_parameters={}):
+    async def parse_arguments(self, text, list_of_options, options_methods={}, options_method_optional_parameters={}):
         response = {}
 
         args = text.split()
@@ -106,7 +106,7 @@ class ArgParser:
                         else:
                             break
 
-            # identify egg level is specified
+            # identify count is specified
             elif option == 'count':
                 for arg in list(args):
                     if arg.isdigit():
@@ -119,10 +119,11 @@ class ArgParser:
             elif option == 'gym_info':
                 for arg in list(args):
                     try:
-                        gym_info = gym_lookup_method(arg, message=gym_lookup_message)
-                        if gym_info:
-                            response['gym_info'] = gym_info
-                            args.remove(arg)
+                        if response.get('gym_info', None) is None and len(arg) > 1:
+                            gym_info = await gym_lookup_method(arg.upper(), message=gym_lookup_message)
+                            if gym_info:
+                                response['gym_info'] = gym_info
+                                args.remove(arg)
                     except Exception as error:
                         print(error)
                         pass

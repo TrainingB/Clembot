@@ -61,7 +61,7 @@ def read_guild_city(guild_id):
 
     return None
 
-def read_channel_city(guild_id, channel_id):
+def __read_channel_city(guild_id, channel_id):
     try:
         # print("read_channel_city({guild_id}, {channel_id})".format(guild_id=guild_id, channel_id=channel_id))
 
@@ -152,7 +152,7 @@ def save_channel_city(guild_id, channel_id, city_state):
 # GYM Lookup via Database
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
+def __get_gym_list_by_code(city_state_key, gym_code_key) -> []:
     try:
         # print("get_gym_list_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
 
@@ -183,7 +183,7 @@ def get_gym_list_by_code(city_state_key, gym_code_key) -> []:
 
     return []
 
-def get_gym_by_code(city_state_key, gym_code_key):
+def __get_gym_by_code(city_state_key, gym_code_key):
     try:
         # print("get_gym_by_code({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key, city_state_key=city_state_key))
 
@@ -222,7 +222,7 @@ def convert_to_dict(row, col_names)-> {}:
     return gym_info_dict
 
 
-def find_gym(city_state_key, gym_code_key):
+def __find_gym(city_state_key, gym_code_key):
     try:
         # print("find_gym({city_state_key} , {gym_code_key})".format(gym_code_key=gym_code_key.upper(), city_state_key=city_state_key.upper()))
 
@@ -247,7 +247,7 @@ def find_gym(city_state_key, gym_code_key):
 
     return None
 
-def update_gym_info(gym_info, gym_code=None):
+def __update_gym_info(gym_info, gym_code=None):
     print(gym_info)
 
     try:
@@ -283,7 +283,7 @@ def update_gym_info(gym_info, gym_code=None):
 
 
 
-def insert_gym_info(gym_info):
+def __insert_gym_info(gym_info):
     print(gym_info)
 
     try:
@@ -315,7 +315,7 @@ def insert_gym_info(gym_info):
         print(error)
 
 
-def delete_gym_info(city_state_key, gym_code_key):
+def __delete_gym_info(city_state_key, gym_code_key):
 
     try:
         global cursor
@@ -331,7 +331,7 @@ def delete_gym_info(city_state_key, gym_code_key):
 
 
 
-def update_gym(city_state_key, gym_code_key, field_name, field_value):
+def __update_gym(city_state_key, gym_code_key, field_name, field_value):
     print("update_gym({gym_code_key} [ {field_name} = {field_value} ] )".format(gym_code_key=gym_code_key.upper(), field_name=field_name, field_value=field_value))
     try:
         global cursor

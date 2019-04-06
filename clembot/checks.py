@@ -61,7 +61,8 @@ def guildowner_or_permissions(**perms):
         owner = ctx.guild.owner
         if ctx.author.id == owner.id:
             return True
-
+        if is_owner_check(ctx):
+            return True
         return check_permissions(ctx,perms)
     return commands.check(predicate)
 
