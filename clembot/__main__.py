@@ -3853,7 +3853,7 @@ async def __raid(ctx, pokemon, *, location:commands.clean_content(fix_channel_me
             await _raidegg(ctx.message)
         else:
 
-            await _newraid(ctx.message)
+            await _raid(ctx.message)
 
     except Exception as error:
         print(error)
@@ -5164,7 +5164,10 @@ async def process_map_link(message, newloc=None):
     newembed = discord.Embed(title=oldembed.title, url=newloc, colour=message.guild.me.colour)
 
     for field in oldembed.fields:
-        newembed.add_field(name=field.name, value=field.value, inline=field.inline)
+        if field.name == "**Where:**":
+            newembed.add_field(name=field.name, value=f"[Click here for directions]({newloc})", inline=field.inline)
+        else:
+            newembed.add_field(name=field.name, value=field.value, inline=field.inline)
     newembed.set_footer(text=oldembed.footer.text, icon_url=oldembed.footer.icon_url)
     newembed.set_thumbnail(url=oldembed.thumbnail.url)
     try:
@@ -5751,6 +5754,7 @@ async def _eggtoraid(entered_raid, channel):
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(egg_address)
         oldembed = raid_message.embeds[0]
         raid_gmaps_link = oldembed.url
+        direction_description = f"[Click here for directions]({raid_gmaps_link})"
         raid = discord.utils.get(channel.guild.roles, name=entered_raid)
         if raid is None:
             # raid = await Clembot.create_role(guild=channel.guild, name=entered_raid, hoist=False, mentionable=True)
@@ -5762,7 +5766,10 @@ async def _eggtoraid(entered_raid, channel):
         raid_number = pkmn_info['pokemon_list'].index(entered_raid) + 1
         raid_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(raid_number).zfill(3))
         raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
-        raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=channel.guild.me.colour)
+
+        raid_embed = discord.Embed(colour=channel.guild.me.colour)  # title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link,
+        raid_embed.add_field(name="**Where:**", value=direction_description, inline=False)
+        # raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=channel.guild.me.colour)
         raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(channel.guild, raid_number)), inline=True))
         raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(channel.guild, get_weaknesses(entered_raid))), inline=True)
         raid_embed.set_footer(text=_("Reported by @{author}").format(author=raid_messageauthor.display_name), icon_url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}".format(user=raid_messageauthor, format="jpg", size=32)))
