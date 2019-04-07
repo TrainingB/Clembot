@@ -3367,7 +3367,7 @@ async def get_gym_by_code_message(gym_code, message):
 async def get_gym_info_wrapper(message, gym_code):
 
     city_state = await MyGymManager.get_city_for_channel(message.guild.id, message.channel.id)
-    gym_info_new_format = await MyGymManager.find_gym_by_gym_code(gym_code, city_state)
+    gym_info_new_format = await MyGymManager.find_gym_by_gym_code(gym_code.upper(), city_state)
 
     if gym_info_new_format:
             return gymsql.convert_into_gym_info(gym_info_new_format)
