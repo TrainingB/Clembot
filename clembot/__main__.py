@@ -6101,12 +6101,12 @@ async def _set_city(ctx):
 
     city_state = "".join(args_split).upper()
 
-    new_city_state = gymsql.save_channel_city(ctx.message.guild.id, ctx.message.channel.id, city_state)
+    new_city_state = await MyGymManager.save_channel_city(ctx.message.guild.id, ctx.message.channel.id, city_state)
 
-    if new_city_state:
-        return_message = await _get_city(ctx.message)
+    if new_city_state == city_state:
+        await _send_message(ctx.message.channel, f"Beep Beep! **{ctx.message.author.display_name}** Reporting City for this channel is **{new_city_state}**.")
     else:
-        return_message = await ctx.message.channel.send( content="Beep Beep! I couldn't set the Reporting City successfully.")
+        await ctx.message.channel.send( content="Beep Beep! I couldn't set the Reporting City successfully.")
 
     await asyncio.sleep(5)
     await ctx.message.delete()
@@ -6126,19 +6126,16 @@ async def get_guild_city(ctx):
 async def _get_city(message):
     content = "Beep Beep! Reporting City for this channel / guild has not been set."
 
-    channel_city = gymsql.read_channel_city(message.guild.id, message.channel.id)
+    channel_city = await MyGymManager.get_city_for_channel(message.guild.id, message.channel.id)
+
     if channel_city:
         content = "Beep Beep! **{member}** Reporting City for this channel is **{channel_city}**.".format(member=message.author.display_name,channel_city=channel_city)
-    else:
-        guild_city = gymsql.read_guild_city(message.guild.id)
-        if guild_city:
-            content = "Beep Beep! **{member}** Reporting City for this guild is **{guild_city}**.".format(member=message.author.display_name, guild_city=guild_city)
 
     return await _send_message(message.channel, content)
 
 
 async def _get_guild_city(message):
-    guild_city = gymsql.read_guild_city(message.guild.id)
+    guild_city = await MyGymManager.get_city_for_channel(message.guild.id, None)
     content = "Beep Beep! **{member}** Reporting City for this guild is **{guild_city}**.".format(member=message.author.display_name, guild_city=guild_city)
 
     return await _send_message(message.channel, content)

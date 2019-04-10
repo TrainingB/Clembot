@@ -16,6 +16,8 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import gymsql
 from logs import init_loggers
 
+sys.path.append("..")
+import config_template
 
 class GymManager:
 
@@ -62,22 +64,60 @@ class GymManager:
             self.logger.info(error)
             return None
 
+    async def save_channel_city(self, guild_id, channel_id, city_state):
+        print("save_channel_city()")
+        try:
+            channel_city_record = {
+                "channel_id" : channel_id,
+                "guild_id" : guild_id,
+                "city_state" : city_state
+            }
+
+            table = self.dbi.table('guild_channel_city')
+
+            # query directly with guild_id & channel_id to see if the row exists.
+            existing_city_state = await self.query_channel_city(guild_id=guild_id, channel_id=channel_id)
+            if existing_city_state :
+                update_query = table.update(city_state=city_state).where(channel_id=channel_id, guild_id=guild_id)
+                whatever = await update_query.commit()
+            else:
+                insert_query = table.insert(**channel_city_record)
+                whatever = await insert_query.commit()
+
+            return await self.query_channel_city(guild_id=guild_id, channel_id=channel_id)
+        except Exception as error:
+            print(error)
+            logger.info(error)
+            return None
+
 
     @commands.group(pass_context=True, hidden=True, aliases=["xgym"])
     async def _gym(self, ctx):
         print("xgym()")
-        await self.utilities._send_message(ctx.channel,f"subcommand_passed = {ctx.subcommand_passed} , invoked_with = {ctx.invoked_with}, invoked_subcommand = {ctx.invoked_subcommand}")
+        try:
+            await self.utilities._send_message(ctx.channel,f"subcommand_passed = {ctx.subcommand_passed} , invoked_with = {ctx.invoked_with}, invoked_subcommand = {ctx.invoked_subcommand}")
 
-        if ctx.invoked_subcommand is None:
-            if ctx.subcommand_passed is None:
-                return await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+            if ctx.invoked_subcommand is None:
+                if ctx.subcommand_passed is None:
+                    return await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
 
-            gym_list = await self.find_gyms_for_city(ctx, ctx.subcommand_passed)
-            await self.utilities._send_embed(channel=ctx.channel, description=json.dumps(gym_list, indent=2))
+                await self.__gym_find(ctx, ctx.subcommand_passed)
+        except Exception as error:
+            print(error)
 
     @_gym.command(pass_context=True, hidden=True, aliases=["find"])
     async def _gym_find(self, ctx, gym_code):
-        return await self.find_gyms_for_city(ctx, gym_code)
+        return await self.__gym_find(ctx, gym_code)
+
+    async def __gym_find(self, ctx, gym_code):
+        city = await self.get_city_for_channel(ctx.guild.id, ctx.channel.id)
+        gym_info = await self.find_gym_by_gym_code(gym_code, city)
+        if gym_info:
+            return await self._generate_gym_embed(ctx.message, gym_info)
+        else:
+            await self.utilities._send_error_message(ctx.message.channel,
+                                      f"Beep Beep! **{ctx.message.author.display_name}** I couldn't find any gyms with gym-code **{gym_code}** in **{city}**.\n"
+                                      f"Please use **!xgym list word** to see the list of gyms.")
 
     @_gym.command(pass_context=True, hidden=True, aliases=["add"])
     async def _gym_add(self, ctx, *, gym_info=None):
@@ -142,7 +182,7 @@ class GymManager:
                 message_text = "Beep Beep! **{0}**, Gym **{1}** has been added successfully.".format(
                     ctx.message.author.display_name, gym_info_to_save['original_gym_name'])
 
-                gym_info_already_saved = await self.find_gyms_for_city(ctx.message, gym_code_key, gym_info_to_save['city_state_key'])
+                gym_info_already_saved = await self.find_gym_by_gym_code(gym_code_key, gym_info_to_save['city_state_key'])
 
                 # gymsql.find_gym(city + state, gym_code_key)
                 if gym_info_already_saved:
@@ -213,8 +253,65 @@ class GymManager:
     async def find_gym_list_by(self, gym_code_or_name, city=None):
         return await self._query_gym_master(gym_code_or_name, city)
 
+    async def _generate_gym_embed(self, message, gym_info):
+        embed_title = _("Click here for direction to {gymname}!").format(gymname=gym_info['gym_name'])
 
+        embed_desription = _("**Gym Code :** {gymcode}\n**Gym Name :** {gymname}\n**City :** {city}").format(
+            gymcode=gym_info['gym_code_key'], gymname=gym_info['original_gym_name'], city=gym_info['gym_location_city'])
 
+        raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title),
+                                   url=gym_info['gmap_url'], description=embed_desription)
+
+        embed_map_image_url = self.fetch_gmap_image_link(gym_info['latitude'] + "," + gym_info['longitude'])
+        raid_embed.set_image(url=embed_map_image_url)
+
+        if gym_info['gym_image']:
+            raid_embed.set_thumbnail(url=gym_info['gym_image'])
+        roster_message = "here are the gym details! "
+
+        await message.channel.send(
+            content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention,
+                                                                     roster_message=roster_message), embed=raid_embed)
+
+    def fetch_gmap_image_link(self, lat_long):
+        key = config_template.api_keys["google-api-key"]
+        gmap_base_url = "https://maps.googleapis.com/maps/api/staticmap?center={0}&markers=color:red%7C{1}&maptype=roadmap&size=250x125&zoom=15&key={2}".format(
+            lat_long, lat_long, key)
+
+        return gmap_base_url
+
+    async def _genenrate_gym_list_embed(self, message, gym_code_or_name, list_of_gyms):
+
+        try:
+            if len(list_of_gyms) < 1:
+                await _send_error_message(message.channel,
+                                          "Beep Beep... **{member}** I could not find any gym starting with **{gym_code_or_name}** for **{city}**!".format(
+                                              member=message.author.display_name, city=city, gym_code=gym_code_or_name))
+                return
+
+            gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format( member=message.author.display_name, city=city_state)
+
+            for gym_info in list_of_gyms:
+                new_gym_info = "**{gym_code_or_name}** - {gym_name}\n".format(
+                    gym_code_or_name=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
+
+                if len(gym_message_output) + len(new_gym_info) > 1990:
+                    await _send_message(message.channel, gym_message_output)
+                    gym_message_output = ""
+
+                gym_message_output += new_gym_info
+
+            if gym_message_output:
+                await _send_message(message.channel, gym_message_output)
+            else:
+                await _send_error_message(message.channel,
+                                          "Beep Beep... **{member}** No matches found for **{gym_code_or_name}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(
+                                              member=message.author.display_name, gym_code=gym_code, city=city))
+        except Exception as error:
+            logger.info(error)
+            await _send_error_message(message.channel,
+                                      "Beep Beep...**{member}** No matches found for **{gym_code_or_name}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(
+                                          member=message.author.display_name, gym_code=gym_code, city=city))
 
     def get_beep_embed(self, title, description, usage=None, available_value_title=None, available_values=None, footer=None, mode="message"):
 
@@ -227,6 +324,24 @@ class GymManager:
 
         help_embed.set_footer(text=footer)
         return help_embed
+
+    beep_notes = ("""**{member}** here are the commands for trade management.
+
+**!xgym <gym-code>offer <pokemon>** - to add pokemon to your offers list.
+**!trade request <pokemon>** - to add pokemon to your requests list.
+
+**!trade clear <pokemon>** - to remove pokemon from your trade offer or request list.
+
+**!trade list** - brings up pokemon in your trade offer/request list.
+**!trade list @user** - brings up pokemon in user's trade offer/request list.
+**!trade list pokemon** - filters your trade offer/request list by sepcified pokemon.
+
+**!trade search <pokemon>** - brings up a list of 10 users who are offering pokemon with their pokemon request as well.
+
+**<pokemon> - can be one or more pokemon or pokedex# separated by space.**
+
+""")
+
 
     @classmethod
     async def _help(self, ctx):
