@@ -56,11 +56,11 @@ class Pokemon():
             lvl=lvl, cp=cp, quickMoveid=quickMoveid,
             chargeMoveid=chargeMoveid, chargeMove2id=chargeMove2id)
 
-    def get_weaknesses(self, number):
+    def get_weaknesses(self):
         # # Get the Pokemon's number
         # number = pkmn_info['pokemon_list'].index(species)
         # Look up its type
-        pk_type = type_list[number]
+        pk_type = self.bot.type_list[int(self.id)]
 
         # Calculate sum of its weaknesses
         # and resistances.
@@ -74,7 +74,7 @@ class Pokemon():
             for atk_type in self.bot.type_chart[type]:
                 if atk_type not in type_eff:
                     type_eff[atk_type] = 0
-                type_eff[atk_type] += type_chart[type][atk_type]
+                type_eff[atk_type] += self.bot.type_chart[type][atk_type]
 
         # Summarize into a list of weaknesses,
         # sorting double weaknesses to the front and marking them with 'x2'.

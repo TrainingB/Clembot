@@ -47,6 +47,8 @@ from exts.trademanager import TradeManager
 from exts.utilities import HandleAngularBrackets
 from exts.utilities import Utilities
 
+from clembot.exts.pkmn.pkmn_cog import Pokemon
+
 from clembot.cogs.dbi import DatabaseInterface
 import config_template
 from logs import init_loggers
@@ -187,6 +189,8 @@ load_config()
 
 Clembot.config = config
 Clembot.pkmn_info = pkmn_info
+Clembot.type_list = type_list
+Clembot.type_chart = type_chart
 utilities = Utilities()
 
 poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
@@ -4248,6 +4252,16 @@ async def _get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
 
 
 
+@Clembot.command(pass_context=True, hidden=True, aliases= ["infox"])
+async def _weakinfo(ctx, pkmn): # guild, pkmn, weather=None):
+    try:
+
+        pokemon = Pokemon(Clembot, pkmn)
+
+        print(pokemon.get_weaknesses())
+    except Exception as error:
+        print(error)
+
 
 @Clembot.command(pass_context=True, hidden=True, aliases= ["movesets"])
 async def _test_get_moveset(ctx, pkmn): # guild, pkmn, weather=None):
@@ -6504,7 +6518,7 @@ async def _generate_gym_embed_old(message, gym_info):
 
         raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title), url=gym_location, description=embed_desription)
 
-        embed_map_image_url = fetch_gmap_image_link(gym_info['lat_long'])
+        embed_map_image_url = fetch_gmap_image_link(f"{gym_info['latitude']},{gym_info['longitude']}")
         raid_embed.set_image(url=embed_map_image_url)
         roster_message = "here are the gym details! "
         raid_embed.set_footer(text="Note: Still using old gym-codes? lookup new gym-codes using !gyms command.")
@@ -8178,7 +8192,7 @@ async def update(ctx):
         if gym_info:
             roster_loc['gym_name'] = gym_info['gym_name']
             roster_loc['gym_code'] = gym_info['gym_code_key']
-            roster_loc['lat_long'] = gym_info['lat_long']
+            roster_loc['lat_long'] = f"{gym_info['latitude']},{gym_info['longitude']}"
             roster_loc['gmap_link'] = gym_info['gmap_url']
             roster_loc['eta'] = None
             args_split.remove(arg.lower())
@@ -8317,7 +8331,7 @@ async def add(ctx):
             roster_loc['gym_name'] = gym_info['gym_name']
             roster_loc['gym_code'] = gym_info['gym_code_key']
             roster_loc['gmap_link'] = gym_info['gmap_url']
-            roster_loc['lat_long'] = gym_info['lat_long']
+            roster_loc['lat_long'] = f"{gym_info['latitude']},{gym_info['longitude']}"
         else:
             roster_loc['gym_name'] = roster_loc_label
             roster_loc['gym_code'] = roster_loc_label
