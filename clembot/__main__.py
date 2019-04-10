@@ -3369,10 +3369,8 @@ async def get_gym_info_wrapper(message, gym_code):
     city_state = await MyGymManager.get_city_for_channel(message.guild.id, message.channel.id)
     gym_info_new_format = await MyGymManager.find_gym_by_gym_code(gym_code.upper(), city_state)
 
-    if gym_info_new_format:
-            return gymsql.convert_into_gym_info(gym_info_new_format)
 
-    return None
+    return gym_info_new_format
 
 
 
@@ -3718,7 +3716,7 @@ async def _newraid(message):
     if parameters.get('gym_info', None):
         gym_info = parameters['gym_info']
         raid_details = gym_info['gym_name']
-        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code_key'])
         channel_role_list = [ discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list ]
     else:
         raid_details = " ".join(parameters.get('others'))
@@ -3761,9 +3759,9 @@ async def _newraid(message):
     direction_description = ""
 
     if gym_info:
-        raid_gmaps_link = gym_info['gmap_link']
+        raid_gmaps_link = gym_info['gmap_url']
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
-        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code_key'])
         channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list]
         direction_description = f"**{gym_info['gym_name']}** [click here for directions]({raid_gmaps_link})"
     else:
@@ -3974,9 +3972,9 @@ async def _raid(message):
     else:
         prefix = ""
     if gym_info:
-        raid_gmaps_link = gym_info['gmap_link']
+        raid_gmaps_link = gym_info['gmap_url']
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(gym_info['gym_name'])
-        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code_key'])
         channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list]
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
@@ -4041,7 +4039,7 @@ Please type `!beep status` if you need a refresher of Clembot commands!
     if channel_role_list:
         await _mention_roles_for(raid_channel, "Beep Beep! Notified roles : ", channel_role_list)
         # await raid_channel.send( content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_role.mention))
-        # channel_mentions = _get_roles_mention_for_notifications(message.guild,gym_info['gym_code'])
+        # channel_mentions = _get_roles_mention_for_notifications(message.guild,gym_info['gym_code_key'])
         # if channel_mentions:
         #     await raid_channel.send(content=_("Beep Beep! A raid has been reported for {channel_role}.").format(channel_role=channel_mentions))
 
@@ -5225,7 +5223,7 @@ async def __exraid(ctx):
     if parameters.get('gym_info', None):
         gym_info = parameters['gym_info']
         raid_details = gym_info['gym_name']
-        # channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+        # channel_role_id = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code_key'])
         # channel_role = discord.utils.get(message.channel.guild.roles, id=channel_role_id)
         location_prefix = " ".join(parameters.get('others',[]))
 
@@ -5253,7 +5251,7 @@ async def __exraid(ctx):
         prefix = ""
 
     if gym_info:
-        raid_gmaps_link = gym_info['gmap_link']
+        raid_gmaps_link = gym_info['gmap_url']
     else:
         raid_gmaps_link = create_gmaps_query(raid_details, message.channel)
 
@@ -5568,7 +5566,7 @@ async def _raidegg(message):
         if parameters.get('gym_info', None):
             gym_info = parameters['gym_info']
             raid_details = gym_info['gym_name']
-            channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code'])
+            channel_role_id_list = _get_role_for_notification(message.channel.guild.id, gym_info['gym_code_key'])
             channel_role_list = [discord.utils.get(message.channel.guild.roles, id=channel_role_id) for channel_role_id in channel_role_id_list]
         else:
             raid_details = " ".join(parameters.get('others'))
@@ -5596,7 +5594,7 @@ async def _raidegg(message):
 
             direction_description = ""
             if gym_info:
-                raid_gmaps_link = gym_info['gmap_link']
+                raid_gmaps_link = gym_info['gmap_url']
                 raid_channel_name = prefix + "level-" + egg_level + "-egg-" + sanitize_channel_name(gym_info['gym_name'])
                 direction_description = f"**{gym_info['gym_name']}** [click here for directions]({raid_gmaps_link})"
             else:
@@ -5753,6 +5751,7 @@ async def _eggtoraid(entered_raid, channel):
 
         raid_channel_name = prefix + entered_raid + "-" + sanitize_channel_name(egg_address)
         oldembed = raid_message.embeds[0]
+        where = oldembed.fields[0]
         raid_gmaps_link = oldembed.url
         direction_description = f"[Click here for directions]({raid_gmaps_link})"
         raid = discord.utils.get(channel.guild.roles, name=entered_raid)
@@ -5768,7 +5767,7 @@ async def _eggtoraid(entered_raid, channel):
         raid_img_url = get_pokemon_image_url(raid_number)  # This part embeds the sprite
 
         raid_embed = discord.Embed(colour=channel.guild.me.colour)  # title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link,
-        raid_embed.add_field(name="**Where:**", value=direction_description, inline=False)
+        raid_embed.add_field(name="**Where:**", value=where.value, inline=False)
         # raid_embed = discord.Embed(title=_("Beep Beep! Click here for directions to the raid!"), url=raid_gmaps_link, colour=channel.guild.me.colour)
         raid_embed.add_field(name="**Details:**", value=_("{pokemon} ({pokemonnumber}) {type}").format(pokemon=entered_raid.capitalize(), pokemonnumber=str(raid_number), type="".join(get_type(channel.guild, raid_number)), inline=True))
         raid_embed.add_field(name="**Weaknesses:**", value=_("{weakness_list}").format(weakness_list=weakness_to_str(channel.guild, get_weaknesses(entered_raid))), inline=True)
@@ -6421,7 +6420,7 @@ async def nest(ctx):
             if parameters.get('gym_info', None):
                 gym_info = parameters['gym_info']
                 location_name = gym_info['gym_name']
-                link = gym_info['gmap_link']
+                link = gym_info['gmap_url']
 
         if link:
             embed_title = _("Beep Beep! Click here for the directions to {location}!".format(location=location_name))
@@ -6496,9 +6495,9 @@ async def gym(ctx, gym_code=None):
 
 async def _generate_gym_embed_old(message, gym_info):
     try:
-        gym_location = gym_info['gmap_link']
+        gym_location = gym_info['gmap_url']
         gym_name = gym_info['gym_name']
-        gym_code = gym_info['gym_code']
+        gym_code = gym_info['gym_code_key']
         embed_title = _("Click here for direction to {gymname}!").format(gymname=gym_name)
 
         embed_desription = _("Gym Code : {gymcode}\nGym Name: {gymname}").format(gymcode=gym_code, gymname=gym_name)
@@ -8178,9 +8177,9 @@ async def update(ctx):
 
         if gym_info:
             roster_loc['gym_name'] = gym_info['gym_name']
-            roster_loc['gym_code'] = gym_info['gym_code']
+            roster_loc['gym_code'] = gym_info['gym_code_key']
             roster_loc['lat_long'] = gym_info['lat_long']
-            roster_loc['gmap_link'] = gym_info['gmap_link']
+            roster_loc['gmap_link'] = gym_info['gmap_url']
             roster_loc['eta'] = None
             args_split.remove(arg.lower())
 
@@ -8316,8 +8315,8 @@ async def add(ctx):
 
         if gym_info:
             roster_loc['gym_name'] = gym_info['gym_name']
-            roster_loc['gym_code'] = gym_info['gym_code']
-            roster_loc['gmap_link'] = gym_info['gmap_link']
+            roster_loc['gym_code'] = gym_info['gym_code_key']
+            roster_loc['gmap_link'] = gym_info['gmap_url']
             roster_loc['lat_long'] = gym_info['lat_long']
         else:
             roster_loc['gym_name'] = roster_loc_label
