@@ -6,9 +6,9 @@ from BingoBoard import BingoBoard
 
 class WowBingo:
 
-    def __init__(self, grid_size = 3, file_name = 'cards.txt'):
+    def __init__(self, grid_size = 3, file_name=None):
         self.grid_size = grid_size
-        self.bingo_options = self._read_file(file_name)
+        # self.bingo_options = self._read_file(file_name)
 
     def _read_file(self, file_name):
         script_path = os.path.dirname(os.path.realpath(__file__))

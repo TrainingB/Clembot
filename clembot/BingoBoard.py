@@ -17,7 +17,7 @@ class BingoBoard:
             dir_path = os.path.join(script_path, "..","data")
             file_path = os.path.join(script_path, "..","data", "templates")
             y_position = 190
-            cell_width =  165
+            cell_width =  162
             cell_height = 110
             margin = 10
             font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 24, encoding="unic")

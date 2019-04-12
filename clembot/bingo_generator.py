@@ -59,6 +59,9 @@ def load_data():
     with open(os.path.join(directory, "treecko.json"), "r") as fd:
         pokemon_cp_level['treecko'] = json.load(fd)
 
+    with open(os.path.join(directory, "bagon.json"), "r") as fd:
+        pokemon_cp_level['bagon'] = json.load(fd)
+
 
 load_data()
 
@@ -145,7 +148,7 @@ def load_pokemon_data(pokemon):
     except Exception as error:
         print(error)
 
-def generate_card(event_pokemon='treecko'):
+def generate_card(event_pokemon):
 
     if event_pokemon not in pokemon_cp_level.keys():
         load_pokemon_data(event_pokemon)
@@ -160,7 +163,7 @@ def generate_card(event_pokemon='treecko'):
 
     category = []
     size = ['XL','XL','XL','XL','XS','XS','XS','XS']
-    gender = gender_master.get(event_pokemon,[MALE_SIGN, MALE_SIGN, MALE_SIGN, FEMALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN])
+    gender = gender_master.get(event_pokemon,[MALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN, FEMALE_SIGN, FEMALE_SIGN, FEMALE_SIGN, FEMALE_SIGN])
 
     bingo_card = {}
 
@@ -192,7 +195,8 @@ def generate_card(event_pokemon='treecko'):
     cell_4_range = keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP']) #cell_4_json['Spread'] * 2
     cell_4_value = ["CP : {0} ".format(cell_4_range) , "{0}".format(gender[randint(0,7)])] #
 
-    cell_5_value = ["{0}".format(event_pokemon.capitalize().center(13, ' ')), "✩"]
+    cell_5_value = [ "" , ""]
+    # ["{0}".format(event_pokemon.capitalize().center(13, ' ')), "✩"]
 
     cell_6_level = randint(22, 25)
     cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
@@ -303,7 +307,7 @@ def test():
     print(print_card_as_text(generate_card()))
 
 
-test()
+#test()
 
 
 # https://pokemongo.gamepress.gg/pokemon/133

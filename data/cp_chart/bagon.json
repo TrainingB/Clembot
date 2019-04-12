@@ -1,0 +1,282 @@
+{
+  "1": {
+    "Level": 1,
+    "Stardust": 200,
+    "Min CP": 12,
+    "Max CP": 16,
+    "Spread": 1
+  },
+  "2": {
+    "Level": 2,
+    "Stardust": 200,
+    "Min CP": 40,
+    "Max CP": 51,
+    "Spread": 2
+  },
+  "3": {
+    "Level": 3,
+    "Stardust": 400,
+    "Min CP": 68,
+    "Max CP": 86,
+    "Spread": 4
+  },
+  "4": {
+    "Level": 4,
+    "Stardust": 400,
+    "Min CP": 95,
+    "Max CP": 121,
+    "Spread": 4
+  },
+  "5": {
+    "Level": 5,
+    "Stardust": 600,
+    "Min CP": 123,
+    "Max CP": 155,
+    "Spread": 8
+  },
+  "6": {
+    "Level": 6,
+    "Stardust": 600,
+    "Min CP": 150,
+    "Max CP": 190,
+    "Spread": 8
+  },
+  "7": {
+    "Level": 7,
+    "Stardust": 800,
+    "Min CP": 178,
+    "Max CP": 225,
+    "Spread": 8
+  },
+  "8": {
+    "Level": 8,
+    "Stardust": 800,
+    "Min CP": 205,
+    "Max CP": 260,
+    "Spread": 8
+  },
+  "9": {
+    "Level": 9,
+    "Stardust": 1000,
+    "Min CP": 233,
+    "Max CP": 295,
+    "Spread": 10
+  },
+  "10": {
+    "Level": 10,
+    "Stardust": 1000,
+    "Min CP": 260,
+    "Max CP": 330,
+    "Spread": 10
+  },
+  "11": {
+    "Level": 11,
+    "Stardust": 1300,
+    "Min CP": 287,
+    "Max CP": 363,
+    "Spread": 10
+  },
+  "12": {
+    "Level": 12,
+    "Stardust": 1300,
+    "Min CP": 313,
+    "Max CP": 396,
+    "Spread": 10
+  },
+  "13": {
+    "Level": 13,
+    "Stardust": 1600,
+    "Min CP": 339,
+    "Max CP": 429,
+    "Spread": 10
+  },
+  "14": {
+    "Level": 14,
+    "Stardust": 1600,
+    "Min CP": 365,
+    "Max CP": 462,
+    "Spread": 12
+  },
+  "15": {
+    "Level": 15,
+    "Stardust": 1900,
+    "Min CP": 391,
+    "Max CP": 495,
+    "Spread": 12
+  },
+  "16": {
+    "Level": 16,
+    "Stardust": 1900,
+    "Min CP": 417,
+    "Max CP": 528,
+    "Spread": 12
+  },
+  "17": {
+    "Level": 17,
+    "Stardust": 2200,
+    "Min CP": 443,
+    "Max CP": 561,
+    "Spread": 12
+  },
+  "18": {
+    "Level": 18,
+    "Stardust": 2200,
+    "Min CP": 469,
+    "Max CP": 594,
+    "Spread": 12
+  },
+  "19": {
+    "Level": 19,
+    "Stardust": 2500,
+    "Min CP": 495,
+    "Max CP": 627,
+    "Spread": 16
+  },
+  "20": {
+    "Level": 20,
+    "Stardust": 2500,
+    "Min CP": 521,
+    "Max CP": 660,
+    "Spread": 16
+  },
+  "21": {
+    "Level": 21,
+    "Stardust": 3000,
+    "Min CP": 547,
+    "Max CP": 693,
+    "Spread": 16
+  },
+  "22": {
+    "Level": 22,
+    "Stardust": 3000,
+    "Min CP": 573,
+    "Max CP": 726,
+    "Spread": 16
+  },
+  "23": {
+    "Level": 23,
+    "Stardust": 3500,
+    "Min CP": 600,
+    "Max CP": 759,
+    "Spread": 16
+  },
+  "24": {
+    "Level": 24,
+    "Stardust": 3500,
+    "Min CP": 626,
+    "Max CP": 793,
+    "Spread": 16
+  },
+  "25": {
+    "Level": 25,
+    "Stardust": 4000,
+    "Min CP": 652,
+    "Max CP": 826,
+    "Spread": 20
+  },
+  "26": {
+    "Level": 26,
+    "Stardust": 4000,
+    "Min CP": 678,
+    "Max CP": 859,
+    "Spread": 20
+  },
+  "27": {
+    "Level": 27,
+    "Stardust": 4500,
+    "Min CP": 704,
+    "Max CP": 892,
+    "Spread": 20
+  },
+  "28": {
+    "Level": 28,
+    "Stardust": 4500,
+    "Min CP": 730,
+    "Max CP": 925,
+    "Spread": 20
+  },
+  "29": {
+    "Level": 29,
+    "Stardust": 5000,
+    "Min CP": 756,
+    "Max CP": 958,
+    "Spread": 20
+  },
+  "30": {
+    "Level": 30,
+    "Stardust": 5000,
+    "Min CP": 782,
+    "Max CP": 991,
+    "Spread": 24
+  },
+  "31": {
+    "Level": 31,
+    "Stardust": 6000,
+    "Min CP": 795,
+    "Max CP": 1007,
+    "Spread": 24
+  },
+  "32": {
+    "Level": 32,
+    "Stardust": 6000,
+    "Min CP": 808,
+    "Max CP": 1024,
+    "Spread": 24
+  },
+  "33": {
+    "Level": 33,
+    "Stardust": 7000,
+    "Min CP": 821,
+    "Max CP": 1040,
+    "Spread": 24
+  },
+  "34": {
+    "Level": 34,
+    "Stardust": 7000,
+    "Min CP": 834,
+    "Max CP": 1057,
+    "Spread": 24
+  },
+  "35": {
+    "Level": 35,
+    "Stardust": 8000,
+    "Min CP": 847,
+    "Max CP": 1073,
+    "Spread": 24
+  },
+  "36": {
+    "Level": 36,
+    "Stardust": 8000,
+    "Min CP": 860,
+    "Max CP": 1090,
+    "Spread": 28
+  },
+  "37": {
+    "Level": 37,
+    "Stardust": 9000,
+    "Min CP": 874,
+    "Max CP": 1106,
+    "Spread": 28
+  },
+  "38": {
+    "Level": 38,
+    "Stardust": 9000,
+    "Min CP": 887,
+    "Max CP": 1123,
+    "Spread": 28
+  },
+  "39": {
+    "Level": 39,
+    "Stardust": 10000,
+    "Min CP": 900,
+    "Max CP": 1140,
+    "Spread": 28
+  },
+  "40": {
+    "Level": 40,
+    "Stardust": 10000,
+    "Min CP": 913,
+    "Max CP": 1156,
+    "Spread": 28
+  }
+}
