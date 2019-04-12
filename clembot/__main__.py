@@ -46,7 +46,7 @@ from exts.rostermanager import RosterManager
 from exts.trademanager import TradeManager
 from exts.utilities import HandleAngularBrackets
 from exts.utilities import Utilities
-
+from clembot.bot import Bot
 from clembot.exts.pkmn.pkmn_cog import Pokemon
 
 from clembot.cogs.dbi import DatabaseInterface
@@ -74,7 +74,7 @@ def _get_prefix(bot, message):
 
 
 
-Clembot = commands.Bot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
+Clembot = Bot(command_prefix=_get_prefix, case_insensitive=True, activity=discord.Game(name="Pokemon Go"))
 Clembot.remove_command("help")
 custom_error_handling(Clembot, logger)
 Clembot.loop = None
