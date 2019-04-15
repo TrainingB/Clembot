@@ -19,8 +19,7 @@ db_config_details = {
 }
 
 api_keys = {
-	"google-api-key" : "AIzaSyA5sUMYINZyN_EYV5zESsBBQ84Dv50J-AI",
-	"google-shortner-key" : "AIzaSyB5K74ZRcxs0i9i_wgVCOvNZBwcgcU-Ogc",
+	"google-api-key" : "API key for google"
 }
 
 
