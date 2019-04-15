@@ -1,15 +1,15 @@
 import re
 import discord
 import os
-import time_util
+from . import time_util
 from discord.ext import commands
 from exts.utilities import Utilities
 from exts.utilities import RemoveComma
 from random import *
 import asyncio
 import os,sys,inspect
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-import gymsql
+# sys.path.insert(1, os.path.join(sys.path[0], '..'))
+from clembot.core import gymsql
 import json
 
 class AutoResponder:

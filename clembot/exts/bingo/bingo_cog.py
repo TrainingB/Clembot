@@ -1,10 +1,11 @@
 import random
 import csv
 import os
-from BingoBoard import BingoBoard
+
+from .BingoCardImage import BingoCardImage
 
 
-class WowBingo:
+class BingoCardGenerator:
 
     def __init__(self, grid_size = 3, file_name=None):
         self.grid_size = grid_size
@@ -20,14 +21,14 @@ class WowBingo:
 
     def generate_board(self, user_name, bingo_card = None, template_file=None):
         board_layout = self.generate_board_layout(bingo_card)
-        bingo_board = BingoBoard(board_layout)
+        bingo_board = BingoCardImage(board_layout)
         board_image = bingo_board.generate_board_image(user_name=user_name, template_file=template_file)
 
         return board_image
 
     def generate_old_board(self, user_name):
         board_layout = self.generate_board_layout()
-        bingo_board = BingoBoard(board_layout)
+        bingo_board = bingo_board_cog(board_layout)
         board_image = bingo_board.generate_board_image(user_name=user_name)
 
         return board_image

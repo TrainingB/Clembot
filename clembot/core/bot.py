@@ -1,4 +1,4 @@
-from context import Context
+from clembot.core.context import Context
 from discord.ext import commands
 from cogs.dbi import DatabaseInterface
 import logging

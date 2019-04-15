@@ -1,6 +1,6 @@
 import re
 import discord
-import time_util
+from clembot.core import time_util
 import copy
 
 from discord.ext import commands

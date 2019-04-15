@@ -7,6 +7,7 @@ from random import *
 # https://json-csv.com/
 
 
+
 pokemon_cp = {}
 mareep_cp = {}
 bulbasaur_cp = {}
@@ -16,9 +17,10 @@ pokemon_cp_level = {}
 script_path = os.path.dirname(os.path.realpath(__file__))
 
 def load_data():
+    print(f"load_data(): {script_path} ")
     global pokemon_cp, mareep_cp, bulbasaur_cp
 
-    directory = os.path.join(script_path,"..","data","cp_chart")
+    directory = os.path.join(script_path,"cp_chart")
     filenames = ["","bulbasaur.json"]
     with open(os.path.join(directory, "pikachu.json"), "r") as fd:
         pokemon_cp_level['pikachu'] = json.load(fd)

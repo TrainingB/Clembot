@@ -19,20 +19,24 @@ from random import *
 from time import strftime
 
 import aiohttp
-import bingo_generator
-import checks
+
+from clembot.exts.bingo import card_data_generator
+
+from clembot.core import checks
+
 import discord
 # --B--
 # ---- dependencies
-import gymsql
+from clembot.core import gymsql
 import hastebin
 import jsonpickle
-import spelling
-from WowBingo import WowBingo
+from clembot.core import spelling
+
+from config import config_template
 from dateutil import tz
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
-from errors import custom_error_handling
+from clembot.core.errors import custom_error_handling
 from exts.argparser import ArgParser
 from exts.autoresponder import AutoResponder
 from exts.badgemanager import BadgeManager
@@ -46,12 +50,12 @@ from exts.rostermanager import RosterManager
 from exts.trademanager import TradeManager
 from exts.utilities import HandleAngularBrackets
 from exts.utilities import Utilities
-from clembot.bot import Bot
-from clembot.exts.pkmn.pkmn_cog import Pokemon
 
+from clembot.core.bot import Bot
 from clembot.cogs.dbi import DatabaseInterface
-import config_template
-from logs import init_loggers
+from clembot.exts.bingo.bingo_cog import BingoCardGenerator
+from clembot.exts.pkmn.pkmn_cog import Pokemon
+from clembot.core.logs import init_loggers
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
@@ -69,7 +73,7 @@ def _get_prefix(bot, message):
         set_prefix = bot.guild_dict[guild.id]["prefix"]
     except (KeyError, AttributeError):
         set_prefix = None
-    default_prefix = bot.config["default_prefix"]
+    default_prefix = config_template.default_prefix
     return set_prefix or default_prefix
 
 
@@ -79,6 +83,8 @@ Clembot.remove_command("help")
 custom_error_handling(Clembot, logger)
 Clembot.loop = None
 Clembot.loop = asyncio.get_event_loop() if Clembot.loop is None else Clembot.loop
+
+
 try:
     with open(os.path.join('data', 'guilddict'), "rb") as fd:
         Clembot.guild_dict = pickle.load(fd)
@@ -101,7 +107,7 @@ guild_dict = Clembot.guild_dict
 pokemon_master = {}
 Clembot.raidlist = {}
 bingo_template = {}
-config = {}
+
 pkmn_info = {}
 type_chart = {}
 type_list = []
@@ -124,7 +130,7 @@ dbi = None
 
 def load_config():
     global pokemon_master
-    global config
+
     global pkmn_info
     global type_chart
     global type_list
@@ -139,15 +145,12 @@ def load_config():
 
     dbi = DatabaseInterface(**config_template.db_config_details)
     Clembot.dbi = dbi
-    # Load configuration
-    with open("config.json", "r") as fd:
-        config = json.load(fd)
 
     # Set up message catalog access
-    language = gettext.translation('clembot', localedir='locale', languages=[config['bot-language']])
+    language = gettext.translation('clembot', localedir='locale', languages=[config_template.bot_language])
     language.install()
-    pokemon_language = [config['pokemon-language']]
-    pokemon_path_source = os.path.join('locale', '{0}', 'pkmn.json').format(config['pokemon-language'])
+    pokemon_language = [config_template.pokemon_language]
+    pokemon_path_source = os.path.join('locale', '{0}', 'pkmn.json').format(config_template.pokemon_language)
 
     # Load Pokemon list and raid info
     with open(pokemon_path_source, "r") as fd:
@@ -171,10 +174,10 @@ def load_config():
     spelling.set_dictionary(pkmn_info['pokemon_list'])
 
     # --B--
-    GOOGLE_API_KEY = config['google-api-key']
+    GOOGLE_API_KEY = config_template.api_keys['google-api-key']
     GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/staticmap?center={latlong}&markers=color:red%7C{latlong}&maptype=roadmap&size=250x125&zoom=15&key=" + GOOGLE_API_KEY
-    SQLITE_DB = config['sqlite_db']
-    CACHE_VERSION = config.get('cache_version', CACHE_VERSION)
+    SQLITE_DB = config_template.sqlite_db
+    CACHE_VERSION = 15
 
     gymsql.set_db_name(SQLITE_DB)
     CACHE_VERSION = gymsql.find_clembot_config('cache-version')
@@ -187,7 +190,6 @@ def load_config():
 
 load_config()
 
-Clembot.config = config
 Clembot.pkmn_info = pkmn_info
 Clembot.type_list = type_list
 Clembot.type_chart = type_chart
@@ -379,12 +381,12 @@ def get_type(guild, pkmn_number):
     types = type_list[pkmn_number]
     ret = []
     for type in types:
-        ret.append(parse_emoji(guild, config['type_id_dict'][type.lower()]))
+        ret.append(parse_emoji(guild, config_template.type_emoji[type.lower()]))
     return ret
 
 
 def get_weather(guild, weather):
-    weather_emoji = parse_emoji(guild, config['weather_id_dict'].get(weather.lower(), ""))
+    weather_emoji = parse_emoji(guild, config_template.weather_emoji.get(weather.lower(), ""))
     return weather_emoji
 
 def get_name(pkmn_number):
@@ -411,7 +413,7 @@ def get_level(pkmn):
                 return level
 
 def get_raid_timer(egg_level, pokemon=None):
-    current_raid_timer = config['raid-timer']
+    current_raid_timer = config_template.raid_timer
     try:
         if egg_level:
             current_raid_timer = raid_info['raid_eggs'][egg_level]['raid_timer']
@@ -424,7 +426,7 @@ def get_raid_timer(egg_level, pokemon=None):
 
 def get_egg_timer(egg_level):
     egg_level = str(egg_level)
-    current_egg_timer = config['egg-timer']
+    current_egg_timer = config_template.egg_timer
     if egg_level:
         current_egg_timer = raid_info['raid_eggs'][egg_level]['egg_timer']
 
@@ -489,7 +491,7 @@ def weakness_to_str(guild, weak_list):
             x2 = "x2"
 
         # Append to string
-        ret += parse_emoji(guild, config['type_id_dict'][weakness]) + x2 + " "
+        ret += parse_emoji(guild, config_template.type_emoji[weakness]) + x2 + " "
 
     return ret
 
@@ -588,7 +590,7 @@ def get_raid_channel_dict(message):
 
 # Given a User, check that it is Clembot's master
 def check_master(user):
-    return str(user) == config['master']
+    return str(user) == config_template.bot_users["owner"]
 
 
 def check_guild_owner(user, guild):
@@ -1256,12 +1258,12 @@ The trainer_dict contains "trainer" elements, which have the following fields:
 'count'  : the number of trainers in the party
 """
 
-team_msg = " or ".join(["**!team {0}**".format(team) for team in config['team_dict'].keys()])
+team_msg = " or ".join(["**!team {0}**".format(team) for team in config_template.team_dict.keys()])
 
 
 @Clembot.event
 async def on_ready():
-    Clembot.owner = discord.utils.get(Clembot.get_all_members(), id=config["master"])
+    Clembot.owner = discord.utils.get(Clembot.get_all_members(), id=config_template.bot_users["owner"])
     await _print(Clembot.owner, _("Starting up..."))  # prints to the terminal or cmd prompt window upon successful connection to Discord
     Clembot.uptime = datetime.datetime.now()
     owners = []
@@ -1589,7 +1591,7 @@ async def prefix(ctx, prefix=None):
     if prefix is not None:
         await ctx.message.channel.send( "Prefix has been set to: `{}`".format(prefix))
     else:
-        default_prefix = Clembot.config["default_prefix"]
+        default_prefix = config_template.default_prefix
         await ctx.message.channel.send( "Prefix has been reset to default: `{}`".format(default_prefix))
 
 @_get.command()
@@ -1937,10 +1939,10 @@ async def configure(ctx):
                 guild_roles = []
                 lowercase_roles = []
                 for role in guild.roles:
-                    if role.name.lower() in config['team_dict'] and role.name not in guild_roles:
+                    if role.name.lower() in config_template.team_dict and role.name not in guild_roles:
                         guild_roles.append(role.name)
                 lowercase_roles = [element.lower() for element in guild_roles]
-                for team in config['team_dict'].keys():
+                for team in config_template.team_dict.keys():
                     temp_role = discord.utils.get(guild.roles, name=team)
                     if temp_role == None:
                         try:
@@ -2514,7 +2516,7 @@ async def team(ctx):
     position = guild.me.top_role.position
     high_roles = []
 
-    for team in config['team_dict'].keys():
+    for team in config_template.team_dict.keys():
         temp_role = discord.utils.get(ctx.message.guild.roles, name=team)
         if temp_role.position > position:
             high_roles.append(temp_role.name)
@@ -2532,7 +2534,7 @@ async def team(ctx):
     # Check if user already belongs to a team role by
     # getting the role objects of all teams in team_dict and
     # checking if the message author has any of them.
-    for team in config['team_dict'].keys():
+    for team in config_template.team_dict.keys():
         temp_role = discord.utils.get(ctx.message.guild.roles, name=team)
         # If the role is valid,
         if temp_role:
@@ -2546,7 +2548,7 @@ async def team(ctx):
             await _send_error_message (ctx.message.channel,_("Beep Beep! **{team_role}** is not configured as a role on this guild. Please contact an admin for assistance.").format(team_role=team))
     # Check if team is one of the three defined in the team_dict
 
-    if entered_team not in config['team_dict'].keys():
+    if entered_team not in config_template.team_dict.keys():
         await _send_error_message (ctx.message.channel, _("Beep Beep! **{entered_team}** isn't a valid team! Try {available_teams}").format(entered_team=entered_team, available_teams=team_msg))
         return
     # Check if the role is configured on the guild
@@ -3731,7 +3733,7 @@ async def _newraid(message):
         eggdetails = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]
         egglevel = eggdetails['egglevel']
         if raid_split[0] == 'assume':
-            if config['allow_assume'][egglevel] == "False":
+            if config_template.allow_assume[egglevel] == "False":
                 await message.channel.send( _("Beep Beep! **!raid assume** is not allowed in this level egg."))
                 return
             if guild_dict[message.channel.guild.id]['raidchannel_dict'][message.channel.id]['active'] == False:
@@ -3892,7 +3894,7 @@ async def _raid(message):
         eggdetails = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]
         egglevel = eggdetails['egglevel']
         if raid_split[0] == 'assume':
-            if config['allow_assume'][egglevel] == "False":
+            if config_template.allow_assume[egglevel] == "False":
                 await message.channel.send( _("Beep Beep! **!raid assume** is not allowed in this level egg."))
                 return
             if guild_dict[message.channel.guild.id]['raidchannel_dict'][message.channel.id]['active'] == False:
@@ -5689,7 +5691,7 @@ async def _raidegg(message):
 async def _eggassume(args, raid_channel):
     eggdetails = guild_dict[raid_channel.guild.id]['raidchannel_dict'][raid_channel.id]
     egglevel = eggdetails['egglevel']
-    if config['allow_assume'][egglevel] == "False":
+    if config_template.allow_assume[egglevel] == "False":
         await raid_channel.send( _("Beep Beep! **!raid assume** is not allowed in this level egg."))
         return
     entered_raid = re.sub("[\@]", "", args.lstrip("assume").lstrip(" ").lower())
@@ -7203,7 +7205,7 @@ async def starting(ctx):
     guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['trainer_dict'] = trainer_dict
     guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['suggested_start'] = False
 
-    starting_str = _("Beep Beep! The group that was waiting is starting the raid! Trainers {trainer_list}, please respond with {here_emoji} or **!here** if you are waiting for another group!").format(trainer_list=", ".join(ctx_startinglist), here_emoji=parse_emoji(ctx.message.guild, config['here_id']))
+    starting_str = _("Beep Beep! The group that was waiting is starting the raid! Trainers {trainer_list}, please respond with {here_emoji} or **!here** if you are waiting for another group!").format(trainer_list=", ".join(ctx_startinglist), here_emoji=parse_emoji(ctx.message.guild, config_template.here_id))
     if len(ctx_startinglist) == 0:
         starting_str = _("Beep Beep! How can you start when there's no one waiting at this raid!?")
     await ctx.message.channel.send( starting_str)
@@ -8991,8 +8993,8 @@ async def _get_card(ctx):
         timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
 
         args = ctx.message.clean_content.split()
-        bingo_card = bingo_generator.generate_card()
-        response = bingo_generator.print_card_as_text(bingo_card)
+        bingo_card = card_data_generator.generate_card()
+        response = card_data_generator.print_card_as_text(bingo_card)
 
         embed_msg = "**!{0}!**".format(event_title_map[event_pokemon])
 
@@ -9009,7 +9011,7 @@ async def _get_card(ctx):
     except Exception as error:
         logger.info(error)
 
-bingo = WowBingo()
+MyBingoBoardGenerator = BingoCardGenerator()
 
 @Clembot.command(pass_context=True, hidden=True,aliases=["bingo"])
 async def _bingo_win(ctx):
@@ -9084,11 +9086,10 @@ async def _bingo_card(ctx):
             timestamp = existing_bingo_card_record['generated_at']
             file_url = existing_bingo_card_record['bingo_card_url']
         else:
-            bingo_card = bingo_generator.generate_card(event_pokemon)
+            bingo_card = card_data_generator.generate_card(event_pokemon)
             timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-            file_path = bingo.generate_board(user_name=author.id, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon)) # bingo_template.get(message.guild.id,"bingo_template.png")
+            file_path = MyBingoBoardGenerator.generate_board(user_name=author.id, bingo_card=bingo_card, template_file="{0}.png".format(event_pokemon))
             repo_channel = await get_repository_channel(message)
-
             file_url_message = await repo_channel.send(file=discord.File(file_path), content="Generated for : {user} at {timestamp}".format(user=author.mention, timestamp=timestamp))
             file_url = file_url_message.attachments[0].url
 
@@ -9108,6 +9109,7 @@ async def _bingo_card(ctx):
             os.remove(file_path)
 
     except Exception as error:
+        print(error)
         logger.info(error)
     return
 
@@ -9519,7 +9521,7 @@ def record_error_reported_by(guild_id, channel_name, author_id, report_type):
 
 try:
 
-    event_loop.run_until_complete(Clembot.start(config['bot_token']))
+    event_loop.run_until_complete(Clembot.start(config_template.bot_token))
     print("started!")
 except discord.LoginFailure:
     logger.critical("Invalid token")

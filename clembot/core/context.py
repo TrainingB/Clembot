@@ -3,7 +3,7 @@ import textwrap
 import discord
 from discord.ext import commands
 
-from clembot.utils import convert_to_bool, make_embed, bold
+from clembot.core.utils import make_embed, bold
 
 class Context(commands.Context):
     def __init__(self, **kwargs):
