@@ -23,7 +23,7 @@ class Raid:
     @property
     def status(self):
 
-        if self.hatch and time.time() < self.hatch
+        if self.hatch and time.time() < self.hatch:
             return "egg"
         elif not self.pkmn:
             return "hatched"
