@@ -60,7 +60,7 @@ def read_guild_city(guild_id):
 
     return None
 
-def __read_channel_city(guild_id, channel_id):
+def read_channel_city(guild_id, channel_id):
     try:
         # print("read_channel_city({guild_id}, {channel_id})".format(guild_id=guild_id, channel_id=channel_id))
 

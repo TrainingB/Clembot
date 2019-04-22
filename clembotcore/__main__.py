@@ -25,18 +25,18 @@ from config import config_template
 from dateutil import tz
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
-from exts.autoresponder import AutoResponder
-from exts.badgemanager import BadgeManager
-from exts.configmanager import ConfigManager
-from exts.gymmanager import GymManager
-from exts.profilemanager import ProfileManager
-from exts.propertieshandler import PropertiesHandler
-from exts.reactionrolemanager import ReactionRoleManager
-from exts.reactrolemanager import ReactRoleManager
-from exts.rostermanager import RosterManager
-from exts.trademanager import TradeManager
-from exts.utilities import HandleAngularBrackets
-from exts.utilities import Utilities
+from clembotcore.exts.autoresponder import AutoResponder
+from clembotcore.exts.badgemanager import BadgeManager
+from clembotcore.exts.configmanager import ConfigManager
+from clembotcore.exts.gymmanager import GymManager
+from clembotcore.exts.profilemanager import ProfileManager
+from clembotcore.exts.propertieshandler import PropertiesHandler
+from clembotcore.exts.reactionrolemanager import ReactionRoleManager
+from clembotcore.exts.reactrolemanager import ReactRoleManager
+from clembotcore.exts.rostermanager import RosterManager
+from clembotcore.exts.trademanager import TradeManager
+from clembotcore.exts.utilities import HandleAngularBrackets
+from clembotcore.exts.utilities import Utilities
 
 from clembotcore.cogs.dbi import DatabaseInterface
 from clembotcore.core import checks
@@ -240,6 +240,9 @@ MyRosterManager = RosterManager(Clembot)
 MyConfigManager = ConfigManager(Clembot)
 MyBadgeManager = BadgeManager(Clembot)
 MyGymManager = GymManager(Clembot)
+
+
+Clembot.MyGymManager = MyGymManager
 """
 
 ======================

@@ -5,10 +5,7 @@ import discord
 from discord.ext import commands
 from exts.utilities import Utilities
 
-
-
 from clembotcore.core import gymsql
-
 
 # sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
@@ -28,7 +25,7 @@ class AutoResponder:
         city = gymsql.read_channel_city(guild_id=message.guild.id, channel_id=message.channel.id)
         if city == None:
             try:
-                parent_city_id = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id].get('reportcity', 0)
+                parent_city_id = self.guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id].get('reportcity', 0)
                 city = gymsql.read_channel_city(guild_id=message.guild.id, channel_id=parent_city_id)
             except Exception:
                 pass
