@@ -1,12 +1,12 @@
 import re
 import discord
 import os
-import time_util
+from clembot.core import time_util
 from discord.ext import commands
 from exts.utilities import Utilities
 from exts.utilities import RemoveComma
 from random import *
-import gymsql
+from clembot.core import gymsql
 
 
 import json

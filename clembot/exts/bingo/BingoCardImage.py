@@ -1,11 +1,10 @@
-
 from PIL import Image,ImageDraw,ImageFont
 import textwrap
 from random import randint
 import os
 
 
-class BingoBoard:
+class BingoCardImage:
 
     def __init__(self, bingo_board):
         self.bingo_board = bingo_board
@@ -14,18 +13,18 @@ class BingoBoard:
 
         try:
             script_path = os.path.dirname(os.path.realpath(__file__))
-            dir_path = os.path.join(script_path, "..","data")
-            file_path = os.path.join(script_path, "..","data", "templates")
+            dir_path = script_path# os.path.join(script_path, "data")
+            file_path = os.path.join(script_path, "templates")
             y_position = 190
             cell_width =  162
             cell_height = 110
             margin = 10
-            font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 24, encoding="unic")
-            special_font = ImageFont.truetype(os.path.join(script_path, "..","data","fonts","DejaVuSansMono.ttf"), 40, encoding="unic")
-            small_font = ImageFont.truetype(os.path.join(script_path,"..","data","fonts","Helvetica-Bold.ttf"), 20, encoding="unic")
+            font = ImageFont.truetype(os.path.join(script_path,"fonts","Helvetica-Bold.ttf"), 24, encoding="unic")
+            special_font = ImageFont.truetype(os.path.join(script_path, "fonts","DejaVuSansMono.ttf"), 40, encoding="unic")
+            small_font = ImageFont.truetype(os.path.join(script_path,"fonts","Helvetica-Bold.ttf"), 20, encoding="unic")
 
             path  = os.path.join(file_path, template_file)
-            print(path)
+            print(f"generate_board_image() : Template from : {path}")
 
             canvas = Image.open(os.path.join(file_path, template_file))
             draw = ImageDraw.Draw(canvas)

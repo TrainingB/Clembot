@@ -1,7 +1,7 @@
 import re
 import discord
 import os
-import time_util
+from clembot.core import time_util
 import json
 from discord.ext import commands
 from exts.utilities import Utilities

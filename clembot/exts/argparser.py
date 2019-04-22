@@ -1,4 +1,4 @@
-import time_util
+from . import time_util
 import re
 
 class ArgParser:

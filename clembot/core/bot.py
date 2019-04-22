@@ -1,17 +1,10 @@
-from context import Context
+from clembot.core.context import Context
 from discord.ext import commands
 from cogs.dbi import DatabaseInterface
 import logging
 
 class Bot(commands.AutoShardedBot):
     """Custom Discord Bot class for Clembot"""
-
-    # config_details = {
-    #     "password": 'clembot',
-    #     "hostname": '35.196.51.15',
-    #     "username": 'postgres',
-    #     "database": "bronzor-live"
-    # }
 
     def __init__(self, **kwargs):
         print("init()")

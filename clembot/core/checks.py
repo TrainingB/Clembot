@@ -1,6 +1,6 @@
 from discord.ext import commands
 import discord.utils
-import errors
+from . import errors
 
 def is_trusted_check(ctx):
     print(ctx.author.id)

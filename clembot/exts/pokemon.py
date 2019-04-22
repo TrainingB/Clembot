@@ -2,7 +2,7 @@ from discord.ext import commands
 import discord
 from string import ascii_lowercase
 
-from clembot import utils
+from data import utils
 from discord.ext.commands import CommandError
 
 import os

@@ -1,23 +1,16 @@
-import re
 import discord
-import os
-import time_util
 import json
 import asyncio
 
-from random import *
-
 from discord.ext import commands
 from exts.utilities import Utilities
-from exts.utilities import RemoveComma
-import os,sys,inspect
+import os,sys
 
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-import gymsql
-from logs import init_loggers
+from clembot.core.logs import init_loggers
 
 sys.path.append("..")
-import config_template
+from clembot.config import config_template
+
 
 class GymManager:
 

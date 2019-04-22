@@ -2,3 +2,7 @@
 /.idea
 *.pyc
 *.log
+clembot/config/config_template.py
+clembot/core/postgrestest.py
+database/clembot_db
+data/guilddict
