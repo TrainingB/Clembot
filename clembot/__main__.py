@@ -22,7 +22,7 @@ import aiohttp
 import discord
 import hastebin
 import jsonpickle
-from config import config_template
+from clembot.config import config_template
 from dateutil import tz
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
