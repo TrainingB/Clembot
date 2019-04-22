@@ -19,25 +19,13 @@ from random import *
 from time import strftime
 
 import aiohttp
-
-from clembot.exts.bingo import card_data_generator
-
-from clembot.core import checks
-
 import discord
-# --B--
-# ---- dependencies
-from clembot.core import gymsql
 import hastebin
 import jsonpickle
-from clembot.core import spelling
-
 from config import config_template
 from dateutil import tz
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
-from clembot.core.errors import custom_error_handling
-from exts.argparser import ArgParser
 from exts.autoresponder import AutoResponder
 from exts.badgemanager import BadgeManager
 from exts.configmanager import ConfigManager
@@ -51,11 +39,19 @@ from exts.trademanager import TradeManager
 from exts.utilities import HandleAngularBrackets
 from exts.utilities import Utilities
 
-from clembot.core.bot import Bot
 from clembot.cogs.dbi import DatabaseInterface
+from clembot.core import checks
+# --B--
+# ---- dependencies
+from clembot.core import gymsql
+from clembot.core import spelling
+from clembot.core.bot import Bot
+from clembot.core.errors import custom_error_handling
+from clembot.core.logs import init_loggers
+from clembot.exts.argparser import ArgParser
+from clembot.exts.bingo import card_data_generator
 from clembot.exts.bingo.bingo_cog import BingoCardGenerator
 from clembot.exts.pkmn.pkmn_cog import Pokemon
-from clembot.core.logs import init_loggers
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
