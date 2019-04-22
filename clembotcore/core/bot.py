@@ -1,7 +1,8 @@
 import logging
 
-from clembotcore.core.context import Context
 from discord.ext import commands
+
+from clembotcore.core.context import Context
 
 
 class Bot(commands.AutoShardedBot):

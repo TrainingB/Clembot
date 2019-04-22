@@ -3,7 +3,6 @@ import calendar
 import copy
 import datetime
 import functools
-import gettext
 import json
 import os
 import pickle
@@ -39,12 +38,12 @@ from exts.trademanager import TradeManager
 from exts.utilities import HandleAngularBrackets
 from exts.utilities import Utilities
 
+from clembotcore.cogs.dbi import DatabaseInterface
 from clembotcore.core import checks
 # --B--
 # ---- dependencies
 from clembotcore.core import gymsql
 from clembotcore.core import spelling
-from clembotcore.cogs.dbi import DatabaseInterface
 from clembotcore.core.bot import Bot
 from clembotcore.core.errors import custom_error_handling
 from clembotcore.core.logs import init_loggers
