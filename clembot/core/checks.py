@@ -20,7 +20,7 @@ def is_trusted():
 
 def is_owner_check(ctx):
     author = ctx.author.id
-    owner = ctx.bot.config['master']
+    owner = ctx.bot.owner
     return author == owner
 
 def is_owner():

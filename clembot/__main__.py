@@ -184,7 +184,7 @@ def load_config():
     bingo_template[341367173266276353] = "bingo_template_spg.png"
 
 load_config()
-
+Clembot.owner=config_template.bot_users['owner']
 Clembot.pkmn_info = pkmn_info
 Clembot.type_list = type_list
 Clembot.type_chart = type_chart
@@ -9519,6 +9519,7 @@ def record_error_reported_by(guild_id, channel_name, author_id, report_type):
 try:
 
     event_loop.run_until_complete(Clembot.start(config_template.bot_token))
+    # print(guild_dict)
     print("started!")
 except discord.LoginFailure:
     logger.critical("Invalid token")

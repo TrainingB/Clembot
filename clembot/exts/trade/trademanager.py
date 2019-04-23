@@ -24,6 +24,8 @@ class TradeManager:
         with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
             data = json.load(fd)
 
+
+
     async def get_pokemon_forms(self):
         if self.pokemon_forms:
             return self.pokemon_forms
@@ -82,6 +84,32 @@ class TradeManager:
     @_poke_form.command(aliases=["list"])
     async def _poke_form_list(self, ctx, filter_text=None):
         await self.poke_form_listed(ctx, filter_text)
+
+
+    @_poke_form.command(aliases=["dump"])
+    async def _poke_form_dump(self, ctx):
+
+        list_of_forms = []
+
+        for guild_id in self.bot.guild_dict.keys():
+            single_guild_dict = self.bot.guild_dict[guild_id]
+            for trainerid in single_guild_dict.get('trainers', {}).keys():
+                trainer_request = single_guild_dict.get('trainers').get(trainerid).get('trade_requests')
+                if trainer_request:
+                    list_of_forms.extend(trainer_request)
+                trainer_offers = single_guild_dict.get('trainers').get(trainerid).get('trade_offers')
+                if trainer_offers:
+                    list_of_forms.extend(trainer_offers)
+
+        unique_poke_forms = set(list_of_forms)
+
+
+        for pokemon_form in unique_poke_forms:
+            if pokemon_form not in self.pokemon_forms:
+                await self.save_poke_form(pokemon_form)
+
+        await self.utilities._send_message(ctx.channel,
+                                 f"Beep Beep! **{ctx.message.author.display_name}**, loaded {len(unique_poke_forms)} pokemon-forms successfully. See the complete list using **!poke-form list**.")
 
 
     # @_poke_form.command(aliases=["save"])
