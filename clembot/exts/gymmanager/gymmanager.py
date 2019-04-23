@@ -5,7 +5,7 @@ import os
 import discord
 from discord.ext import commands
 
-from clembot import config_template
+from clembot.config import config_template
 from clembot.core.logs import init_loggers
 from clembot.exts.utils.utilities import Utilities
 
