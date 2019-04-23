@@ -16,17 +16,39 @@ class TradeManager:
 
     def __init__(self, bot):
         self.bot = bot
+        self.dbi = bot.dbi
         self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
         self.pokemon_forms = []
         with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
             data = json.load(fd)
 
-        self.pokemon_forms = data['pokemon_forms']
+    async def get_pokemon_forms(self):
+        if self.pokemon_forms:
+            return self.pokemon_forms
+        else:
+            self.pokemon_forms = self.fetch_pokemon_forms()
+            return self.pokemon_forms
+
+    async def fetch_pokemon_forms(self):
+        try:
+            print("fetch_pokemon_forms()")
+            pokemon_forms = []
+            pokemon_trade_forms_tbl = self.dbi.table('pokemon_trade_form')
+            pokemon_trade_forms_query = pokemon_trade_forms_tbl.query().select('pokemon_form')
+            list_of_pokemon_forms = await pokemon_trade_forms_query.get()
+            for pokemon_form_rcrd in list_of_pokemon_forms:
+                pokemon_forms.append(dict(pokemon_form_rcrd)['pokemon_form'])
+
+        except Exception as error:
+            print(error)
+        return pokemon_forms
+
 
     @commands.group(pass_context=True, hidden=True, aliases=["poke-form","pokeform"])
     async def _poke_form(self, ctx):
-
+        if not self.pokemon_forms:
+            self.pokemon_forms = await self.fetch_pokemon_forms()
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
 
@@ -61,41 +83,63 @@ class TradeManager:
         await self.poke_form_listed(ctx, filter_text)
 
 
-    @_poke_form.command(aliases=["save"])
-    async def _poke_form_save(self, ctx):
-        with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
-            data = json.load(fd)
-
-        tmp = data['pokemon_forms']
-        data['pokemon_forms'] = self.pokemon_forms
-
-        with open(os.path.join('data', 'pokemon_forms.json'), 'w') as fd:
-            json.dump(data, fd, indent=2, separators=(', ', ': '))
-
-        await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, saved pokemon-forms successfully. See the complete list using **!poke-form list**.")
+    # @_poke_form.command(aliases=["save"])
+    # async def _poke_form_save(self, ctx):
+    #     with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
+    #         data = json.load(fd)
+    #
+    #     tmp = data['pokemon_forms']
+    #     data['pokemon_forms'] = self.pokemon_forms
+    #
+    #     with open(os.path.join('data', 'pokemon_forms.json'), 'w') as fd:
+    #         json.dump(data, fd, indent=2, separators=(', ', ': '))
+    #
+    #     await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, saved pokemon-forms successfully. See the complete list using **!poke-form list**.")
 
     @_poke_form.command(aliases=["load"])
     async def _poke_form_load(self, ctx):
-        with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
-            data = json.load(fd)
 
-        self.pokemon_forms = data['pokemon_forms']
+        self.pokemon_forms = await self.fetch_pokemon_forms()
+
         await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, loaded pokemon-forms successfully. See the complete list using **!poke-form list**.")
+        print(self.pokemon_forms)
+
+
+    async def save_poke_form(self, poke_form):
+        pokemon_form_to_save = {
+            "pokemon_form" : poke_form
+        }
+
+        table = self.dbi.table('pokemon_trade_form')
+        table.insert(**pokemon_form_to_save)
+        await table.insert.commit()
+
+    async def remove_poke_form(self, poke_form):
+        pokemon_form_to_delete = {
+            "pokemon_form" : poke_form
+        }
+
+        table = self.dbi.table('pokemon_trade_form')
+        query = table.query().where(**pokemon_form_to_delete)
+        await query.delete()
+
 
     @_poke_form.command(aliases=["add"])
     async def _poke_form_add(self, ctx, *pokemon_form_list: RemoveComma):
-
         added_poke_form_list = []
 
         for pokemon_form in pokemon_form_list:
             if pokemon_form not in self.pokemon_forms:
                 self.pokemon_forms.append(pokemon_form)
+                await self.save_poke_form(pokemon_form)
                 added_poke_form_list.append(pokemon_form)
 
         if len(added_poke_form_list) > 0:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **{self.print_pokemon(added_poke_form_list)}** has been added successfully. See the complete list using **!poke-form list**.")
         else:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, No changes were made. See the complete list using **!poke-form list**.")
+        self.pokemon_forms = await self.fetch_pokemon_forms()
+
 
     @_poke_form.command(aliases=["remove"])
     async def _poke_form_remove(self, ctx, *pokemon_form_list: RemoveComma):
@@ -104,6 +148,7 @@ class TradeManager:
 
         for pokemon_form in pokemon_form_list:
             if pokemon_form in self.pokemon_forms:
+                await self.remove_poke_form(pokemon_form)
                 self.pokemon_forms.remove(pokemon_form)
                 removed_poke_form_list.append(pokemon_form)
 
@@ -114,7 +159,8 @@ class TradeManager:
 
     @commands.group(pass_context=True, hidden=True, aliases=["trade","t"])
     async def _trade(self, ctx):
-
+        if not self.pokemon_forms:
+            self.pokemon_forms = await self.fetch_pokemon_forms()
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!trade** can be used with various options. See **!beep trade** for more details.")
 
