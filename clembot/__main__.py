@@ -26,7 +26,7 @@ from dateutil import tz
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
 
-from clembot.cogs.dbi import DatabaseInterface
+from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.config import config_template
 from clembot.core import checks
 # --B--
