@@ -25,7 +25,6 @@ import jsonpickle
 from dateutil import tz
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
-from exts.badges.badgemanager import BadgeManager
 
 from clembot.cogs.dbi import DatabaseInterface
 from clembot.config import config_template
@@ -38,6 +37,7 @@ from clembot.core.bot import Bot
 from clembot.core.errors import custom_error_handling
 from clembot.core.logs import init_loggers
 from clembot.exts.autorespond.autoresponder import AutoResponder
+from clembot.exts.badges.badgemanager import BadgeManager
 from clembot.exts.bingo.BingoCardGenerator import BingoCardGenerator
 from clembot.exts.config.configmanager import ConfigManager
 from clembot.exts.gymmanager.gymmanager import GymManager
