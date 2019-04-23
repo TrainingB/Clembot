@@ -19,43 +19,38 @@ from random import *
 from time import strftime
 
 import aiohttp
-
-from clembot.exts.bingo import bingo_generator
-
-from clembot.core import checks
-
 import discord
-# --B--
-# ---- dependencies
-from clembot.core import gymsql
 import hastebin
 import jsonpickle
-from clembot.core import spelling
-
-from clembot.config import config_template
 from dateutil import tz
 from dateutil.relativedelta import relativedelta
 from discord.ext import commands
-from clembot.core.errors import custom_error_handling
-from clembot.exts.utils.argparser import ArgParser
-from clembot.exts.autorespond.autoresponder import AutoResponder
 from exts.badges.badgemanager import BadgeManager
+
+from clembot.cogs.dbi import DatabaseInterface
+from clembot.config import config_template
+from clembot.core import checks
+# --B--
+# ---- dependencies
+from clembot.core import gymsql
+from clembot.core import spelling
+from clembot.core.bot import Bot
+from clembot.core.errors import custom_error_handling
+from clembot.core.logs import init_loggers
+from clembot.exts.autorespond.autoresponder import AutoResponder
+from clembot.exts.bingo.BingoCardGenerator import BingoCardGenerator
 from clembot.exts.config.configmanager import ConfigManager
 from clembot.exts.gymmanager.gymmanager import GymManager
+from clembot.exts.pkmn.pkmn_cog import Pokemon
 from clembot.exts.profile.profilemanager import ProfileManager
-from clembot.exts.utils.propertieshandler import PropertiesHandler
+from clembot.exts.raidparty.rostermanager import RosterManager
 from clembot.exts.rolebyreaction.reactionrolemanager import ReactionRoleManager
 from clembot.exts.rolebyreaction.reactrolemanager import ReactRoleManager
-from clembot.exts.raidparty.rostermanager import RosterManager
 from clembot.exts.trade.trademanager import TradeManager
+from clembot.exts.utils.argparser import ArgParser
+from clembot.exts.utils.propertieshandler import PropertiesHandler
 from clembot.exts.utils.utilities import HandleAngularBrackets
 from clembot.exts.utils.utilities import Utilities
-
-from clembot.core.bot import Bot
-from clembot.cogs.dbi import DatabaseInterface
-from clembot.exts.bingo.BingoCardGenerator import BingoCardGenerator
-from clembot.exts.pkmn.pkmn_cog import Pokemon
-from clembot.core.logs import init_loggers
 
 tessdata_dir_config = "--tessdata-dir 'C:\\Program Files (x86)\\Tesseract-OCR\\tessdata' "
 xtraconfig = '-l eng -c tessedit_char_blacklist=&|=+%#^*[]{};<> -psm 6'
