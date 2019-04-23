@@ -1,5 +1,6 @@
-from clembot.core.context import Context
 from discord.ext import commands
+
+from clembot.core.context import Context
 
 
 class Bot(commands.AutoShardedBot):

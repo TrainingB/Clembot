@@ -1,6 +1,8 @@
-from discord.ext import commands
 import discord.utils
+from discord.ext import commands
+
 from clembot.core import errors
+
 
 def is_trusted_check(ctx):
     print(ctx.author.id)

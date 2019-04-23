@@ -1,9 +1,6 @@
-import re
 import discord
-from clembot.core import time_util
 from discord.ext import commands
 
-import json
 
 class PropertiesHandler:
 

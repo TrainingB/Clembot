@@ -1,14 +1,14 @@
 import asyncio
 import json
 import os
-import sys
 
 import discord
 from discord.ext import commands
+
+from clembot.config import config_template
+from clembot.core.logs import init_loggers
 from clembot.exts.utils.utilities import Utilities
 
-from clembot.core.logs import init_loggers
-from clembot.config import config_template
 
 class GymManager:
 

@@ -1,13 +1,12 @@
-from discord.ext import commands
-import discord
+import json
+import os
 from string import ascii_lowercase
 
-from clembot.core import utils
+import discord
+from discord.ext import commands
 from discord.ext.commands import CommandError
 
-import os
-import json
-
+from clembot.core import utils
 
 CAHCE_VERSION = 1
 

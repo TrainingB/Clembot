@@ -1,7 +1,5 @@
-import os
-from os import name
 import json
-import csv
+import os
 from random import *
 
 # https://json-csv.com/

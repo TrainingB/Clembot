@@ -1,13 +1,12 @@
-import re
 import discord
-from clembot.core import time_util
 import copy
+import json
 
+import discord
 from discord.ext import commands
+
 from clembot.exts.utils.utilities import Utilities
 
-
-import json
 
 class ProfileManager:
 

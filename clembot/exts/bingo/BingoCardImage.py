@@ -1,8 +1,9 @@
 
-from PIL import Image,ImageDraw,ImageFont
+import os
 import textwrap
 from random import randint
-import os
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 class BingoCardImage:

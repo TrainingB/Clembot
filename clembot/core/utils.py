@@ -1,10 +1,10 @@
+import asyncio
 import re
 
+import discord
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 
-import discord
-import asyncio
 
 def get_match(word_list: list, word: str, score_cutoff: int = 60):
     """Uses fuzzywuzzy to see if word is close to entries in word_list

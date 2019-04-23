@@ -2,7 +2,6 @@
 # http://norvig.com/spell-correct.html
 # Use set_dictionary to set the dictionary of words
 
-import os
 import re
 from collections import Counter
 

@@ -1,16 +1,12 @@
-import re
-import discord
+import json
 import os
-from clembot.core import time_util
+
+import discord
 from discord.ext import commands
-from clembot.exts.utils.utilities import Utilities
-from clembot.exts.utils.utilities import RemoveComma
-from random import *
-import asyncio
-import os,sys,inspect
 
 from clembot.core import gymsql
-import json
+from clembot.exts.utils.utilities import Utilities
+
 
 class AutoResponder:
 

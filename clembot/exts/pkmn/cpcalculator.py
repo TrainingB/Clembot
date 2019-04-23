@@ -1,17 +1,12 @@
-import re
-import discord
-import os
-from clembot.exts.utils import time_util
 from discord.ext import commands
-from clembot.exts.utils.utilities import Utilities
-from clembot.exts.utils.utilities import RemoveComma
-from random import *
-from exts.trade.pokemonform import PokemonForm
-# from exts.pokemon import Pokemon
-
-import json
-import argparse
 import math
+
+from discord.ext import commands
+
+from clembot.exts.utils.utilities import Utilities
+
+
+# from exts.pokemon import Pokemon
 
 
 class CPCalculator:

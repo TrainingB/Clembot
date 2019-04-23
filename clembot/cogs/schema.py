@@ -1,7 +1,8 @@
 from itertools import zip_longest, chain
+
 from more_itertools import partition
 
-from .errors import PostgresError, SchemaError, ResponseError, QueryError
+from .errors import ResponseError, QueryError
 from .sqltypes import *
 
 

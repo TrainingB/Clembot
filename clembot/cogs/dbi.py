@@ -1,21 +1,17 @@
 import asyncio
-import logging
 import json
+import logging
+
+import asyncpg
+from discord.ext.commands import when_mentioned_or
+
 from .schema import Table, Query, Insert, Update, Schema
 from .tables import core_table_sqls
-from .sqltypes import *
+
 
 # from schema import Table, Query, Insert, Update, Schema
 # from tables import core_table_sqls
 # from sqltypes import *
-
-
-import asyncpg
-
-from discord.ext.commands import when_mentioned_or
-
-
-
 
 
 async def init_conn(conn):

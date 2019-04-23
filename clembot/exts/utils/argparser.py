@@ -1,5 +1,7 @@
-from clembot.core import time_util
 import re
+
+from clembot.core import time_util
+
 
 class ArgParser:
 

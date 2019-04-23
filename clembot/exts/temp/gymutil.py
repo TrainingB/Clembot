@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 city_wide_gym_list = {}
 script_path = os.path.dirname(os.path.realpath(__file__))

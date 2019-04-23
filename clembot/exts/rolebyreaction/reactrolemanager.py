@@ -1,14 +1,11 @@
-import re
-import discord
-import os
-from clembot.core import time_util
-import json
-from discord.ext import commands
-from clembot.exts.utils.utilities import Utilities
-from random import *
 import asyncio
-
 import json
+
+import discord
+from discord.ext import commands
+
+from clembot.exts.utils.utilities import Utilities
+
 
 class ReactRoleManager:
 

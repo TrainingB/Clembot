@@ -1,6 +1,8 @@
-from discord.ext import commands
-import discord
 import asyncio
+
+import discord
+from discord.ext import commands
+
 
 class RemoveComma(commands.Converter):
     async def convert(self, ctx, argument):

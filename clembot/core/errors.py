@@ -1,8 +1,10 @@
 import asyncio
+from inspect import signature, getfullargspec
+
 import discord
 from discord.ext import commands
 from discord.ext.commands.errors import CommandError
-from inspect import signature, getfullargspec
+
 
 class TeamSetCheckFail(CommandError):
     'Exception raised checks.teamset fails'

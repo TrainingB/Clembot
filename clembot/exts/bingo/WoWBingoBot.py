@@ -1,6 +1,6 @@
+import config
 import discord
 from WowBingo import WowBingo
-import config
 
 client = discord.Client()
 bingo = WowBingo()

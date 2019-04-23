@@ -1,7 +1,9 @@
-import pydoc
 import datetime
 import decimal
+import pydoc
+
 from .errors import SchemaError
+
 
 # from errors import SchemaError
 

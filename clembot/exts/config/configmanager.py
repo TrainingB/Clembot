@@ -1,15 +1,11 @@
-import re
-import discord
-import os
-from clembot.core import time_util
-from discord.ext import commands
-from clembot.exts.utils.utilities import Utilities
-from clembot.exts.utils.utilities import RemoveComma
-from random import *
-from clembot.core import gymsql
-
-
 import json
+import re
+
+import discord
+from discord.ext import commands
+
+from clembot.core import gymsql
+from clembot.exts.utils.utilities import Utilities
 
 
 class ConfigManager:

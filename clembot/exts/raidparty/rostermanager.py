@@ -1,16 +1,12 @@
-import re
-import discord
-import os
-from clembot.core import time_util
-from clembot.core import checks
-from discord.ext import commands
-from clembot.exts.utils.utilities import Utilities
-from clembot.exts.utils.utilities import RemoveComma
-from random import *
-from clembot.exts.trade.pokemonform import PokemonForm
 import asyncio
-import json
 import copy
+
+import discord
+from discord.ext import commands
+
+from clembot.core import checks
+from clembot.exts.utils.utilities import Utilities
+
 
 class RosterManager:
 

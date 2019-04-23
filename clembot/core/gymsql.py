@@ -1,7 +1,6 @@
-import os
 import json
+import os
 import sqlite3
-
 
 DB_NAME = ""
 
