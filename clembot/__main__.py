@@ -6212,7 +6212,7 @@ async def _gyms(message, gym_code_or_name = None):
         list_of_gyms = await MyGymManager.find_gym_list_by(gym_code_or_name, city_state)
 
         if len(list_of_gyms) < 1:
-            await _send_error_message(message.channel, "Beep Beep... **{member}** I could not find any gym starting with **{gym_code_or_name}** for **{city}**!".format(member=message.author.display_name, city=city, gym_code=gym_code_or_name))
+            await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}** I could not find any gym starting with **{gym_code_or_name}** for **{city_state}**!")
             return
 
         gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format(member=message.author.display_name, city=city_state)
@@ -6229,10 +6229,10 @@ async def _gyms(message, gym_code_or_name = None):
         if gym_message_output:
             await _send_message(message.channel, gym_message_output)
         else:
-            await _send_error_message(message.channel, "Beep Beep... **{member}** No matches found for **{gym_code_or_name}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(member=message.author.display_name,gym_code=gym_code, city=city))
+            await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}**  No matches found for **{gym_code_or_name}** in **{city_state}**! **Tip:** Use first two letters of the gym-name to search.")
     except Exception as error:
         logger.info(error)
-        await _send_error_message(message.channel, "Beep Beep...**{member}** No matches found for **{gym_code_or_name}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(member=message.author.display_name,gym_code=gym_code, city=city))
+        await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}** No matches found for **{gym_code_or_name}** in **{city_state}**! **Tip:** Use first two letters of the gym-name to search.")
 
 
 def _read_channel_city(message):
