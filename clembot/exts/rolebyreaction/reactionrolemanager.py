@@ -110,7 +110,7 @@ example:
             channel_id = static_react_role_configuration['message_master']['channel_id']
 
             channel = self.bot.get_channel(id=channel_id)
-            message = await channel.get_message(id=message_id)
+            message = await channel.fetch_message(id=message_id)
 
             return (channel, message)
         except Exception as error:
@@ -249,7 +249,7 @@ example:
         try:
             if not channel:
                 channel = ctx.channel
-            message = await channel.get_message(id=message_id)
+            message = await channel.fetch_message(id=message_id)
             if message:
                 message_uuid = self.__register_message(message, channel, options)
                 await self.utilities._send_embed(ctx.channel, None, None, self._generate_addtional_fields(message_uuid, channel.name, message_id, None, None), footer=f"[{message_uuid}]")

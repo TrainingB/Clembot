@@ -53,7 +53,7 @@ class Context(commands.Context):
         return await self.embed(title, details, msg_type='warning', send=send)
 
     async def refresh_embed(self, message_or_reference_id, new_embed_data):
-        message = await self.channel.get_message(id=message_or_reference_id)
+        message = await self.channel.fetch_message(id=message_or_reference_id)
 
         title = new_embed_data.get('title', None)
         description = new_embed_data.get('description', None)
@@ -164,7 +164,7 @@ class GetTools:
                 return None
         channel = channel or self.ctx.channel
         try:
-            return await channel.get_message(id)
+            return await channel.fetch_message(id)
         except discord.NotFound:
             return None
 
