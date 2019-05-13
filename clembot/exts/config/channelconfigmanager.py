@@ -129,19 +129,9 @@ class ChannelConfigCache(commands.Cog):
     async def save_channel_city(self, guild_id, channel_id, city_state):
         print("save_channel_city()")
         try:
-            await self.ConfigManager._save_config('city',city_state, guild_id, channel_id)
+            await self.save_channel_config(guild_id, channel_id, 'city', city_state)
             new_channel_city =  await self.get_city_for_channel(guild_id=guild_id, channel_id=channel_id)
             return new_channel_city
-        except Exception as error:
-            print(error)
-            return None
-
-    async def save_guild_city(self, guild_id, city_state):
-        print("save_guild_city()")
-        try:
-            await self.ConfigManager._save_config('city',city_state, guild_id, None)
-
-            return await self.get_city_for_channel(guild_id=guild_id)
         except Exception as error:
             print(error)
             return None
