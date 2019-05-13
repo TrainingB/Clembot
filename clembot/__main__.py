@@ -1142,7 +1142,7 @@ async def message_cleanup(loop=True):
                         del guild_dict[guildid][report_dict][reportid]
             for messageid in report_delete_dict.keys():
                 try:
-                    report_message = await report_delete_dict[messageid]['channel'].get_message(messageid)
+                    report_message = await report_delete_dict[messageid]['channel'].fetch_message(messageid)
                     logger.info('message_cleanup - DELETE ' + report_message.content)
                     logger.info(report_message)
                     await report_message.delete()
@@ -1151,7 +1151,7 @@ async def message_cleanup(loop=True):
                     pass
             for messageid in report_edit_dict.keys():
                 try:
-                    report_message = await report_edit_dict[messageid]['channel'].get_message(messageid)
+                    report_message = await report_edit_dict[messageid]['channel'].fetch_message(messageid)
                     await report_message.edit(content=report_edit_dict[messageid]['action']['content'],embed=discord.Embed(description=report_edit_dict[messageid]['action']['embedcontent'], colour=report_message.embeds[0].colour.value))
                 except discord.errors.NotFound:
                     pass
