@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 
-class PropertiesHandler:
+class PropertiesHandler(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot

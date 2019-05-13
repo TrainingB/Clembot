@@ -11,7 +11,7 @@ from clembot.exts.utils.utilities import Utilities
 class CustomException(Exception):
     pass
 
-class ReactionRoleManager:
+class ReactionRoleManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot

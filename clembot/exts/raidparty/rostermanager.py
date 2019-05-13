@@ -8,7 +8,7 @@ from clembot.core import checks
 from clembot.exts.utils.utilities import Utilities
 
 
-class RosterManager:
+class RosterManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot

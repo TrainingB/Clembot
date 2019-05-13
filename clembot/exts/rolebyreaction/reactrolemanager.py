@@ -7,7 +7,7 @@ from discord.ext import commands
 from clembot.exts.utils.utilities import Utilities
 
 
-class ReactRoleManager:
+class ReactRoleManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot

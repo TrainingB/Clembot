@@ -7,10 +7,12 @@ from discord.ext import commands
 
 from clembot.config import config_template
 from clembot.core.logs import init_loggers
+from clembot.exts.config.configmanager import ConfigManager
+from clembot.exts.config.channelconfigmanager import ChannelConfigCache
 from clembot.exts.utils.utilities import Utilities
 
 
-class GymManager:
+class GymManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -23,63 +25,8 @@ class GymManager:
 
         self.pokemon_forms = data['pokemon_forms']
         self.logger = init_loggers()
-
-    async def query_channel_city(self, *conditions, **kwargs):
-        try:
-            guild_channel_city_tbl = self.dbi.table('guild_channel_city')
-            guild_channel_query = guild_channel_city_tbl.query().select().where(**kwargs)
-            city_rcrd = await guild_channel_query.get_first()
-            if city_rcrd:
-                city = dict(city_rcrd)['city_state']
-                if city:
-                    return city
-        except Exception as error:
-            print(error)
-        return None
-
-    async def get_city_for_channel(self, guild_id, channel_id, parent_channel_id=None) -> str :
-        try:
-            self.logger.info(f"read_channel_city(, {guild_id}, {channel_id}, {parent_channel_id}")
-            city_for_channel = await self.query_channel_city(guild_id=guild_id, channel_id=channel_id)
-
-            if not city_for_channel:
-                if parent_channel_id:
-                    city_for_channel = await self.query_channel_city(guild_id=guild_id, channel_id=parent_channel_id)
-
-            if not city_for_channel:
-                city_for_channel = await self.query_channel_city(self.dbi.table('guild_channel_city')['channel_id'].is_null_(), guild_id=guild_id)
-            return city_for_channel
-
-        except Exception as error:
-            print(error)
-            self.logger.info(error)
-            return None
-
-    async def save_channel_city(self, guild_id, channel_id, city_state):
-        print("save_channel_city()")
-        try:
-            channel_city_record = {
-                "channel_id" : channel_id,
-                "guild_id" : guild_id,
-                "city_state" : city_state
-            }
-
-            table = self.dbi.table('guild_channel_city')
-
-            # query directly with guild_id & channel_id to see if the row exists.
-            existing_city_state = await self.query_channel_city(guild_id=guild_id, channel_id=channel_id)
-            if existing_city_state :
-                update_query = table.update(city_state=city_state).where(channel_id=channel_id, guild_id=guild_id)
-                whatever = await update_query.commit()
-            else:
-                insert_query = table.insert(**channel_city_record)
-                whatever = await insert_query.commit()
-
-            return await self.query_channel_city(guild_id=guild_id, channel_id=channel_id)
-        except Exception as error:
-            print(error)
-            logger.info(error)
-            return None
+        self.ConfigManager = ConfigManager(bot)
+        self.CityManager = ChannelConfigCache(bot)
 
 
     @commands.group(pass_context=True, hidden=True, aliases=["xgym"])
@@ -101,7 +48,8 @@ class GymManager:
         return await self.__gym_find(ctx, gym_code)
 
     async def __gym_find(self, ctx, gym_code):
-        city = await self.get_city_for_channel(ctx.guild.id, ctx.channel.id)
+
+        city = await self.CityManager.get_city_for_channel(ctx.guild.id, ctx.channel.id)
         gym_info = await self.find_gym_by_gym_code(gym_code, city)
         if gym_info:
             return await self._generate_gym_embed(ctx.message, gym_info)
@@ -115,10 +63,10 @@ class GymManager:
         print("_gym_add()")
         try:
             sample_gym_info = {
-                "Name" : "Gym New Name",
-                "Latitude" : 00.00000,
-                "Longitude" : 00.00000,
-                "CityState" : "CITY,STATE"
+                "Name": "Gym New Name",
+                "Latitude": 00.00000,
+                "Longitude": 00.00000,
+                "CityState": "CITY,STATE"
             }
 
             gym_info_list = [sample_gym_info]
@@ -271,38 +219,6 @@ class GymManager:
 
         return gmap_base_url
 
-    async def _genenrate_gym_list_embed(self, message, gym_code_or_name, list_of_gyms):
-
-        try:
-            if len(list_of_gyms) < 1:
-                await _send_error_message(message.channel,
-                                          "Beep Beep... **{member}** I could not find any gym starting with **{gym_code_or_name}** for **{city}**!".format(
-                                              member=message.author.display_name, city=city, gym_code=gym_code_or_name))
-                return
-
-            gym_message_output = "Beep Beep! **{member}** Here is a list of gyms for **{city}** :\n\n".format( member=message.author.display_name, city=city_state)
-
-            for gym_info in list_of_gyms:
-                new_gym_info = "**{gym_code_or_name}** - {gym_name}\n".format(
-                    gym_code_or_name=gym_info.get('gym_code_key').ljust(6), gym_name=gym_info.get('gym_name'))
-
-                if len(gym_message_output) + len(new_gym_info) > 1990:
-                    await _send_message(message.channel, gym_message_output)
-                    gym_message_output = ""
-
-                gym_message_output += new_gym_info
-
-            if gym_message_output:
-                await _send_message(message.channel, gym_message_output)
-            else:
-                await _send_error_message(message.channel,
-                                          "Beep Beep... **{member}** No matches found for **{gym_code_or_name}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(
-                                              member=message.author.display_name, gym_code=gym_code, city=city))
-        except Exception as error:
-            logger.info(error)
-            await _send_error_message(message.channel,
-                                      "Beep Beep...**{member}** No matches found for **{gym_code_or_name}** in **{city}**! **Tip:** Use first two letters of the gym-name to search.".format(
-                                          member=message.author.display_name, gym_code=gym_code, city=city))
 
     def get_beep_embed(self, title, description, usage=None, available_value_title=None, available_values=None, footer=None, mode="message"):
 

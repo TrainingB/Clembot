@@ -2,13 +2,8 @@ from itertools import zip_longest, chain
 
 from more_itertools import partition
 
-from .errors import ResponseError, QueryError
-from .sqltypes import *
-
-
-# from errors import PostgresError, SchemaError, ResponseError, QueryError
-#
-# from sqltypes import *
+from clembot.core.data_manager.errors import ResponseError, QueryError
+from clembot.core.data_manager.sqltypes import *
 
 
 class SQLOperator:
@@ -90,6 +85,7 @@ class SQLOperator:
 class SQLComparison:
     def __init__(self, operator, aggregate, column, value=None,
                  minvalue=None, maxvalue=None):
+
         self.operator = operator
         self.format = operator.format
         self.aggregate = aggregate
@@ -159,8 +155,11 @@ class Column:
             SQLOperator.le(), self.aggregate, self.full_name, value)
 
     def __eq__(self, value):
+        if value is None:
+            return SQLComparison(SQLOperator.is_null_(), self.aggregate, self.full_name)
         return SQLComparison(
             SQLOperator.eq(), self.aggregate, self.full_name, value)
+
 
     def __ne__(self, value):
         return SQLComparison(
@@ -513,7 +512,7 @@ class SQLConditions:
     @staticmethod
     def process_dict_conditions(conditions):
         eq = SQLOperator.eq()
-        c_list = [SQLComparison(eq, None, k, v) for k, v in conditions.items()]
+        c_list = [SQLComparison(eq, None, k, v) if v is not None else SQLComparison(SQLOperator.is_null_(), None, k, v) for k, v in conditions.items() ]
         return c_list
 
     @property
@@ -543,6 +542,8 @@ class SQLConditions:
                         self.values.append(condition.value)
                 else:
                     if condition.operator.sql == 'IS':
+                        # do something
+                        a=10
                         print("is operator")
                     else:
                         data.update(minvalue=f"${self._count}")

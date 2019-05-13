@@ -22,4 +22,7 @@ class Bot(commands.AutoShardedBot):
         ctx = await self.get_context(message, cls=Context)
         if not ctx.command:
             return
-        await self.invoke(ctx)
+        try:
+            await self.invoke(ctx)
+        except Exception as error:
+            print(error)

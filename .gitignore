@@ -2,3 +2,8 @@
 /data/guilddict
 /database/clembot_db
 *.pyc
+.idea/Clembot.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/workspace.xml

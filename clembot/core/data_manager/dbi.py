@@ -5,29 +5,27 @@ import logging
 import asyncpg
 from discord.ext.commands import when_mentioned_or
 
-from .schema import Table, Query, Insert, Update, Schema
-from .tables import core_table_sqls
-
-
-# from schema import Table, Query, Insert, Update, Schema
-# from tables import core_table_sqls
-# from sqltypes import *
+from clembot.config import config_template
+from clembot.core.data_manager.schema import Table, Query, Insert, Update, Schema
+from clembot.core.data_manager.tables import core_table_sqls
 
 
 async def init_conn(conn):
     await conn.set_type_codec("json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog", format='binary')
-    # await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog", format='binary')
+    await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog", format='binary')
+
 
 class DatabaseInterface:
     """Get, Create and Edit data in the connected database."""
 
     def __init__(self,
-                 password,
-                 hostname,
-                 username,
-                 database,
-                 port=5432):
-        logger = logging.getLogger('clembot.dbi')
+                 password=config_template.db_config_details.get('password'),
+                 hostname=config_template.db_config_details.get('hostname'),
+                 username=config_template.db_config_details.get('username'),
+                 database=config_template.db_config_details.get('database'),
+                 port=config_template.db_config_details['port'],
+                 debug=config_template.db_config_details['debug']):
+        self.logger = logging.getLogger('clembot.dbi')
         self.loop = None
         self.dsn = "postgres://{}:{}@{}:{}/{}".format(
             username, password, hostname, port, database)
@@ -39,6 +37,7 @@ class DatabaseInterface:
         print("------ INFO: [dbi.py] __init__() commented `self.types = sqltypes`")
         # self.types = sqltypes
         self.listeners = []
+        self.debug = debug
 
     async def start(self, loop=None):
         print("start()")
@@ -49,7 +48,7 @@ class DatabaseInterface:
         await self.prepare()
 
     async def recreate_pool(self):
-        logger.warning(f'Re-creating closed database pool.')
+        self.logger.warning(f'Re-creating closed database pool.')
         self.pool = await asyncpg.create_pool(
             self.dsn, loop=self.loop, init=init_conn)
 
@@ -79,9 +78,9 @@ class DatabaseInterface:
         for k, v in core_sql.items():
             table_exists = await self.table(k).exists()
             if not table_exists:
-                logger.warning(f'Core table {k} not found. Creating...')
+                self.logger.warning(f'Core table {k} not found. Creating...')
                 await self.execute_transaction(v)
-                logger.warning(f'Core table {k} created.')
+                self.logger.warning(f'Core table {k} created.')
 
     async def stop(self):
         conns = (self.prefix_conn, self.settings_conn)
@@ -111,7 +110,8 @@ class DatabaseInterface:
 
     async def execute_query_json(self, query, *query_args):
         result = []
-        # print(f"Query: {query} Parameters: {query_args}")
+        if self.debug:
+            print(f"Query: {query} Parameters: {query_args}")
         rcrds_dict = []
         try:
             if not self.pool:
@@ -139,7 +139,8 @@ class DatabaseInterface:
 
     async def execute_query(self, query, *query_args):
         result = []
-        # print(f"Query: {query} Parameters: {query_args}")
+        if self.debug:
+            print(f"Query: {query} Parameters: {query_args}")
         try:
             if not self.pool:
                 await self.start()
@@ -150,7 +151,7 @@ class DatabaseInterface:
                     result.append(dict(rcrd))
             return result
         except asyncpg.exceptions.InterfaceError as e:
-            logger.error(f'Exception {type(e)}: {e}')
+            self.logger.error(f'Exception {type(e)}: {e}')
             await self.recreate_pool()
             return await self.execute_query(query, *query_args)
         except Exception as error:
@@ -159,7 +160,8 @@ class DatabaseInterface:
     async def execute_transaction(self, query, *query_args):
         result = []
         try:
-            # print(f"execute_transaction() : {query} {query_args}")
+            if self.debug:
+                print(f"execute_transaction() : {query} {query_args}")
 
             if not self.pool:
                 await self.start()
@@ -177,7 +179,7 @@ class DatabaseInterface:
                             result.append(rcrd)
                 return result
         except asyncpg.exceptions.InterfaceError as e:
-            logger.error(f'Exception {type(e)}: {e}')
+            print(f'Exception {type(e)}: {e}')
             await self.recreate_pool()
             return await self.execute_transaction(query, *query_args)
 
@@ -196,7 +198,7 @@ class DatabaseInterface:
         return Table(name, self)
 
     def query(self, *tables):
-        pritn("query() called")
+        print("query() called")
         tables = [Table(self, name) for name in tables]
         return Query(self, tables)
 
@@ -218,12 +220,11 @@ class DatabaseInterface:
 
 
 
-
 dbi = None
 
 async def initialize():
     global dbi
-    dbi = DatabaseInterface(config_details)
+    dbi = DatabaseInterface()
     await dbi.start()
 
 async def cleanup():
@@ -256,10 +257,25 @@ async def select_from(table_name = 'sample_test'):
 
 async def test_condition():
     try:
-        guild_channel_city_tbl = dbi.table('guild_channel_city')
+        # guild_channel_city_tbl = dbi.table('guild_channel_city')
         # guild_channel_city_tbl['city_state']
-        city = await dbi.table('guild_channel_city').query().select().where(dbi.table('guild_channel_city')['channel_id'].is_null_(),guild_id=393545294337277970).get()
-        print(city)
+        # city = await dbi.table('clembot_config').query().select().where(dbi.table('guild_channel_city')['channel_id'].is_null_(),guild_id=393545294337277970).get()
+        #
+        # update_query = dbi.table('guild_channel_config').update(config_value='test123').where(channel_id=None, config_name='city', guild_id=1)
+        # result = await update_query.commit() # dbi.table('guild_channel_config')['channel_id'].is_null_()
+        #
+
+
+        config_table = dbi.table('clembot_config').query().select()
+        result = await config_table.get()
+        #results = json.load(result)
+        print(result)
+
+        mydict = {}
+        for row in result:
+            mydict[row['config_name']] = row['config_value']
+
+        print(mydict)
     except Exception as error:
         print(error)
 
@@ -286,14 +302,14 @@ def main():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(initialize())
-        result = loop.run_until_complete(_data('gym_master'))
+        # result = loop.run_until_complete(_data('gym_master'))
         # result = loop.run_until_complete(select_from())
         # result = loop.run_until_complete(insert_into())
         # result = loop.run_until_complete(select_from())
-        result = loop.run_until_complete(test_condition())
+        loop.run_until_complete(test_condition())
         loop.run_until_complete(cleanup())
 
     except Exception as error:
         print(error)
 
-# main()
+#main()

@@ -2,15 +2,23 @@ import logging
 import logging.handlers
 import sys
 
+global_logger = None
+
 
 def init_loggers():
+    print("init_loggers()")
     # d.py stuff
+    global global_logger
+
+    if global_logger:
+        return global_logger
+
     dpy_logger = logging.getLogger("discord")
     dpy_logger.setLevel(logging.WARNING)
     console = logging.StreamHandler()
     console.setLevel(logging.WARNING)
     dpy_logger.addHandler(console)
-
+    global_logger = dpy_logger
     # Meowth
 
     logger = logging.getLogger("meowth")

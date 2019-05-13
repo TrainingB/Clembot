@@ -16,7 +16,7 @@ class HandleAngularBrackets(commands.Converter):
         return argument.replace("<", "").replace(">", "").strip()
 
 
-class Utilities:
+class Utilities(commands.Cog):
     def __init__(self):
         return
 

@@ -5,7 +5,6 @@ import discord
 from discord.ext import commands
 
 from clembot.core import checks
-from clembot.core import gymsql
 from clembot.exts.utils.utilities import Utilities
 
 
@@ -21,7 +20,7 @@ class Badge:
         self.name=None
 
 
-class BadgeManager:
+class BadgeManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot

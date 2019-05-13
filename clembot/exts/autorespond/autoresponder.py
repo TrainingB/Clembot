@@ -4,11 +4,10 @@ import os
 import discord
 from discord.ext import commands
 
-from clembot.core import gymsql
 from clembot.exts.utils.utilities import Utilities
 
 
-class AutoResponder:
+class AutoResponder(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -19,20 +18,6 @@ class AutoResponder:
             data = json.load(fd)
 
         self.pokemon_forms = data['pokemon_forms']
-
-    def _read_channel_city(self, message):
-        city = gymsql.read_channel_city(guild_id=message.guild.id, channel_id=message.channel.id)
-        if city == None:
-            try:
-                parent_city_id = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id].get('reportcity', 0)
-                city = gymsql.read_channel_city(guild_id=message.guild.id, channel_id=parent_city_id)
-            except Exception:
-                pass
-            if city == None:
-                city = gymsql.read_guild_city(guild_id=message.guild.id)
-        if city:
-            return city
-        return None
 
     @commands.group(pass_context=True, hidden=True, aliases=["auto-response", "ar"])
     async def _autoresponse(self, ctx):

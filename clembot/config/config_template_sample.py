@@ -16,7 +16,9 @@ db_config_details = {
     "password" : 'password',
     "hostname" : 'hostname',
     "username" : 'postgres',
-    "database" : "database"
+    "database" : "database",
+	"port" : 5432,
+	"debug" : False
 }
 
 api_keys = {

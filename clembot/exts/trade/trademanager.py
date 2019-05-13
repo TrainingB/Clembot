@@ -13,7 +13,7 @@ from clembot.exts.utils.utilities import Utilities
 # from exts.pokemon import Pokemon
 
 
-class TradeManager:
+class TradeManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -311,8 +311,8 @@ class TradeManager:
             user = ctx.message.author
             msg = ""
 
-        trainer_trade_offers = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_offers', [])
-        trainer_trade_requests = ctx.bot.guild_dict[ctx.guild.id]['trainers'].setdefault(user.id, {}).get('trade_requests', [])
+        trainer_trade_offers = ctx.bot.guild_dict[ctx.guild.id].setdefault('trainers',{}).setdefault(user.id, {}).get('trade_offers', [])
+        trainer_trade_requests = ctx.bot.guild_dict[ctx.guild.id].setdefault('trainers',{}).setdefault(user.id, {}).get('trade_requests', [])
 
         filtered_trainer_trade_offers = []
         filtered_trainer_trade_requests = []
@@ -413,7 +413,7 @@ class TradeManager:
             # if len(pokemon_list) == 0:
             #     return await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No valid pokemon found to search!")
 
-            guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id]['trainers']
+            guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id].setdefault('trainers',{})
 
 
             trainer_list = []
@@ -490,7 +490,7 @@ class TradeManager:
             # if len(pokemon_list) == 0:
             #     return await self.utilities._send_error_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}** No valid pokemon found to search!")
 
-            guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id]['trainers']
+            guild_trainer_dict = ctx.bot.guild_dict[ctx.guild.id].setdefault('trainers',{})
 
 
             trainer_list = []

@@ -1,4 +1,3 @@
-from discord.ext import commands
 import math
 
 from discord.ext import commands
@@ -9,7 +8,7 @@ from clembot.exts.utils.utilities import Utilities
 # from exts.pokemon import Pokemon
 
 
-class CPCalculator:
+class CPCalculator(commands.Cog):
     cpM = {1: 0.094,
            1.5: 0.135137432,
            2: 0.16639787,

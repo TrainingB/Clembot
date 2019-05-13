@@ -1,9 +1,11 @@
 import re
 
+from discord.ext import commands
+
 from clembot.core import time_util
 
 
-class ArgParser:
+class ArgParser(commands.Cog):
 
 
     def pokemon_validator_mock(text):

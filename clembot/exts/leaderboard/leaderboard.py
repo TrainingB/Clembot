@@ -19,7 +19,7 @@ class LeaderBoard:
         new_filter['channel'] = []
 
 
-class LeaderBoardManager:
+class LeaderBoardManager(commands.Cog):
 
 
     lifetime = LeaderBoard()
