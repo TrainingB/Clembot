@@ -12,7 +12,7 @@ from clembot.core.data_manager.tables import core_table_sqls
 
 async def init_conn(conn):
     await conn.set_type_codec("json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog", format='binary')
-    await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog", format='binary')
+    # await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog", format='binary')
 
 
 class DatabaseInterface:
