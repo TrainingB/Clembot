@@ -4982,7 +4982,7 @@ def _get_trainer_names_from_dict(message, status, mentions=False, trainer_dict=N
     name_list = []
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == status:
-            # user = Clembot.get_user_info(trainer)
+            # user = Clembot.get_user(trainer)
             user = message.channel.guild.get_member(trainer)
             if mentions:
                 # name_list.append("**<@!{trainer}>**".format(trainer=trainer))
@@ -5175,7 +5175,7 @@ async def process_map_link(message, newloc=None):
     trainer_dict = copy.deepcopy(guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict'])
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == 'omw':
-            user = await Clembot.get_user_info(trainer)
+            user = Clembot.get_user(trainer)
             otw_list.append(user.mention)
     await message.channel.send( content=_("Beep Beep! Someone has suggested a different location for the raid! Trainers {trainer_list}: make sure you are headed to the right place!").format(trainer_list=", ".join(otw_list)), embed=newembed)
 
@@ -5810,7 +5810,7 @@ Please type `!beep raid` if you need a refresher of Clembot commands!
         trainer_dict = guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['trainer_dict']
         for trainer in trainer_dict.keys():
             if trainer_dict[trainer]['status'] == 'maybe' or trainer_dict[trainer]['status'] == 'omw' or trainer_dict[trainer]['status'] == 'waiting':
-                user = await Clembot.get_user_info(trainer)
+                user = Clembot.get_user(trainer)
                 trainer_list.append(user.mention)
 
                 # or len(raid_info['raid_eggs']['EX']['pokemon']) > 1
@@ -7004,7 +7004,7 @@ async def starting(ctx):
     # Add all waiting trainers to the starting list
     for trainer in trainer_dict:
         if trainer_dict[trainer]['status'] == "waiting":
-            user = await Clembot.get_user_info(trainer)
+            user = Clembot.get_user(trainer)
             ctx_startinglist.append(user.mention)
             id_startinglist.append(trainer)
 
@@ -7705,7 +7705,7 @@ async def new(ctx):
         otw_list = []
         trainer_dict = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id]['trainer_dict']
         for trainer in trainer_dict.keys():
-            user = await Clembot.get_user_info(trainer)
+            user = Clembot.get_user(trainer)
             if trainer_dict[user.id]['status'] == 'omw':
                 otw_list.append(user.mention)
         await message.channel.send( content=_("Beep Beep! Someone has suggested a different location for the raid! Trainers {trainer_list}: make sure you are headed to the right place!").format(trainer_list=", ".join(otw_list)), embed=newembed)
@@ -7832,7 +7832,7 @@ async def _mention(ctx):
         name_list = []
         for trainer in trainer_dict.keys():
             if trainer_dict[trainer]['status'] != None and ( status_to_check == None or trainer_dict[trainer]['status'] == status_to_check ):
-                user = await Clembot.get_user_info(trainer)
+                user = Clembot.get_user(trainer)
                 name_list.append(user.mention)
 
         if len(name_list) == 0:
@@ -7863,7 +7863,7 @@ async def _interest(ctx):
     name_list = []
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == 'maybe':
-            user = await Clembot.get_user_info(trainer)
+            user = Clembot.get_user(trainer)
             name_list.append("**" + user.name + "**")
             maybe_list.append(user.mention)
     if ctx_maybecount > 0:
@@ -7898,7 +7898,7 @@ async def _otw(ctx):
     name_list = []
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == 'omw':
-            user = await Clembot.get_user_info(trainer)
+            user = Clembot.get_user(trainer)
             name_list.append("**" + user.name + "**")
             otw_list.append(user.mention)
     if ctx_omwcount > 0:
@@ -7926,7 +7926,7 @@ async def _waiting(ctx):
     name_list = []
     for trainer in trainer_dict.keys():
         if trainer_dict[trainer]['status'] == 'waiting':
-            user = await Clembot.get_user_info(trainer)
+            user = Clembot.get_user(trainer)
             name_list.append("**" + user.name + "**")
             waiting_list.append(user.mention)
     try:

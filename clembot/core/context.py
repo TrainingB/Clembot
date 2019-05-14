@@ -125,12 +125,12 @@ class GetTools:
             user = bot.get_user(search_term)
             if user:
                 return user
-            try:
-                user = await bot.get_user_info(search_term)
-            except discord.NotFound:
-                return None
-            else:
-                return user
+            # try:
+            #     user = await bot.get_user(search_term)
+            # except discord.NotFound:
+            #     return None
+            # else:
+            #     return user
         if isinstance(search_term, str):
             member = self.get(bot.users, name=search_term)
             if not member:
