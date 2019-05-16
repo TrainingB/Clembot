@@ -121,7 +121,7 @@ class ConfigManager(commands.Cog):
             existing_bingo_card = await table.query().select().where(guild_id=guild_id, user_id=user_id, event=event).get_first()
 
             if existing_bingo_card:
-                update_query = table.update(bingo_card=bingo_card.encode(), bingo_card_url=bingo_card_url, generated_at=generated_at).where(user_id=user_id, guild_id=guild_id, event=event)
+                update_query = table.update(bingo_card=json.dumps(bingo_card), bingo_card_url=bingo_card_url, generated_at=generated_at).where(user_id=user_id, guild_id=guild_id, event=event)
                 await update_query.commit()
             else:
                 insert_query = table.insert(**guild_user_event_bingo_card_record)

@@ -32,7 +32,7 @@ class BingoCardGenerator(commands.Cog):
     def generate_old_board(self, user_name):
         board_layout = self.generate_board_layout()
         # bingo_board = BingoCardImage(board_layout)
-        board_image = bingo_board.generate_board_image(user_name=user_name)
+        board_image = self.generate_board_image(user_name=user_name)
 
         return board_image
 

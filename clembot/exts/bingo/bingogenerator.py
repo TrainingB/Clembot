@@ -1,313 +1,450 @@
 import json
 import os
 from random import *
-
 # https://json-csv.com/
-
-
-pokemon_cp = {}
-mareep_cp = {}
-bulbasaur_cp = {}
-
-pokemon_cp_level = {}
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 
+class BingoDataGenerator:
+
+    def __init__(self):
+        self._cache = {}
+
+    pokemon_cp_level = {}
+
+    def cache(self, event_pokemon):
+
+        if event_pokemon in self._cache.keys():
+            return self._cache.get(event_pokemon, {})
+
+        self.load_data()
+        if event_pokemon in self._cache.keys():
+            return self._cache.get(event_pokemon, {})
+
+        return {}
 
 
-def load_data():
-    global pokemon_cp, mareep_cp, bulbasaur_cp
+    def load_data(self):
 
-    directory = os.path.join(script_path, "cp_chart")
-    filenames = ["","bulbasaur.json"]
-    with open(os.path.join(directory, "pikachu.json"), "r") as fd:
-        pokemon_cp_level['pikachu'] = json.load(fd)
+        directory = os.path.join(script_path, "cp_chart")
+        filenames = ["", "bulbasaur.json"]
 
-    with open(os.path.join(directory, "dratini.json"), "r") as fd:
-        pokemon_cp_level['dratini'] = json.load(fd)
+        with open(os.path.join(directory, "pikachu.json"), "r") as fd:
+            self.pokemon_cp_level['pikachu'] = json.load(fd)
 
-    with open(os.path.join(directory, "mareep.json"), "r") as fd:
-        pokemon_cp_level['mareep'] = json.load(fd)
+        with open(os.path.join(directory, "dratini.json"), "r") as fd:
+            self.pokemon_cp_level['dratini'] = json.load(fd)
 
-    with open(os.path.join(directory, "bulbasaur.json"), "r") as fd:
-        pokemon_cp_level['bulbasaur'] = json.load(fd)
+        with open(os.path.join(directory, "mareep.json"), "r") as fd:
+            self.pokemon_cp_level['mareep'] = json.load(fd)
 
-    with open(os.path.join(directory, "charmander.json"), "r") as fd:
-        pokemon_cp_level['charmander'] = json.load(fd)
+        with open(os.path.join(directory, "bulbasaur.json"), "r") as fd:
+            self.pokemon_cp_level['bulbasaur'] = json.load(fd)
 
-    with open(os.path.join(directory, "larvitar.json"), "r") as fd:
-        pokemon_cp_level['larvitar'] = json.load(fd)
+        with open(os.path.join(directory, "charmander.json"), "r") as fd:
+            self.pokemon_cp_level['charmander'] = json.load(fd)
 
-    with open(os.path.join(directory, "squirtle.json"), "r") as fd:
-        pokemon_cp_level['squirtle'] = json.load(fd)
+        with open(os.path.join(directory, "larvitar.json"), "r") as fd:
+            self.pokemon_cp_level['larvitar'] = json.load(fd)
 
-    with open(os.path.join(directory, "eevee.json"), "r") as fd:
-        pokemon_cp_level['eevee'] = json.load(fd)
+        with open(os.path.join(directory, "squirtle.json"), "r") as fd:
+            self.pokemon_cp_level['squirtle'] = json.load(fd)
 
-    with open(os.path.join(directory, "chikorita.json"), "r") as fd:
-        pokemon_cp_level['chikorita'] = json.load(fd)
+        with open(os.path.join(directory, "eevee.json"), "r") as fd:
+            self.pokemon_cp_level['eevee'] = json.load(fd)
 
-    with open(os.path.join(directory, "beldum.json"), "r") as fd:
-        pokemon_cp_level['beldum'] = json.load(fd)
+        with open(os.path.join(directory, "chikorita.json"), "r") as fd:
+            self.pokemon_cp_level['chikorita'] = json.load(fd)
 
-    with open(os.path.join(directory, "cyndaquil.json"), "r") as fd:
-        pokemon_cp_level['cyndaquil'] = json.load(fd)
+        with open(os.path.join(directory, "beldum.json"), "r") as fd:
+            self.pokemon_cp_level['beldum'] = json.load(fd)
 
-    with open(os.path.join(directory, "totodile.json"), "r") as fd:
-        pokemon_cp_level['totodile'] = json.load(fd)
+        with open(os.path.join(directory, "cyndaquil.json"), "r") as fd:
+            self.pokemon_cp_level['cyndaquil'] = json.load(fd)
 
-    with open(os.path.join(directory, "treecko.json"), "r") as fd:
-        pokemon_cp_level['treecko'] = json.load(fd)
+        with open(os.path.join(directory, "totodile.json"), "r") as fd:
+            self.pokemon_cp_level['totodile'] = json.load(fd)
 
-    with open(os.path.join(directory, "bagon.json"), "r") as fd:
-        pokemon_cp_level['bagon'] = json.load(fd)
+        with open(os.path.join(directory, "treecko.json"), "r") as fd:
+            self.pokemon_cp_level['treecko'] = json.load(fd)
 
+        with open(os.path.join(directory, "bagon.json"), "r") as fd:
+            self.pokemon_cp_level['bagon'] = json.load(fd)
 
-load_data()
-
-
-def keep_number_in_range(number, spread, min_cp, max_cp):
-
-    low = number - int(spread/2)
-    high = number + int(spread/2)
-
-    if low < min_cp:
-        high = min_cp + spread
-        low = min_cp
-
-    if high > max_cp:
-        low = max_cp - spread
-        high = max_cp
-
-    return "{0:>3}-{1}".format(low,high)
+        self.pokemon_cp_level['torchic'] = self.test_cp_extractor(self.torchic_cp_chart)
 
 
 
-gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"] ,
-                  'charmander' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
-                  'squirtle' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
-                  'eevee' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
-                  'chikorita' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
-                  'beldum': ["", "", "", "", "", "", "", ""],
-                  'cyndaquil' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
-                  'totodile' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
+
+    def keep_number_in_range(self, number, spread, min_cp, max_cp):
+
+        low = number - int(spread/2)
+        high = number + int(spread/2)
+
+        if low < min_cp:
+            high = min_cp + spread
+            low = min_cp
+
+        if high > max_cp:
+            low = max_cp - spread
+            high = max_cp
+
+        return "{0:>3}-{1}".format(low,high)
+
+    def test_cp_extractor(self, cp_values):
+        try:
+
+            cp_data = [s.split(None, 6) for s in cp_values.splitlines()]
+            cp_master = {}
+            for level_info in cp_data[1:60:2]:  # leave first row, use alternate there after
+                cp_range = int(level_info[3]) - int(level_info[2])
+                level_details = {
+                    "Stardust": int(level_info[0]),
+                    "Level": int(level_info[1]),
+                    "Min CP": int(level_info[2]),
+                    "Max CP": int(level_info[3]),
+                    "Spread":
+                        round((cp_range / 5) if int(level_info[1]) <= 5 else
+                              (max(cp_range / 6, 10) if int(level_info[1]) < 10 else
+                               (max(cp_range / 7, 16) if int(level_info[1]) < 15 else
+                                (max(cp_range / 7, 24) if int(level_info[1]) < 20 else
+                                 (max(cp_range / 8, 20) if int(level_info[1]) < 25 else
+                                  max(cp_range / 9, 28)
+                                  )))))
                 }
+                cp_master[level_info[1]] = level_details;
 
+            print(json.dumps(cp_master, indent=4));
 
-box_pokemon = [ 'free', 'charmander' , 'squirtle', 'beldum' , 'larvitar' , 'shiny', 'pikachu', 'bulbasaur', 'dratini', 'eevee' ]
-
-box_5_pokemon = [ 'free' , 'mareep', 'cyndaquil', 'chikorita' ]
-
-def generate_mixed_card ():
-
-
-    MALE_SIGN = u"\u2642"
-    FEMALE_SIGN = u"\u2640"
-
-    stats = ['Attack','Defense','Stamina']
-
-    category = []
-    size = ['XL','XL','XL','XL','XS','XS','XS','XS']
-    # gender = gender_master.get(event_pokemon,[u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"])
-
-    bingo_card = generate_default_card()
-
-    weight_box = randint(1, 4)
-    height_box = randint(6, 9)
-
-    for bingo_cell in list(bingo_card.keys()) :
-        range_multiplier = 1
-        box_pokemon_name = box_pokemon[int(bingo_cell)]
-        if int(bingo_cell) == 5:
-            box_pokemon_name = box_5_pokemon[randint(1,3)]
-            range_multiplier = 1.25
-        elif int(bingo_cell) == weight_box or int(bingo_cell) == height_box:
-            range_multiplier = 1.6
-
-        cell_level = randint(int(randint(10, 12)*range_multiplier), randint(22, 28))
-        cell_json = pokemon_cp_level[box_pokemon_name]["{0}".format(cell_level)]
-        cell_cp = randint(cell_json['Min CP'], cell_json['Max CP'])
-        cell_range = keep_number_in_range(cell_cp, int(randint(120, 160) * range_multiplier), cell_json['Min CP'], cell_json['Max CP'])
-        cell_value = ["CP : {:>0}".format(cell_range)]
-
-        bingo_card[bingo_cell] = cell_value
-
-    bingo_card[f"{weight_box}"] = [bingo_card[f"{weight_box}"][0], "Weight = {0}".format(size[randint(0, 7)])]
-    bingo_card[f"{height_box}"] = [bingo_card[f"{height_box}"][0], "Height = {0}".format(size[randint(0, 7)])]
-    bingo_card['5'] = ['']
-
-
-    return bingo_card
-
-
-def load_pokemon_data(pokemon):
-    try:
-        directory = os.path.join(script_path, "..", "data", "cp_chart")
-        with open(os.path.join(directory, f"{pokemon}.json"), "r") as fd:
-            pokemon_cp_level[pokemon] = json.load(fd)
-    except Exception as error:
-        print(error)
-
-def generate_card(event_pokemon):
-
-    if event_pokemon not in pokemon_cp_level.keys():
-        load_pokemon_data(event_pokemon)
-
-    pokemon_cp = pokemon_cp_level.get(event_pokemon, pokemon_cp_level[f'{event_pokemon}'])
-
-
-    MALE_SIGN = u"\u2642"
-    FEMALE_SIGN = u"\u2640"
-
-    stats = ['Attack','Defense','Stamina']
-
-    category = []
-    size = ['XL','XL','XL','XL','XS','XS','XS','XS']
-    gender = gender_master.get(event_pokemon,[MALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN, FEMALE_SIGN, FEMALE_SIGN, FEMALE_SIGN, FEMALE_SIGN])
-
-    bingo_card = {}
-
-    cell_1_level = randint(6,9)
-    cell_1_json = pokemon_cp["{0}".format(cell_1_level)]
-    cell_1_cp = randint(cell_1_json['Min CP'], cell_1_json['Max CP'])
-    cell_1_range = keep_number_in_range(cell_1_cp, cell_1_json['Spread'], cell_1_json['Min CP'],cell_1_json['Max CP'])
-    cell_1_value = ["CP : {:>0}".format(cell_1_range)]
-
-
-    cell_2_level = randint(4,14)
-    cell_2_json = pokemon_cp["{0}".format(cell_2_level)]
-    cell_2_low_json = pokemon_cp["{0}".format(cell_2_level - 2)]
-    cell_2_high_json = pokemon_cp["{0}".format(cell_2_level + 2)]
-    cell_2_cp = randint(cell_2_json['Min CP'], cell_2_json['Max CP'])
-    cell_2_range = keep_number_in_range(cell_2_cp, randint(80,110), cell_2_low_json['Min CP'], cell_2_high_json['Max CP'])
-    cell_2_value = [ "CP: {0}".format(cell_2_range) , "Weight = {0}".format(size[randint(0,7)])  ]
-
-    cell_3_level = randint(18,21)
-    cell_3_json = pokemon_cp["{0}".format(cell_3_level)]
-    cell_3_cp = randint(cell_3_json['Min CP'], cell_3_json['Max CP'])
-    cell_3_range = keep_number_in_range(cell_3_cp, cell_3_json['Spread'], cell_3_json['Min CP'],cell_3_json['Max CP'])
-    cell_3_value = ["CP : {0} ".format(cell_3_range)]
-
-
-    cell_4_level = randint(10,13)
-    cell_4_json = pokemon_cp["{0}".format(cell_4_level)]
-    cell_4_cp = randint(cell_4_json['Min CP'], cell_4_json['Max CP'])
-    cell_4_range = keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP']) #cell_4_json['Spread'] * 2
-    cell_4_value = ["CP : {0} ".format(cell_4_range) , "{0}".format(gender[randint(0,7)])] #
-
-    cell_5_value = [ "" , ""]
-    # ["{0}".format(event_pokemon.capitalize().center(13, ' ')), "✩"]
-
-    cell_6_level = randint(22, 25)
-    cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
-    cell_6_cp = randint(cell_6_json['Min CP'], cell_6_json['Max CP'])
-    cell_6_range = keep_number_in_range(cell_6_cp, cell_6_json['Spread'] * 2, cell_6_json['Min CP'], cell_6_json['Max CP']) #cell_6_json['Spread'] * 2
-    cell_6_value = ["CP : {0} ".format(cell_6_range), "{0}".format(gender[randint(0, 7)])] # , "{0}".format(gender[randint(0, 7)])
-
-
-    cell_7_level = randint(14, 17)
-    cell_7_json = pokemon_cp["{0}".format(cell_7_level)]
-    cell_7_cp = randint(cell_7_json['Min CP'], cell_7_json['Max CP'])
-    cell_7_range = keep_number_in_range(cell_7_cp, cell_7_json['Spread'], cell_7_json['Min CP'], cell_7_json['Max CP'])
-    cell_7_value = ["CP : {0} ".format(cell_7_range)]
-
-
-    cell_8_level = randint(16,26)
-    cell_8_json = pokemon_cp["{0}".format(cell_8_level)]
-    cell_8_low_json = pokemon_cp["{0}".format(cell_8_level - 1)]
-    cell_8_high_json = pokemon_cp["{0}".format(cell_8_level + 1)]
-    cell_8_cp = randint(cell_8_json['Min CP'], cell_8_json['Max CP'])
-    cell_8_range = keep_number_in_range(cell_8_cp, randint(80,110), cell_8_low_json['Min CP'], cell_8_high_json['Max CP'])
-    cell_8_value = ["CP: {0}".format(cell_8_range), "Height = {0}".format(size[randint(0, 7)])]
-
-    cell_9_level = randint(26, 30)
-    cell_9_json = pokemon_cp["{0}".format(cell_9_level)]
-    cell_9_cp = randint(cell_9_json['Min CP'], cell_9_json['Max CP'])
-    cell_9_range = keep_number_in_range(cell_9_cp, cell_9_json['Spread'], cell_9_json['Min CP'],cell_9_json['Max CP'])
-    cell_9_value = ["CP : {0} ".format(cell_9_range)]
-
-
-    bingo_card['1'] = cell_1_value
-    bingo_card['2'] = cell_2_value
-    bingo_card['3'] = cell_3_value
-    bingo_card['4'] = cell_4_value
-    bingo_card['5'] = cell_5_value
-    bingo_card['6'] = cell_6_value
-    bingo_card['7'] = cell_7_value
-    bingo_card['8'] = cell_8_value
-    bingo_card['9'] = cell_9_value
-
-    return bingo_card
+            return cp_master
+        except Exception as error:
+            print(error)
+            return {}
 
 
 
-
-def generate_default_card():
-
-    bingo_card = {}
-
-    bingo_card['1'] = 'Level 2 , 30 CP'
-    bingo_card['2'] = 'Level 2 , 30 CP'
-    bingo_card['3'] = 'Level 2 , 30 CP'
-    bingo_card['4'] = 'Level 2 , 30 CP'
-    bingo_card['5'] = 'Level 2 , 30 CP'
-    bingo_card['6'] = 'Level 2 , 30 CP'
-    bingo_card['7'] = 'Level 2 , 30 CP'
-    bingo_card['8'] = 'Level 2 , 30 CP'
-    bingo_card['9'] = 'Level 2 , 30 CP'
-
-    return bingo_card
+    gender_master = { 'mareep' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"] ,
+                      'charmander' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                      'squirtle' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                      'eevee' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                      'chikorita' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                      'beldum': ["", "", "", "", "", "", "", ""],
+                      'cyndaquil' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
+                      'totodile' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"]
+                    }
 
 
-def print_card(bingo_card):
-    print("")
+    box_pokemon = [ 'free', 'charmander' , 'squirtle', 'beldum' , 'larvitar' , 'shiny', 'pikachu', 'bulbasaur', 'dratini', 'eevee' ]
 
-    print("|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['1'],bingo_card['2'],bingo_card['3']))
-    print("|\t{0}\t|\t\t{1}\t\t\t|\t{2}\t|".format(bingo_card['4'], bingo_card['5'], bingo_card['6']))
-    print("|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['7'], bingo_card['8'], bingo_card['9']))
+    box_5_pokemon = [ 'free' , 'mareep', 'cyndaquil', 'chikorita' ]
 
+    def generate_mixed_card (self):
 
 
-def print_card_as_text(bingo_card):
+        MALE_SIGN = u"\u2642"
+        FEMALE_SIGN = u"\u2640"
 
-    text = "|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['1'],bingo_card['2'],bingo_card['3'])
-    text = text + "\n"+ "|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['4'], bingo_card['5'], bingo_card['6'])
-    text = text + "\n" +"|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['7'], bingo_card['8'], bingo_card['9'])
+        stats = ['Attack','Defense','Stamina']
 
-    return text
+        category = []
+        size = ['XL','XL','XL','XL','XS','XS','XS','XS']
+        # gender = gender_master.get(event_pokemon,[u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"])
 
+        bingo_card = self.generate_default_card()
+
+        weight_box = randint(1, 4)
+        height_box = randint(6, 9)
+
+        for bingo_cell in list(bingo_card.keys()) :
+            range_multiplier = 1
+            box_pokemon_name = self.box_pokemon[int(bingo_cell)]
+            if int(bingo_cell) == 5:
+                box_pokemon_name = self.box_5_pokemon[randint(1,3)]
+                range_multiplier = 1.25
+            elif int(bingo_cell) == weight_box or int(bingo_cell) == height_box:
+                range_multiplier = 1.6
+
+            cell_level = randint(int(randint(10, 12)*range_multiplier), randint(22, 28))
+            cell_json = self.pokemon_cp_level[box_pokemon_name]["{0}".format(cell_level)]
+            cell_cp = randint(cell_json['Min CP'], cell_json['Max CP'])
+            cell_range = self.keep_number_in_range(cell_cp, int(randint(120, 160) * range_multiplier), cell_json['Min CP'], cell_json['Max CP'])
+            cell_value = ["CP : {:>0}".format(cell_range)]
+
+            bingo_card[bingo_cell] = cell_value
+
+        bingo_card[f"{weight_box}"] = [bingo_card[f"{weight_box}"][0], "Weight = {0}".format(size[randint(0, 7)])]
+        bingo_card[f"{height_box}"] = [bingo_card[f"{height_box}"][0], "Height = {0}".format(size[randint(0, 7)])]
+        bingo_card['5'] = ['']
+
+
+        return bingo_card
+
+
+    def load_pokemon_data(self, pokemon):
+        try:
+            directory = os.path.join(script_path, "cp_chart")
+            with open(os.path.join(directory, f"{pokemon}.json"), "r") as fd:
+                self.pokemon_cp_level[pokemon] = json.load(fd)
+        except Exception as error:
+            print(error)
+            self.pokemon_cp_level[pokemon] = self.test_cp_extractor(self.torchic_cp_chart)
+
+
+    def generate_card(self, event_pokemon='bagon'):
+
+        if event_pokemon not in self.pokemon_cp_level.keys():
+            self.load_pokemon_data(event_pokemon)
+
+        pokemon_cp = self.pokemon_cp_level.get(event_pokemon, self.pokemon_cp_level[f'{event_pokemon}'])
+
+
+        MALE_SIGN = u"\u2642"
+        FEMALE_SIGN = u"\u2640"
+
+        stats = ['Attack','Defense','Stamina']
+
+        category = []
+        size = ['XL','XL','XL','XL','XS','XS','XS','XS']
+        gender = self.gender_master.get(event_pokemon,[MALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN, FEMALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN])
+
+        bingo_card = {}
+
+        cell_1_level = randint(6,9)
+        cell_1_json = pokemon_cp["{0}".format(cell_1_level)]
+        cell_1_cp = randint(cell_1_json['Min CP'], cell_1_json['Max CP'])
+        cell_1_range = self.keep_number_in_range(cell_1_cp, cell_1_json['Spread'], cell_1_json['Min CP'],cell_1_json['Max CP'])
+        cell_1_value = ["CP : {:>0}".format(cell_1_range)]
+
+
+        cell_2_level = randint(4,14)
+        cell_2_json = pokemon_cp["{0}".format(cell_2_level)]
+        cell_2_low_json = pokemon_cp["{0}".format(cell_2_level - 2)]
+        cell_2_high_json = pokemon_cp["{0}".format(cell_2_level + 2)]
+        cell_2_cp = randint(cell_2_json['Min CP'], cell_2_json['Max CP'])
+        cell_2_range = self.keep_number_in_range(cell_2_cp, randint(80,110), cell_2_low_json['Min CP'], cell_2_high_json['Max CP'])
+        cell_2_value = [ "CP: {0}".format(cell_2_range) , "Weight = {0}".format(size[randint(0,7)])  ]
+
+        cell_3_level = randint(18,21)
+        cell_3_json = pokemon_cp["{0}".format(cell_3_level)]
+        cell_3_cp = randint(cell_3_json['Min CP'], cell_3_json['Max CP'])
+        cell_3_range = self.keep_number_in_range(cell_3_cp, cell_3_json['Spread'], cell_3_json['Min CP'],cell_3_json['Max CP'])
+        cell_3_value = ["CP : {0} ".format(cell_3_range)]
+
+
+        cell_4_level = randint(10,13)
+        cell_4_json = pokemon_cp["{0}".format(cell_4_level)]
+        cell_4_cp = randint(cell_4_json['Min CP'], cell_4_json['Max CP'])
+        cell_4_range = self.keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP']) #cell_4_json['Spread'] * 2
+        cell_4_value = ["CP : {0} ".format(cell_4_range) , "{0}".format(gender[randint(0,7)])] #
+
+        cell_5_value = [ "" , ""]
+        # ["{0}".format(event_pokemon.capitalize().center(13, ' ')), "✩"]
+
+        cell_6_level = randint(22, 25)
+        cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
+        cell_6_cp = randint(cell_6_json['Min CP'], cell_6_json['Max CP'])
+        cell_6_range = self.keep_number_in_range(cell_6_cp, cell_6_json['Spread'] * 2, cell_6_json['Min CP'], cell_6_json['Max CP']) #cell_6_json['Spread'] * 2
+        cell_6_value = ["CP : {0} ".format(cell_6_range), "{0}".format(gender[randint(0, 7)])] # , "{0}".format(gender[randint(0, 7)])
+
+
+        cell_7_level = randint(14, 17)
+        cell_7_json = pokemon_cp["{0}".format(cell_7_level)]
+        cell_7_cp = randint(cell_7_json['Min CP'], cell_7_json['Max CP'])
+        cell_7_range = self.keep_number_in_range(cell_7_cp, cell_7_json['Spread'], cell_7_json['Min CP'], cell_7_json['Max CP'])
+        cell_7_value = ["CP : {0} ".format(cell_7_range)]
+
+
+        cell_8_level = randint(16,26)
+        cell_8_json = pokemon_cp["{0}".format(cell_8_level)]
+        cell_8_low_json = pokemon_cp["{0}".format(cell_8_level - 1)]
+        cell_8_high_json = pokemon_cp["{0}".format(cell_8_level + 1)]
+        cell_8_cp = randint(cell_8_json['Min CP'], cell_8_json['Max CP'])
+        cell_8_range = self.keep_number_in_range(cell_8_cp, randint(80,110), cell_8_low_json['Min CP'], cell_8_high_json['Max CP'])
+        cell_8_value = ["CP: {0}".format(cell_8_range), "Height = {0}".format(size[randint(0, 7)])]
+
+        cell_9_level = randint(26, 30)
+        cell_9_json = pokemon_cp["{0}".format(cell_9_level)]
+        cell_9_cp = randint(cell_9_json['Min CP'], cell_9_json['Max CP'])
+        cell_9_range = self.keep_number_in_range(cell_9_cp, cell_9_json['Spread'], cell_9_json['Min CP'],cell_9_json['Max CP'])
+        cell_9_value = ["CP : {0} ".format(cell_9_range)]
+
+
+        bingo_card['1'] = cell_1_value
+        bingo_card['2'] = cell_2_value
+        bingo_card['3'] = cell_3_value
+        bingo_card['4'] = cell_4_value
+        bingo_card['5'] = cell_5_value
+        bingo_card['6'] = cell_6_value
+        bingo_card['7'] = cell_7_value
+        bingo_card['8'] = cell_8_value
+        bingo_card['9'] = cell_9_value
+
+        return bingo_card
+
+
+
+
+    def generate_default_card(self):
+
+        bingo_card = {}
+
+        bingo_card['1'] = 'Level 2 , 30 CP'
+        bingo_card['2'] = 'Level 2 , 30 CP'
+        bingo_card['3'] = 'Level 2 , 30 CP'
+        bingo_card['4'] = 'Level 2 , 30 CP'
+        bingo_card['5'] = 'Level 2 , 30 CP'
+        bingo_card['6'] = 'Level 2 , 30 CP'
+        bingo_card['7'] = 'Level 2 , 30 CP'
+        bingo_card['8'] = 'Level 2 , 30 CP'
+        bingo_card['9'] = 'Level 2 , 30 CP'
+
+        return bingo_card
+
+
+    def print_card(self, bingo_card):
+        print("")
+
+        print("|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['1'],bingo_card['2'],bingo_card['3']))
+        print("|\t{0}\t|\t\t{1}\t\t\t|\t{2}\t|".format(bingo_card['4'], bingo_card['5'], bingo_card['6']))
+        print("|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['7'], bingo_card['8'], bingo_card['9']))
+
+
+
+    def print_card_as_text(self, bingo_card):
+
+        text = "|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['1'],bingo_card['2'],bingo_card['3'])
+        text = text + "\n"+ "|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['4'], bingo_card['5'], bingo_card['6'])
+        text = text + "\n" +"|\t{0}\t|\t{1}\t|\t{2}\t|".format(bingo_card['7'], bingo_card['8'], bingo_card['9'])
+
+        return text
+
+    torchic_cp_chart = """Stardust	Level	Min CP	Max CP
+    200	1	12	15
+    200	1.5	25	31
+    200	2	37	48
+    200	2.5	50	64
+    400	3	63	81
+    400	3.5	76	98
+    400	4	89	114
+    400	4.5	102	131
+    600	5	115	147
+    600	5.5	128	164
+    600	6	141	180
+    600	6.5	154	197
+    800	7	167	213
+    800	7.5	180	230
+    800	8	193	246
+    800	8.5	206	263
+    1000	9	219	279
+    1000	9.5	231	296
+    1000	10	244	312
+    1000	10.5	257	328
+    1300	11	269	343
+    1300	11.5	281	359
+    1300	12	293	375
+    1300	12.5	306	390
+    1600	13	318	406
+    1600	13.5	330	421
+    1600	14	342	437
+    1600	14.5	355	453
+    1900	15	367	468
+    1900	15.5	379	484
+    1900	16	391	500
+    1900	16.5	403	515
+    2200	17	416	531
+    2200	17.5	428	546
+    2200	18	440	562
+    2200	18.5	452	578
+    2500	19	465	593
+    2500	19.5	477	609
+    2500	20	489	624
+    2500	20.5	501	640
+    3000	21	514	656
+    3000	21.5	526	671
+    3000	22	538	687
+    3000	22.5	550	703
+    3500	23	563	718
+    3500	23.5	575	734
+    3500	24	587	750
+    3500	24.5	599	765
+    4000	25	612	781
+    4000	25.5	624	796
+    4000	26	636	812
+    4000	26.5	648	828
+    4500	27	661	843
+    4500	27.5	673	859
+    4500	28	685	875
+    4500	28.5	697	890
+    5000	29	709	906
+    5000	29.5	722	921
+    5000	30	734	937
+    5000	30.5	740	945
+    6000	31	746	953
+    6000	31.5	752	960
+    6000	32	758	968
+    6000	32.5	765	976
+    7000	33	771	984
+    7000	33.5	777	992
+    7000	34	783	1000
+    7000	34.5	789	1007
+    8000	35	795	1015
+    8000	35.5	801	1023
+    8000	36	807	1031
+    8000	36.5	814	1039
+    9000	37	820	1046
+    9000	37.5	826	1054
+    9000	38	832	1062
+    9000	38.5	838	1070
+    10000	39	844	1078
+    10000	39.5	850	1085
+    10000	40	856	1093"""
+
+
+self = BingoDataGenerator()
 
 def main():
-    test1()
+    test()
 
 def test1():
-    print_card(generate_mixed_card())
+    self.print_card(self.generate_mixed_card())
 
-    print_card(generate_mixed_card())
+    self.print_card(self.generate_mixed_card())
 
-    print_card(generate_mixed_card())
+    self.print_card(self.generate_mixed_card())
 
 def test():
-    print_card(generate_default_card())
 
-    print_card(generate_card())
 
-    print_card(generate_card())
+    self.print_card(self.generate_default_card())
 
-    print_card(generate_card())
+    self.print_card(self.generate_card('torchic'))
 
-    print_card(generate_card())
+    self.print_card(self.generate_card())
 
-    print_card(generate_card())
+    self.print_card(self.generate_card())
 
-    print_card(generate_card())
+    self.print_card(self.generate_card())
 
-    print(generate_card())
+    self.print_card(self.generate_card())
 
-    print(print_card_as_text(generate_card()))
+    self.print_card(self.generate_card())
 
+    print(self.generate_card())
+
+    print(self.print_card_as_text(self.generate_card()))
+
+
+def test3():
+    self.test_cp_extractor(self.torchic_cp_chart)
+
+    self.print_card(self.generate_card('torchic'))
+
+
+
+#main()
 
 #test()
+
 
 
 # https://pokemongo.gamepress.gg/pokemon/133

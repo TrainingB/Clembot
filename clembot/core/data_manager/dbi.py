@@ -5,6 +5,7 @@ import logging
 import asyncpg
 from discord.ext.commands import when_mentioned_or
 
+from clembot.core.logs import init_loggers
 from clembot.config import config_template
 from clembot.core.data_manager.schema import Table, Query, Insert, Update, Schema
 from clembot.core.data_manager.tables import core_table_sqls
@@ -25,7 +26,7 @@ class DatabaseInterface:
                  database=config_template.db_config_details.get('database'),
                  port=config_template.db_config_details['port'],
                  debug=config_template.db_config_details['debug']):
-        self.logger = logging.getLogger('clembot.dbi')
+        self.logger = init_loggers()
         self.loop = None
         self.dsn = "postgres://{}:{}@{}:{}/{}".format(
             username, password, hostname, port, database)
@@ -40,7 +41,7 @@ class DatabaseInterface:
         self.debug = debug
 
     async def start(self, loop=None):
-        print("start()")
+        self.logger.info("start()")
         if loop:
             self.loop = loop
         self.pool = await asyncpg.create_pool(
@@ -298,7 +299,6 @@ async def insert_into(table_name = 'sample_test'):
 
 def main():
     try:
-        print("calling main()")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(initialize())

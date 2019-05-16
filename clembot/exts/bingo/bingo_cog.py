@@ -1,10 +1,14 @@
 import json
+import datetime
+import os
+from datetime import timedelta
 
+import discord
 from discord.ext import commands
 
 from clembot.core.logs import init_loggers
-from clembot.exts.bingo import bingogenerator
 from clembot.exts.bingo.BingoCardGenerator import BingoCardGenerator
+from clembot.exts.bingo.bingogenerator import BingoDataGenerator
 from clembot.exts.config.configmanager import ConfigManager
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
 from clembot.exts.utils.utilities import Utilities
@@ -18,7 +22,11 @@ class BingoCog(commands.Cog):
         self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
         self.logger = init_loggers()
-        self.ConfigManager = ConfigManager(bot)
+        self.MyConfigManager = ConfigManager(bot)
+        self.MyBingoDataGenerator = BingoDataGenerator()
+        self.MyBingoBoardGenerator = BingoCardGenerator()
+        self.MyGlobalConfigCache = GlobalConfigCache(bot.dbi)
+
 
     @commands.command(pass_context=True, hidden=True, aliases=["bingo-card"])
     async def _bingo_card(self, ctx):
@@ -39,11 +47,11 @@ class BingoCog(commands.Cog):
             if len(ctx.message.mentions) > 0:
                 author = ctx.message.mentions[0]
             self.logger.info("calling")
-            event_title_map = await GlobalConfigCache.get_clembot_config("bingo-event-title")
+            event_title_map = await self.MyGlobalConfigCache.get_clembot_config("bingo-event-title")
             event_title_map = json.loads(event_title_map)
             self.logger.info(event_title_map)
 
-            event_pokemon = await _get_bingo_event_pokemon(message.guild.id, "bingo-event")
+            event_pokemon = await self._get_bingo_event_pokemon(message.guild.id, "bingo-event")
 
             self.logger.info(event_pokemon)
             if event_pokemon == None:
@@ -51,8 +59,7 @@ class BingoCog(commands.Cog):
                                                  "Beep Beep! **{member}** The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**".format(
                                                      ctx.message.author.display_name))
 
-            existing_bingo_card_record = await ConfigManager.find_bingo_card(ctx.message.guild.id, author.id,
-                                                                               event_pokemon)
+            existing_bingo_card_record = await self.MyConfigManager.find_bingo_card(ctx.message.guild.id, author.id, event_pokemon)
 
             if is_option_new:
                 existing_bingo_card_record = None
@@ -62,12 +69,12 @@ class BingoCog(commands.Cog):
                 timestamp = existing_bingo_card_record['generated_at']
                 file_url = existing_bingo_card_record['bingo_card_url']
             else:
-                bingo_card = bingogenerator.generate_card(event_pokemon)
+                bingo_card = self.MyBingoDataGenerator.generate_card(event_pokemon)
                 timestamp = (message.created_at + datetime.timedelta(
-                    hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-                file_path = MyBingoBoardGenerator.generate_board(user_name=author.id, bingo_card=bingo_card,
+                    hours=self.guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
+                file_path = self.MyBingoBoardGenerator.generate_board(user_name=author.id, bingo_card=bingo_card,
                                                                  template_file="{0}.png".format(event_pokemon))
-                repo_channel = await get_repository_channel(message)
+                repo_channel = await self.get_repository_channel(message)
                 file_url_message = await repo_channel.send(file=discord.File(file_path),
                                                            content="Generated for : {user} at {timestamp}".format(
                                                                user=author.mention, timestamp=timestamp))
@@ -87,7 +94,7 @@ class BingoCog(commands.Cog):
             await ctx.message.channel.send(embed=embed)
 
             if not existing_bingo_card_record:
-                await MyConfigManager.save_bingo_card(ctx.message.guild.id, author.id, event_pokemon, bingo_card,
+                await self.MyConfigManager.save_bingo_card(ctx.message.guild.id, author.id, event_pokemon, bingo_card,
                                                       file_url, str(timestamp))
                 os.remove(file_path)
 
@@ -96,41 +103,43 @@ class BingoCog(commands.Cog):
             # logger.info(error)
         return
 
-    async def get_repository_channel(message):
+    async def get_repository_channel(self, message):
         try:
             bingo_card_repo_channel = None
 
-            if 'bingo_card_repo' in guild_dict[message.guild.id]:
-                bingo_card_repo_channel_id = guild_dict[message.guild.id]['bingo_card_repo']
+            if 'bingo_card_repo' in self.guild_dict[message.guild.id]:
+                bingo_card_repo_channel_id = self.guild_dict[message.guild.id]['bingo_card_repo']
                 if bingo_card_repo_channel_id:
-                    bingo_card_repo_channel = Clembot.get_channel(bingo_card_repo_channel_id)
+                    bingo_card_repo_channel = self.bot.get_channel(bingo_card_repo_channel_id)
 
             if bingo_card_repo_channel == None:
-                bingo_card_repo_category = get_category(message.channel, None)
+                bingo_card_repo_category = None
                 bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(
                     message.channel.overwrites), category=bingo_card_repo_category)
 
             bingo_card_repo = {'bingo_card_repo': bingo_card_repo_channel.id}
-            guild_dict[message.guild.id].update(bingo_card_repo)
+            self.guild_dict[message.guild.id].update(bingo_card_repo)
             return bingo_card_repo_channel
 
         except Exception as error:
             self.logger.error(error)
 
-    MyBingoBoardGenerator = BingoCardGenerator()
+
 
     @commands.command(pass_context=True, hidden=True, aliases=["bingo"])
-    async def _bingo_win(ctx):
+    async def _bingo_win(self, ctx):
         try:
             message = ctx.message
-            logger.info("_bingo_win called")
+            self.logger.info("_bingo_win called")
 
-            event_title_map = await MyGlobalConfigCache.get_clembot_config("bingo-event-title")
-            event_pokemon = await _get_bingo_event_pokemon(message.guild.id, "bingo-event")
+            event_title_map_text = await self.MyGlobalConfigCache.get_clembot_config("bingo-event-title")
+            event_title_map = json.loads(event_title_map_text)
+
+            event_pokemon = await self._get_bingo_event_pokemon(message.guild.id, "bingo-event")
 
             timestamp = (message.created_at + datetime.timedelta(
-                hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-            existing_bingo_card_record = await MyConfigManager.find_bingo_card(ctx.message.guild.id,
+                hours=self.guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
+            existing_bingo_card_record = await self.MyConfigManager.find_bingo_card(ctx.message.guild.id,
                                                                                ctx.message.author.id, event_pokemon)
 
             if existing_bingo_card_record:
@@ -160,16 +169,13 @@ class BingoCog(commands.Cog):
                     "Beep Beep! {0} you will need to generate a bingo card first!".format(message.author.mention))
 
         except Exception as error:
+            print(error)
             self.logger.info(error)
         return
 
 
-    async def _get_bingo_event_pokemon(guild_id, config_key):
-        # bingo_event_pokemon = _get_guild_config_for(guild_id,config_key)
-        # if bingo_event_pokemon:
-        #     return bingo_event_pokemon
-
-        bingo_event_pokemon =await MyGlobalConfigCache.get_clembot_config(config_key)
+    async def _get_bingo_event_pokemon(self, guild_id, config_key):
+        bingo_event_pokemon =await self.MyGlobalConfigCache.get_clembot_config(config_key)
         return bingo_event_pokemon
 
 

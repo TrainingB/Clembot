@@ -35,6 +35,7 @@ from clembot.core.errors import custom_error_handling
 from clembot.core.logs import init_loggers
 from clembot.exts.autorespond.autoresponder import AutoResponder
 from clembot.exts.badges.badgemanager import BadgeManager
+from clembot.exts.bingo.bingogenerator import BingoDataGenerator
 from clembot.exts.config.configmanager import ConfigManager
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
 from clembot.exts.config.guildconfigmanager import GuildConfigCache
@@ -130,7 +131,7 @@ def load_config():
 
     global CACHE_VERSION
     global MyGlobalConfigCache
-    MyGlobalConfigCache = GlobalConfigCache(Clembot)
+    MyGlobalConfigCache = GlobalConfigCache(Clembot.dbi)
 
     global pokemon_master
 
@@ -215,6 +216,9 @@ Clembot.MyGymManager = MyGymManager
 Clembot.MyCityManager = CityManager(Clembot)
 
 
+MyBingoDataGenerator = BingoDataGenerator()
+
+
 poke_alarm_image_url = "/icons/{0}.png?width=80&height=80"
 floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}.png"
 
@@ -224,7 +228,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 default_exts = ['exts.silph.silph','exts.utils.propertieshandler', 'exts.utils.utilities', 'exts.trade.trademanager',
                 'exts.profile.profilemanager','exts.rolebyreaction.reactrolemanager','exts.gyms.gymmanager','exts.autorespond.autoresponder',
                 'exts.raidparty.rostermanager', 'exts.config.configmanager', 'exts.pkmn.cpcalculator','exts.rolebyreaction.reactionrolemanager',
-                'exts.badges.badgemanager','exts.gyms.citymanager', 'exts.config.globalconfigmanager']
+                'exts.badges.badgemanager','exts.gyms.citymanager', 'exts.bingo.bingo_cog']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities','exts.staticreactrolemanager']
 for ext in default_exts:
     try:
