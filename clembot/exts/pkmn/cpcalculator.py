@@ -90,6 +90,11 @@ class CPCalculator(commands.Cog):
            40: 0.79030001}
 
     basestats = {
+        "Mudkip": {
+            "attack": 126,
+            "defense": 93,
+            "hp": 137
+        },
         "Kyogre": {
             "attack": 270,
             "defense": 251,
@@ -282,7 +287,32 @@ class CPCalculator(commands.Cog):
         hp = int(baseHp) + hpIV
         return max(10, math.floor((attack * math.sqrt(defense) * math.sqrt(hp) * (self.cpM[key] ** 2)) / 10.0))
 
+    def calculateCP(self, key, level, indAttack, indDefense, indStam):
+
+        m = self.cpM[level]
+
+        baseAttack = self.basestats[key]['attack']
+        baseDefense = self.basestats[key]['defense']
+        baseStam = self.basestats[key]['hp']
+
+        attack = (baseAttack + indAttack) * m
+        defense = (baseDefense + indDefense) * m
+        stamina = (baseStam + indStam) * m
+        return max(10, math.floor(0.1 * math.sqrt(attack * attack * defense * stamina)))
+
+
+
+
 def setup(bot):
     bot.add_cog(CPCalculator(bot))
 
 
+def main():
+
+    cpCalculator = CPCalculator(None)
+
+    for level in range(1, 31):
+        print(f"{level} {cpCalculator.calculateCP('Mudkip', level, 0, 0, 0)} - {cpCalculator.calculateCP('Mudkip', level, 15, 15, 15)}")
+
+
+main()

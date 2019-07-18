@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 
 from clembot.core.logs import init_loggers
-from clembot.exts.bingo.BingoCardGenerator import BingoCardGenerator
+from clembot.exts.bingo.bingocardgenerator import BingoCardGenerator
 from clembot.exts.bingo.bingogenerator import BingoDataGenerator
 from clembot.exts.config.configmanager import ConfigManager
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache

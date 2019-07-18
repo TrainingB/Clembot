@@ -1,6 +1,7 @@
 import json
 import os
 from random import *
+from clembot.exts.bingo.pokemondataprovider import PokemonDataProvider
 # https://json-csv.com/
 
 script_path = os.path.dirname(os.path.realpath(__file__))
@@ -9,6 +10,9 @@ class BingoDataGenerator:
 
     def __init__(self):
         self._cache = {}
+        self._new_cache = {}
+        self.cpProvider = PokemonDataProvider()
+
 
     pokemon_cp_level = {}
 
@@ -17,64 +21,9 @@ class BingoDataGenerator:
         if event_pokemon in self._cache.keys():
             return self._cache.get(event_pokemon, {})
 
-        self.load_data()
+        self.load_pokemon_data()
         if event_pokemon in self._cache.keys():
             return self._cache.get(event_pokemon, {})
-
-        return {}
-
-
-    def load_data(self):
-
-        directory = os.path.join(script_path, "cp_chart")
-        filenames = ["", "bulbasaur.json"]
-
-        with open(os.path.join(directory, "pikachu.json"), "r") as fd:
-            self.pokemon_cp_level['pikachu'] = json.load(fd)
-
-        with open(os.path.join(directory, "dratini.json"), "r") as fd:
-            self.pokemon_cp_level['dratini'] = json.load(fd)
-
-        with open(os.path.join(directory, "mareep.json"), "r") as fd:
-            self.pokemon_cp_level['mareep'] = json.load(fd)
-
-        with open(os.path.join(directory, "bulbasaur.json"), "r") as fd:
-            self.pokemon_cp_level['bulbasaur'] = json.load(fd)
-
-        with open(os.path.join(directory, "charmander.json"), "r") as fd:
-            self.pokemon_cp_level['charmander'] = json.load(fd)
-
-        with open(os.path.join(directory, "larvitar.json"), "r") as fd:
-            self.pokemon_cp_level['larvitar'] = json.load(fd)
-
-        with open(os.path.join(directory, "squirtle.json"), "r") as fd:
-            self.pokemon_cp_level['squirtle'] = json.load(fd)
-
-        with open(os.path.join(directory, "eevee.json"), "r") as fd:
-            self.pokemon_cp_level['eevee'] = json.load(fd)
-
-        with open(os.path.join(directory, "chikorita.json"), "r") as fd:
-            self.pokemon_cp_level['chikorita'] = json.load(fd)
-
-        with open(os.path.join(directory, "beldum.json"), "r") as fd:
-            self.pokemon_cp_level['beldum'] = json.load(fd)
-
-        with open(os.path.join(directory, "cyndaquil.json"), "r") as fd:
-            self.pokemon_cp_level['cyndaquil'] = json.load(fd)
-
-        with open(os.path.join(directory, "totodile.json"), "r") as fd:
-            self.pokemon_cp_level['totodile'] = json.load(fd)
-
-        with open(os.path.join(directory, "treecko.json"), "r") as fd:
-            self.pokemon_cp_level['treecko'] = json.load(fd)
-
-        with open(os.path.join(directory, "bagon.json"), "r") as fd:
-            self.pokemon_cp_level['bagon'] = json.load(fd)
-
-        self.pokemon_cp_level['torchic'] = self.test_cp_extractor(self.torchic_cp_chart)
-
-
-
 
     def keep_number_in_range(self, number, spread, min_cp, max_cp):
 
@@ -179,18 +128,24 @@ class BingoDataGenerator:
 
         return bingo_card
 
-
     def load_pokemon_data(self, pokemon):
-        try:
-            directory = os.path.join(script_path, "cp_chart")
-            with open(os.path.join(directory, f"{pokemon}.json"), "r") as fd:
-                self.pokemon_cp_level[pokemon] = json.load(fd)
-        except Exception as error:
-            print(error)
-            self.pokemon_cp_level[pokemon] = self.test_cp_extractor(self.torchic_cp_chart)
 
+        for pokemon in ['mudkip']:
+            level_json = {}
+            for level in range(1, 31):
+                level_json.update(
+                    { f"{level}": {
+                    "level": level,
+                    "Max CP": self.cpProvider.calculateCP(pokemon, level, 15, 15, 15),
+                    "Min CP": self.cpProvider.calculateCP(pokemon, level, 0, 0, 0),
+                    "Spread" : int ((self.cpProvider.calculateCP(pokemon, level, 15, 15, 15) - self.cpProvider.calculateCP(pokemon, level, 0, 0, 0)) / 6) + 1
+                }
+                })
 
-    def generate_card(self, event_pokemon='bagon'):
+            print(json.dumps(level_json, indent=2))
+            self.pokemon_cp_level[pokemon] = level_json
+
+    def generate_card(self, event_pokemon='mudkip'):
 
         if event_pokemon not in self.pokemon_cp_level.keys():
             self.load_pokemon_data(event_pokemon)
@@ -318,87 +273,6 @@ class BingoDataGenerator:
 
         return text
 
-    torchic_cp_chart = """Stardust	Level	Min CP	Max CP
-    200	1	12	15
-    200	1.5	25	31
-    200	2	37	48
-    200	2.5	50	64
-    400	3	63	81
-    400	3.5	76	98
-    400	4	89	114
-    400	4.5	102	131
-    600	5	115	147
-    600	5.5	128	164
-    600	6	141	180
-    600	6.5	154	197
-    800	7	167	213
-    800	7.5	180	230
-    800	8	193	246
-    800	8.5	206	263
-    1000	9	219	279
-    1000	9.5	231	296
-    1000	10	244	312
-    1000	10.5	257	328
-    1300	11	269	343
-    1300	11.5	281	359
-    1300	12	293	375
-    1300	12.5	306	390
-    1600	13	318	406
-    1600	13.5	330	421
-    1600	14	342	437
-    1600	14.5	355	453
-    1900	15	367	468
-    1900	15.5	379	484
-    1900	16	391	500
-    1900	16.5	403	515
-    2200	17	416	531
-    2200	17.5	428	546
-    2200	18	440	562
-    2200	18.5	452	578
-    2500	19	465	593
-    2500	19.5	477	609
-    2500	20	489	624
-    2500	20.5	501	640
-    3000	21	514	656
-    3000	21.5	526	671
-    3000	22	538	687
-    3000	22.5	550	703
-    3500	23	563	718
-    3500	23.5	575	734
-    3500	24	587	750
-    3500	24.5	599	765
-    4000	25	612	781
-    4000	25.5	624	796
-    4000	26	636	812
-    4000	26.5	648	828
-    4500	27	661	843
-    4500	27.5	673	859
-    4500	28	685	875
-    4500	28.5	697	890
-    5000	29	709	906
-    5000	29.5	722	921
-    5000	30	734	937
-    5000	30.5	740	945
-    6000	31	746	953
-    6000	31.5	752	960
-    6000	32	758	968
-    6000	32.5	765	976
-    7000	33	771	984
-    7000	33.5	777	992
-    7000	34	783	1000
-    7000	34.5	789	1007
-    8000	35	795	1015
-    8000	35.5	801	1023
-    8000	36	807	1031
-    8000	36.5	814	1039
-    9000	37	820	1046
-    9000	37.5	826	1054
-    9000	38	832	1062
-    9000	38.5	838	1070
-    10000	39	844	1078
-    10000	39.5	850	1085
-    10000	40	856	1093"""
-
 
 self = BingoDataGenerator()
 
@@ -417,7 +291,7 @@ def test():
 
     self.print_card(self.generate_default_card())
 
-    self.print_card(self.generate_card('torchic'))
+    self.print_card(self.generate_card('mudkip'))
 
     self.print_card(self.generate_card())
 
@@ -437,11 +311,11 @@ def test():
 def test3():
     self.test_cp_extractor(self.torchic_cp_chart)
 
-    self.print_card(self.generate_card('torchic'))
+    self.print_card(self.generate_card('mudkip'))
 
 
 
-#main()
+main()
 
 #test()
 
