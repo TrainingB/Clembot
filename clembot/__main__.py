@@ -228,7 +228,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 default_exts = ['exts.silph.silph','exts.utils.propertieshandler', 'exts.utils.utilities', 'exts.trade.trademanager',
                 'exts.profile.profilemanager','exts.rolebyreaction.reactrolemanager','exts.gyms.gymmanager','exts.autorespond.autoresponder',
                 'exts.raidparty.rostermanager', 'exts.config.configmanager', 'exts.pkmn.cpcalculator','exts.rolebyreaction.reactionrolemanager',
-                'exts.badges.badgemanager','exts.gyms.citymanager', 'exts.bingo.bingo_cog']
+                'exts.badges.badgemanager','exts.gyms.citymanager', 'exts.bingo.bingo_cog','exts.spawns.spawnmanager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities','exts.staticreactrolemanager']
 for ext in default_exts:
     try:

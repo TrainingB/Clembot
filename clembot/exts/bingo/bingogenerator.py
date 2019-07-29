@@ -309,13 +309,13 @@ def test():
 
 
 def test3():
-    self.test_cp_extractor(self.torchic_cp_chart)
+    # self.test_cp_extractor(self.torchic_cp_chart)
 
     self.print_card(self.generate_card('mudkip'))
 
 
 
-main()
+# main()
 
 #test()
 

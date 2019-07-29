@@ -1,5 +1,7 @@
 import re
 
+
+import asyncio
 from discord.ext import commands
 
 from clembot.core import time_util
@@ -9,7 +11,7 @@ class ArgParser(commands.Cog):
 
 
     def pokemon_validator_mock(text):
-        if text in ['kyogre', 'groudon', 'rayquaza', 'magikarp']:
+        if text in ['kyogre', 'groudon', 'rayquaza', 'magikarp', 'azelf']:
             return True
         return False;
 
@@ -68,7 +70,7 @@ class ArgParser(commands.Cog):
     async def parse_arguments(self, text, list_of_options, options_methods={}, options_method_optional_parameters={}):
         response = {}
 
-        args = text.split()
+        args = text.lower().split()
 
         response['length'] = len(args)
 
@@ -100,6 +102,40 @@ class ArgParser(commands.Cog):
                         response['subcommand'] = 'assume'
                         args.remove(arg)
                         break
+            elif option == 'cp':
+                for arg in list(args):
+                    if arg.__contains__('cp'):
+                        cp_value = arg.replace('cp','')
+                        if cp_value.isdigit():
+                            args.remove(arg)
+                            response['cp'] = int(cp_value)
+                            break
+            elif option == 'lvl':
+                for arg in list(args):
+                    if arg.__contains__('lvl') or arg.__contains__('level'):
+                        lvl_value = arg.replace('lvl','').replace('level','')
+                        if lvl_value.isdigit():
+                            if 1<= int(lvl_value) <= 40:
+                                args.remove(arg)
+                                response['lvl'] = int(lvl_value)
+                                break
+            elif option == 'iv':
+                for arg in list(args):
+                    if arg.__contains__('iv'):
+                        iv_value = arg.replace('iv','')
+                        if iv_value.isdigit():
+                            if 0 <= int(iv_value) <= 100:
+                                args.remove(arg)
+                                response['iv'] = int(iv_value)
+                                break
+            elif option == 'latlong':
+                for arg in list(args):
+                    match = re.match('^(?P<lat>-?\d*(.\d+)),(?P<long>-?\d*(.\d+))$', arg)
+                    if match is not None:
+                        args.remove(arg)
+                        response['lat'] = float(match.group('lat'))
+                        response['long'] = float(match.group('long'))
+
             # identify egg level is specified
             elif option == 'egg':
                 for arg in list(args):
@@ -185,17 +221,17 @@ def setup(bot):
     bot.add_cog(ArgParser(bot))
 
 
-
-
-
 #
-# def parse_test(text, format, options_method={}):
-#     response = parse_arguments(text, format, options_method)
+#
+#
+#
+# async def parse_test(text, format, options_method={}):
+#     response = await ArgParser.parse_arguments(text, format, options_method)
 #     print("{text} = {response}\n".format(text=text, response=response))
 #
 #     return response
-#
-#     # print(response.get('others',None))
+
+    # print(response.get('others',None))
 #
 # def test():
 #     parse_test("!raidegg 7 clco 3", ['command', 'egg', 'gym_info', 'timer', 'location'])
@@ -251,19 +287,28 @@ def setup(bot):
 #     print(re.match(r'@(.*)\#\d{4}', '@G. (๑˃̵ᴗ˂̵)و-☆z#3529'))
 #     parse_test("!raidegg 5 600 Corp Pointe 13", ['command', 'egg', 'pokemon' , 'gym_info', 'timer', 'location' , 'link'])
 #
-#     parse_test("!c 3 @Bronzor#0409 2 @MEE6#4876 where are you", ['command', 'count', 'mentions'])
+#     parse_test("!c 3 @Bronzor#0409 2 @MEE6#4876 where are you", ['command' 'count', 'mentions'])
 #
 #     parse_test("!c", ['command', 'count'] )
 #
 #     parse_test("!c 5", ['command', 'count'] )
-#
 #     parse_test("!c @G. (๑˃̵ᴗ˂̵)و-☆z#3529  @B!#2022 4 @Bronzor#0409 @MEE6#4876", ['command', 'count', 'mentions'] )
 #
 #
+
+# event_loop = asyncio.get_event_loop()
+#
+# async def test3():
+#
+#     await parse_test("!spawn squirtle -23.0932303,43.93232 23CP 100IV", ['command', 'pokemon', 'latlong', 'cp', 'iv'])
+#
+#     await parse_test("!spawn squirtle -23.0932303,43.93232 23CP 102IV", ['command', 'pokemon', 'latlong', 'cp', 'iv'])
+#
+#     await parse_test("!spawn azelf -23.0932303,43.93232 23CP 102IV", ['command', 'pokemon', 'latlong', 'cp', 'iv'])
 #
 # def main():
 #     try:
-#         test3()
+#         event_loop.run_until_complete(test3())
 #         print("main() finished")
 #     except Exception as error:
 #         print(error)
