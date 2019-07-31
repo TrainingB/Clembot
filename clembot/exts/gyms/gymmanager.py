@@ -31,9 +31,9 @@ class GymManager(commands.Cog):
 
     @commands.group(pass_context=True, hidden=True, aliases=["xgym"])
     async def _gym(self, ctx):
-        print("xgym()")
+        # print("xgym()")
         try:
-            await self.utilities._send_message(ctx.channel,f"subcommand_passed = {ctx.subcommand_passed} , invoked_with = {ctx.invoked_with}, invoked_subcommand = {ctx.invoked_subcommand}")
+            # await self.utilities._send_message(ctx.channel,f"subcommand_passed = {ctx.subcommand_passed} , invoked_with = {ctx.invoked_with}, invoked_subcommand = {ctx.invoked_subcommand}")
 
             if ctx.invoked_subcommand is None:
                 if ctx.subcommand_passed is None:
