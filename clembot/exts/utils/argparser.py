@@ -70,7 +70,7 @@ class ArgParser(commands.Cog):
     async def parse_arguments(self, text, list_of_options, options_methods={}, options_method_optional_parameters={}):
         response = {}
 
-        args = text.lower().split()
+        args = text.split()
 
         response['length'] = len(args)
 
@@ -104,7 +104,7 @@ class ArgParser(commands.Cog):
                         break
             elif option == 'cp':
                 for arg in list(args):
-                    if arg.__contains__('cp'):
+                    if arg.lower().__contains__('cp'):
                         cp_value = arg.replace('cp','')
                         if cp_value.isdigit():
                             args.remove(arg)
@@ -112,7 +112,7 @@ class ArgParser(commands.Cog):
                             break
             elif option == 'lvl':
                 for arg in list(args):
-                    if arg.__contains__('lvl') or arg.__contains__('level'):
+                    if arg.lower().__contains__('lvl') or arg.__contains__('level'):
                         lvl_value = arg.replace('lvl','').replace('level','')
                         if lvl_value.isdigit():
                             if 1<= int(lvl_value) <= 40:
@@ -121,7 +121,7 @@ class ArgParser(commands.Cog):
                                 break
             elif option == 'iv':
                 for arg in list(args):
-                    if arg.__contains__('iv'):
+                    if arg.lower().__contains__('iv'):
                         iv_value = arg.replace('iv','')
                         if iv_value.isdigit():
                             if 0 <= int(iv_value) <= 100:
@@ -171,7 +171,7 @@ class ArgParser(commands.Cog):
             elif option == 'mentions':
                 for arg in list(args):
                     try:
-                        if discord_username_mock(arg):
+                        if self.discord_username_mock(arg):
                             mention_list = response.get('mentions', [])
                             mention_list.append(arg)
                             response['mentions'] = mention_list
