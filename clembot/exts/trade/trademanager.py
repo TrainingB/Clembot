@@ -551,6 +551,8 @@ class TradeManager(commands.Cog):
 
 
 
+
+
     beep_notes = ("""**{member}** here are the commands for trade management. 
 
 **!trade offer <pokemon>** - to add pokemon to your offers list.
@@ -570,7 +572,8 @@ class TradeManager(commands.Cog):
 
 """)
 
-    def get_beep_embed(self, title, description, usage=None, available_value_title=None, available_values=None, footer=None, mode="message"):
+    @classmethod
+    def get_beep_embed(cls, title, description, usage=None, available_value_title=None, available_values=None, footer=None, mode="message"):
 
         if mode == "message":
             color = discord.Colour.green()
@@ -583,9 +586,9 @@ class TradeManager(commands.Cog):
         return help_embed
 
     @classmethod
-    async def _help(self, ctx):
+    async def _help(cls, ctx):
         footer = "Tip: < > denotes required and [ ] denotes optional arguments."
-        await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Trade Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
+        await ctx.message.channel.send(embed=TradeManager.get_beep_embed(title="Help - Trade Management", description=TradeManager.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 
     # @commands.command(aliases=["debug"])
     # async def _debug(self, ctx, *pokemon_list):

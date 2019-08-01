@@ -6649,7 +6649,7 @@ async def beep(ctx):
             elif args_split[0] == 'profile' :
                 await ProfileManager(Clembot)._help(ctx)
             elif args_split[0] == 'trade' :
-                await MyTradeManager._help(ctx)
+                await TradeManager(Clembot)._help(ctx)
             elif args_split[0] == 'react-role' :
                 await ReactRoleManager(Clembot)._help(ctx)
 
