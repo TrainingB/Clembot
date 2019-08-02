@@ -90,6 +90,11 @@ class CPCalculator(commands.Cog):
            40: 0.79030001}
 
     basestats = {
+        "Ralts" : {
+            "attack": 79,
+            "defense": 59,
+            "hp": 99
+        },
         "Mudkip": {
             "attack": 126,
             "defense": 93,
@@ -312,7 +317,7 @@ def main():
     cpCalculator = CPCalculator(None)
 
     for level in range(1, 31):
-        print(f"{level} {cpCalculator.calculateCP('Mudkip', level, 0, 0, 0)} - {cpCalculator.calculateCP('Mudkip', level, 15, 15, 15)}")
+        print(f"{level} {cpCalculator.calculateCP('Ralts', level, 0, 0, 0)} - {cpCalculator.calculateCP('Ralts', level, 15, 15, 15)}")
 
 
 main()

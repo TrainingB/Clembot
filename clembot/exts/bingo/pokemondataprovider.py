@@ -92,6 +92,11 @@ class PokemonDataProvider(commands.Cog):
             "defense": 93,
             "hp": 137
         },
+        "ralts" : {
+            "attack": 79,
+            "defense": 59,
+            "hp": 99
+        },
     }
 
     def __init__(self):

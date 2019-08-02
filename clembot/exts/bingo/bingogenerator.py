@@ -130,7 +130,7 @@ class BingoDataGenerator:
 
     def load_pokemon_data(self, pokemon):
 
-        for pokemon in ['mudkip']:
+        for pokemon in ['mudkip','ralts']:
             level_json = {}
             for level in range(1, 31):
                 level_json.update(
@@ -145,7 +145,7 @@ class BingoDataGenerator:
             print(json.dumps(level_json, indent=2))
             self.pokemon_cp_level[pokemon] = level_json
 
-    def generate_card(self, event_pokemon='mudkip'):
+    def generate_card(self, event_pokemon='ralts'):
 
         if event_pokemon not in self.pokemon_cp_level.keys():
             self.load_pokemon_data(event_pokemon)
@@ -291,7 +291,7 @@ def test():
 
     self.print_card(self.generate_default_card())
 
-    self.print_card(self.generate_card('mudkip'))
+    self.print_card(self.generate_card('ralts'))
 
     self.print_card(self.generate_card())
 
@@ -311,11 +311,11 @@ def test():
 def test3():
     # self.test_cp_extractor(self.torchic_cp_chart)
 
-    self.print_card(self.generate_card('mudkip'))
+    self.print_card(self.generate_card('ralts'))
 
 
 
-# main()
+main()
 
 #test()
 
