@@ -3,8 +3,8 @@ from discord.ext import commands
 from clembot.exts.utils.utilities import Utilities
 from clembot.exts.utils.argparser import ArgParser
 
-
 CACHE_VERSION = 15
+
 
 class SpawnManagerCog(commands.Cog):
 
@@ -53,11 +53,9 @@ class SpawnManagerCog(commands.Cog):
             google_maps = f"http://maps.apple.com/?sll={loc}&z=10&t=s"
             waze_maps = f"https://www.waze.com/ul?ll={loc}&navigate=yes&zoom=17"
 
-
             if ctx.invoked_subcommand is None:
-                description = f"{cp_emoji} **{cp}** / {level_emoji} **{level}** / {iv_emoji} **{iv}**\n{loc_emoji} **{loc}**\n\n" \
-                    f"[[Google Maps]]({google_maps}) [[Apple Maps]]({apple_maps}) [[Waze Maps]]({waze_maps})"
-
+                description = f"{cp_emoji} **{cp}** / {level_emoji} **{level}** / {iv_emoji} **{iv}**\n{loc_emoji} **{loc}**"
+                    # f"[[Google Maps]]({google_maps}) [[Apple Maps]]({apple_maps}) [[Waze Maps]]({waze_maps})"
 
                 await ctx.embed(f"A wild {pokemon} ({pokedex}) has appeared.",
                                 f"{description}",
@@ -76,7 +74,6 @@ class SpawnManagerCog(commands.Cog):
 
         await asyncio.sleep(45)
         await ctx.message.delete()
-
 
     def get_name(self, pkmn_number):
         pkmn_number = int(pkmn_number) - 1
