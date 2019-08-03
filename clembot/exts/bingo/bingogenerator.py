@@ -30,13 +30,16 @@ class BingoDataGenerator:
         low = number - int(spread/2)
         high = number + int(spread/2)
 
-        if low < min_cp:
+        if low < min_cp or low < 11:
             high = min_cp + spread
             low = min_cp
 
         if high > max_cp:
             low = max_cp - spread
             high = max_cp
+
+        if low < 10:
+            print(f"----------------------{low} {high} {number} {spread} {min_cp} {max_cp}")
 
         return "{0:>3}-{1}".format(low,high)
 
@@ -170,14 +173,14 @@ class BingoDataGenerator:
         cell_1_range = self.keep_number_in_range(cell_1_cp, cell_1_json['Spread'], cell_1_json['Min CP'],cell_1_json['Max CP'])
         cell_1_value = ["CP : {:>0}".format(cell_1_range)]
 
-
         cell_2_level = randint(4,14)
         cell_2_json = pokemon_cp["{0}".format(cell_2_level)]
         cell_2_low_json = pokemon_cp["{0}".format(cell_2_level - 2)]
         cell_2_high_json = pokemon_cp["{0}".format(cell_2_level + 2)]
         cell_2_cp = randint(cell_2_json['Min CP'], cell_2_json['Max CP'])
-        cell_2_range = self.keep_number_in_range(cell_2_cp, randint(80,110), cell_2_low_json['Min CP'], cell_2_high_json['Max CP'])
-        cell_2_value = [ "CP: {0}".format(cell_2_range) , "Weight = {0}".format(size[randint(0,7)])  ]
+        cell_2_spread = ( pokemon_cp["12"]["Spread"] + pokemon_cp["13"]["Spread"] + pokemon_cp["14"]["Spread"] ) * 2
+        cell_2_range = self.keep_number_in_range(cell_2_cp, cell_2_spread, cell_2_low_json['Min CP'], cell_2_high_json['Max CP'])
+        cell_2_value = ["CP: {0}".format(cell_2_range), "Weight = {0}".format(size[randint(0, 7)])]
 
         cell_3_level = randint(18,21)
         cell_3_json = pokemon_cp["{0}".format(cell_3_level)]
@@ -214,7 +217,8 @@ class BingoDataGenerator:
         cell_8_low_json = pokemon_cp["{0}".format(cell_8_level - 1)]
         cell_8_high_json = pokemon_cp["{0}".format(cell_8_level + 1)]
         cell_8_cp = randint(cell_8_json['Min CP'], cell_8_json['Max CP'])
-        cell_8_range = self.keep_number_in_range(cell_8_cp, randint(80,110), cell_8_low_json['Min CP'], cell_8_high_json['Max CP'])
+        cell_8_spread = (pokemon_cp["8"]["Spread"] + pokemon_cp["9"]["Spread"] + pokemon_cp["10"]["Spread"]) * 2
+        cell_8_range = self.keep_number_in_range(cell_8_cp, cell_8_spread, cell_8_low_json['Min CP'], cell_8_high_json['Max CP'])
         cell_8_value = ["CP: {0}".format(cell_8_range), "Height = {0}".format(size[randint(0, 7)])]
 
         cell_9_level = randint(26, 30)
@@ -293,7 +297,8 @@ def test():
 
     self.print_card(self.generate_card('ralts'))
 
-    self.print_card(self.generate_card())
+    for i in range(1, 200):
+        self.print_card(self.generate_card())
 
     self.print_card(self.generate_card())
 
@@ -315,7 +320,7 @@ def test3():
 
 
 
-main()
+#main()
 
 #test()
 

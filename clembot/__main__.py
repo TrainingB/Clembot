@@ -240,6 +240,7 @@ for ext in default_exts:
         print(f'Loaded extension : [{ext}]')
         logger.info(f'Loaded extension : [{ext}]')
 
+
 @Clembot.command(name='load')
 @checks.is_owner()
 async def _load(ctx, *extensions):
@@ -253,6 +254,7 @@ async def _load(ctx, *extensions):
                            f'{type(e).__name__}: {e}')
         else:
             await ctx.send(_('**Extension {ext} Loaded.**\n').format(ext=ext))
+
 
 @Clembot.command(name='unload')
 @checks.is_owner()
