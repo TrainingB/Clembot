@@ -58,9 +58,9 @@
       "pokemon": [
         381
       ],
-      "egg_timer": 0,
+      "egg_timer": 15,
       "raid_timer" : 90
-    }, 
+    },
     "EX": {
       "egg": "EX",
       "egg_img": "EX.png",
