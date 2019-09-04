@@ -60,7 +60,7 @@
       ],
       "egg_timer": 0,
       "raid_timer" : 90
-    },
+    }, 
     "EX": {
       "egg": "EX",
       "egg_img": "EX.png",

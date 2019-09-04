@@ -437,10 +437,10 @@ def get_raid_timer(egg_level, pokemon=None):
     current_raid_timer = config_template.raid_timer
     try:
         if egg_level:
-            current_raid_timer = raid_info['raid_eggs'][egg_level]['egg_timer']
+            current_raid_timer = raid_info['raid_eggs'][egg_level].get('egg_timer', current_raid_timer)
             return current_raid_timer
         if pokemon:
-            current_raid_timer = raid_info['raid_eggs'][get_level(pokemon)]['raid_timer']
+            current_raid_timer = raid_info['raid_eggs'][get_level(pokemon)].get('raid_timer', current_raid_timer)
     except:
         pass
     return current_raid_timer
@@ -449,7 +449,7 @@ def get_egg_timer(egg_level):
     egg_level = str(egg_level)
     current_egg_timer = config_template.egg_timer
     if egg_level:
-        current_egg_timer = raid_info['raid_eggs'][egg_level]['egg_timer']
+        current_egg_timer = raid_info['raid_eggs'][egg_level].get('egg_timer', current_egg_timer)
 
     return current_egg_timer
 
