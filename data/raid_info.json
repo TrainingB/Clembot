@@ -57,7 +57,9 @@
       "egg_img": "ic_raid_egg_legendary.png",
       "pokemon": [
         381
-      ]
+      ],
+      "egg_timer": 0,
+      "raid_timer" : 90
     },
     "EX": {
       "egg": "EX",
