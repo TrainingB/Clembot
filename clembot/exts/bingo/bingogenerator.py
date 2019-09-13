@@ -133,20 +133,20 @@ class BingoDataGenerator:
 
     def load_pokemon_data(self, pokemon):
 
-        for pokemon in ['mudkip','ralts']:
-            level_json = {}
-            for level in range(1, 31):
-                level_json.update(
-                    { f"{level}": {
-                    "level": level,
-                    "Max CP": self.cpProvider.calculateCP(pokemon, level, 15, 15, 15),
-                    "Min CP": self.cpProvider.calculateCP(pokemon, level, 0, 0, 0),
-                    "Spread" : int ((self.cpProvider.calculateCP(pokemon, level, 15, 15, 15) - self.cpProvider.calculateCP(pokemon, level, 0, 0, 0)) / 6) + 1
-                }
-                })
 
-            print(json.dumps(level_json, indent=2))
-            self.pokemon_cp_level[pokemon] = level_json
+        level_json = {}
+        for level in range(1, 31):
+            level_json.update(
+                { f"{level}": {
+                "level": level,
+                "Max CP": self.cpProvider.calculateCP(pokemon, level, 15, 15, 15),
+                "Min CP": self.cpProvider.calculateCP(pokemon, level, 0, 0, 0),
+                "Spread" : int ((self.cpProvider.calculateCP(pokemon, level, 15, 15, 15) - self.cpProvider.calculateCP(pokemon, level, 0, 0, 0)) / 6) + 1
+            }
+            })
+
+        print(json.dumps(level_json, indent=2))
+        self.pokemon_cp_level[pokemon] = level_json
 
     def generate_card(self, event_pokemon='ralts'):
 

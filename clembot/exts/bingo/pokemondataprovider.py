@@ -97,6 +97,11 @@ class PokemonDataProvider(commands.Cog):
             "defense": 59,
             "hp": 99
         },
+        "turtwig" : {
+            "attack": 119,
+            "defense": 110,
+            "hp": 146
+        },
     }
 
     def __init__(self):
