@@ -133,7 +133,7 @@ class Utilities(commands.Cog):
             user_mention = f"Beep Beep! **{user.display_name}** "
         error_message = f"{user_mention}{description}"
         error_embed = discord.Embed(description=f"{error_message}", colour=color)
-        cls.logger.error(error_message)
+        # await cls.logger.error(error_message)
         return await channel.send(embed=error_embed)
 
 

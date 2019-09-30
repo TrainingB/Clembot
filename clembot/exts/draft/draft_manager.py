@@ -96,7 +96,7 @@ class Draft:
             "draft_team_size": 6,
             "total_drafted_slots": 0,
             "current_drafted_slots": 0,
-            "current_player_index": -1,
+            "current_player_index": 0,
         },
 
         "player_list": [
@@ -130,8 +130,8 @@ class Draft:
             self.reset(guild_id, channel_id)
 
     def __str__(self):
-        return self.draft_code
-        # return json.dumps(self.draft_content)
+        # return self.draft_code
+        return json.dumps(self.draft_content)
 
 
 
@@ -154,6 +154,9 @@ class Draft:
 
     @status.setter
     def status(self, draft_status):
+        if draft_status == DraftStatus.DRAFT and not self.player_draft_order:
+            self.player_draft_order = list(self.player_list)
+
         self.draft_content['configuration']['status'] = draft_status
 
     @property
@@ -349,7 +352,7 @@ class Draft:
 
     def draft_pokemon(self, player: discord.Member, pokemon: Pokemon):
 
-        if self.current_drafted_slots >= self.total_drafted_slots:
+        if 0 < self.current_drafted_slots >= self.total_drafted_slots:
             raise Exception(f"A team of {self.draft_team_size} has been drafted for everyone.")
 
         if self.status != DraftStatus.DRAFT:
@@ -457,6 +460,22 @@ class DraftManagerCog(commands.Cog):
             return await Utilities.message(ctx.message.channel, f"Draft feature is under development!", user=ctx.author)
 
 
+    @_draft.command(aliases=["check"], pass_context=True)
+    @checks.guildowner_or_permissions(manage_channels=True)
+    async def _draft_check(self, ctx, text):
+
+        try:
+
+            pokemon = await PokemonConverter.convert(text, ctx, text)
+
+            if pokemon:
+                await Utilities.message(ctx.channel, f"{pokemon} details {pokemon.to_dict}")
+
+        except Exception as error:
+            await Utilities.error(ctx.channel, error)
+
+
+
     @_draft.command(aliases=["create", "new"], pass_context=True)
     @checks.guildowner_or_permissions(manage_channels=True)
     async def _draft_create(self, ctx, draft_channel: discord.TextChannel = None):
@@ -541,13 +560,14 @@ class DraftManagerCog(commands.Cog):
         if isinstance(error, discord.ext.commands.CheckFailure):
             return await Utilities.error(ctx.channel, f"{ctx.author.mention}, it seems like you don't have access to run this command.")
         # elif isinstance(error, InvalidWant):
-        return await Utilities.error(ctx.channel, f'{error.original}')
+        return await Utilities.error(ctx.channel, f'{error}')
 
 
     @commands.command(aliases=["load-form"], pass_context=True)
     async def _load_pokemon_form(self, ctx):
         try:
             await PokemonCache.load_cache_from_dbi(self.dbi)
+            await Utilities.message(ctx.channel, f"The current cache size for pokemon is **{PokemonCache.cache_size()}**!")
         except Exception as error:
             await Utilities.error(ctx.channel, error)
 

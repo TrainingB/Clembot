@@ -25,7 +25,6 @@ class Pokemon:
         return self.label
 
 
-    @classmethod
     @property
     def to_dict(self):
         d = {
@@ -100,6 +99,10 @@ class PokemonCache:
 
     def __init__(self):
         self.__dict__ = self.__shared_state
+
+    @classmethod
+    def cache_size(cls):
+        return cls._cache.__len__()
 
     @classmethod
     def load_cache(cls, list_of_pokemon_records):
