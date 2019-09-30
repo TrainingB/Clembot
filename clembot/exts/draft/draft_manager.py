@@ -1,6 +1,5 @@
 import discord
 import json
-import hastebin
 
 from discord.ext import commands
 from clembot.core import checks
@@ -566,16 +565,14 @@ class DraftManagerCog(commands.Cog):
 
 
 
-    async def _send_to_hastebin(self, destination, whatever):
-        whatever = whatever.encode('ascii', errors='replace').decode('utf-8')
-        await Utilities.send(destination, hastebin.post(whatever))
+
 
 
     @commands.command(aliases=["dump-form"], pass_context=True)
     @commands.has_permissions(manage_guild=True)
     async def _dump_pokeform(self, ctx):
 
-        await self._send_to_hastebin(ctx.channel, json.dumps(PokemonCache.cache()))
+        await Utilities.send_to_hastebin(ctx.channel, json.dumps(PokemonCache.cache()))
 
 
     @commands.command(aliases=["debug-form"], pass_context=True)
@@ -584,7 +581,7 @@ class DraftManagerCog(commands.Cog):
 
             result_record = await self.dbi.table('tbl_pokemon_master').query().select().getjson()
 
-            await self._send_to_hastebin(ctx.channel, json.dumps(result_record))
+            await Utilities.send_to_hastebin(ctx.channel, json.dumps(result_record))
 
         except Exception as error:
             await Utilities.error(ctx.channel, error)

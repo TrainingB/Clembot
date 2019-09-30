@@ -1,5 +1,5 @@
 import asyncio
-
+import hastebin
 import discord
 from discord.ext import commands
 from clembot.core.logs import init_loggers
@@ -294,6 +294,11 @@ class Utilities(commands.Cog):
             await asyncio.sleep(1)
             await confirmation.delete()
             return True
+
+    @classmethod
+    async def send_to_hastebin(cls, destination, whatever):
+        whatever = whatever.encode('ascii', errors='replace').decode('utf-8')
+        await Utilities.message(destination, hastebin.post(whatever))
 
 
 # class SnakeDraft:
