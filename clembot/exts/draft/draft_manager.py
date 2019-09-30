@@ -130,8 +130,8 @@ class Draft:
             self.reset(guild_id, channel_id)
 
     def __str__(self):
-        # return self.draft_code
-        return json.dumps(self.draft_content)
+        return self.draft_code
+        # return json.dumps(self.draft_content)
 
 
 
