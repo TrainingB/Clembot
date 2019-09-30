@@ -108,7 +108,7 @@ class Utilities(commands.Cog):
         if user:
             user_mention = f"Beep Beep! **{user.display_name}** "
         error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
-        return await channel.message(embed=error_embed)
+        return await channel.send(embed=error_embed)
 
     @classmethod
     async def message(cls, channel, description, user=None):
@@ -240,7 +240,7 @@ class Utilities(commands.Cog):
     async def get_image_embed(cls, channel, image_url):
         embed = discord.Embed(colour=channel.guild.me.colour)
         embed.set_thumbnail(url=image_url)
-        return await channel.message(embed=embed)
+        return await channel.send(embed=embed)
 
 
     async def ask(message, destination, user_list=None, *, react_list=['✅', '❎']):
