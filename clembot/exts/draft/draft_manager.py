@@ -546,8 +546,10 @@ class DraftManagerCog(commands.Cog):
 
     @commands.command(aliases=["load-form"], pass_context=True)
     async def _load_pokemon_form(self, ctx):
-        await PokemonCache.load_cache_from_dbi(self.dbi)
-
+        try:
+            await PokemonCache.load_cache_from_dbi(self.dbi)
+        except Exception as error:
+            await Utilities.error(ctx.channel, error)
 
     @_draft.command(aliases=["save"], pass_context=True)
     async def _draft_save(self, ctx):
