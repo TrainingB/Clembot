@@ -9,3 +9,4 @@
 .idea/workspace.xml
 *.log
 data/guilddict_backup
+clembot/core/game_master.py

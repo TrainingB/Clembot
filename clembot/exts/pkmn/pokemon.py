@@ -1,560 +1,276 @@
+from discord.ext import commands
 import json
 import os
-from string import ascii_lowercase
+import asyncio
+from clembot.core.data_manager.dbi import DatabaseInterface
+from clembot.exts.pkmn.spelling import SpellHelper
+from clembot.exts.utils.utilities import Utilities
 
-import discord
-from discord.ext import commands
-from discord.ext.commands import CommandError
+class Pokemon:
 
-from clembot.core import utils
-
-CAHCE_VERSION = 1
-
-class PokemonNotFound(CommandError):
-    """Exception raised when Pokemon given does not exist."""
-    def __init__(self, pokemon, retry=True):
-        self.pokemon = pokemon
-        self.retry = retry
-
-class Pokedex:
-    def __init__(self, bot):
-        self.bot = bot
-
-class Pokemon():
-    """Represents a Pokemon.
-
-    This class contains the attributes of a specific pokemon, and
-    provides methods of which to get specific info and results on it.
-
-    Parameters
-    -----------
-    bot: :class:`eevee.core.bot.Eevee`
-        Current instance of Eevee
-    pkmn: str or int
-        The name or id of a Pokemon
-    guild: :class:`discord.Guild`, optional
-        The guild that is requesting the Pokemon
-    moveset: :class:`list` or :class:`tuple` of :class:`str`, optional
-        `kwarg-only:` The two moves of this Pokemon
-    weather: :class:`str`, optional
-        `kwarg-only:` Weather during the encounter
-
-    Raises
-    -------
-    :exc:`.errors.PokemonNotFound`
-        The pkmn argument was not a valid index and was not found in the
-        list of Pokemon names.
-
-    Attributes
-    -----------
-    name: :class:`str`
-        Lowercase string representing the name of the Pokemon
-    id: :class:`int`
-        Pokemon ID number
-    types: :class:`list` of :class:`str`
-        A :class:`list` of the Pokemon's types
-    moveset: :class:`list` or :class:`tuple` of :class:`str`
-        The two moves of this Pokemon
-    weather: :class:`str`
-        Weather during the encounter
-    guild: :class:`discord.Guild`
-        Guild that created the Pokemon
-    bot: :class:`eevee.core.bot.Eevee`
-        Current instance of Eevee
-    """
-
-    __slots__ = ('name', 'id', 'types',
-                 'bot', 'guild',
-                 'pkmn_list',
-                 'pb_raid', 'weather', 'moveset', 'form', 'shiny', 'alolan', 'alolan_raid_boss', 'legendary', 'mythical', 'pokemon_master')
-
-    def _initialize_(self):
-
-        with open(os.path.join('data', "pokemon_master.json"), "r") as fd:
-            pokemon_master_test = json.load(fd)
-
-
-
-        pokemon_master = {}
-
-        try:
-            for id, pokemon_data in pokemon_master_test.items():
-
-                pokedex = pokemon_data['pokedex']
-
-                # for a single form pokemon
-                if pokemon_data['Pokemon'] == pokemon_data['SubType']:
-
-                    pokemon_master.setdefault(pokedex, {})['normal'] = {
-                        'name': pokemon_data['SubType'],
-                        'type1': pokemon_data['type 1'].capitalize(),
-                        'type2': pokemon_data['type 2'].capitalize()
-                        # ,
-                        # 'hp': pokemon_data['HP'],
-                        # 'attack': pokemon_data['Attack'],
-                        # 'defense': pokemon_data['Defense']
-                    }
-
-                elif pokemon_data['alolan'] == 'TRUE':
-                    pokemon_master.setdefault(pokedex, {})['alolan'] = {
-                        'name': pokemon_data['SubType'],
-                        'type1': pokemon_data['type 1'].capitalize(),
-                        'type2': pokemon_data['type 2'].capitalize()
-                        # ,
-                        # 'hp': pokemon_data['HP'],
-                        # 'attack': pokemon_data['Attack'],
-                        # 'defense': pokemon_data['Defense']
-                    }
-                else:
-                    pokemon_master.setdefault(pokedex, {})[pokemon_data['SubType']] = {
-                        'name': pokemon_data['SubType'],
-                        'type1': pokemon_data['type 1'].capitalize(),
-                        'type2': pokemon_data['type 2'].capitalize()
-                        # ,
-                        # 'hp': pokemon_data['HP'],
-                        # 'attack': pokemon_data['Attack'],
-                        # 'defense': pokemon_data['Defense']
-                    }
-
-            # print(pokemon_master[20]['alolan'])
-            # print(pokemon_master[20]['normal'])
-            # print(pokemon_master[6])
-
-            self.pokemon_master = pokemon_master
-
-        except Exception as error:
-            print(error)
-
-    def __init__(self, bot, pkmn, guild=None, **attribs):
-        self.bot = bot
-        self.guild = guild
-
-        self._initialize_()
-
-        self.pkmn_list = bot.pkmn_info['pokemon_list']
-        lgnd_list = [144, 145, 146, 150, 243, 244, 245, 377, 378, 379, 380, 381, 382, 383, 384]
-        mythical_list = [151, 251]
-        alolan_raid_boss = [26, 103, 105 ]
-        shiny_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 25, 26, 90, 91, 126, 129, 130, 138, 139,
-            140, 141, 142, 144, 147, 148, 149, 172, 175, 176, 179, 180, 181, 198,
-            202, 240, 246, 247, 248, 249, 250, 261, 262, 296, 297, 302, 303,
-            304, 305, 306, 307, 308, 311, 312, 315, 320, 321, 333, 334, 353, 354, 355,
-            356, 359, 360, 361, 362, 370, 382]
-        alolan_list = [19, 20, 26, 27, 28, 37, 38, 51, 52, 53, 88, 89, 103, 105]
-        unown_letters = [c for c in ascii_lowercase]
-        unown_letters.extend(['!', '?'])
-        form_dict = {
-			7: ['sunglasses'],
-			8: ['sunglasses'],
-			9: ['sunglasses'],
-			25:  ['ash', 'party', 'witch', 'santa', 'summer'],
-			26:  ['ash', 'party', 'witch', 'santa', 'summer'],
-			172:  ['ash', 'party', 'witch', 'santa', 'summer'],
-			201: unown_letters,
-            351: ['normal', 'rainy', 'snowy', 'sunny'],
-            386: ['defense', 'normal', 'attack', 'speed']
-		}
-        if pkmn.isdigit():
-            try:
-                pkmn = self.pkmn_list[int(pkmn)-1]
-            except IndexError:
-                pass
-        self.name = pkmn
-        if pkmn not in self.pkmn_list:
-            raise PokemonNotFound(pkmn)
-        self.id = self.pkmn_list.index(pkmn)+1
-        self.types = self._get_type()
-        self.pb_raid = None
-        self.weather = attribs.get('weather', None)
-        self.moveset = attribs.get('moveset', [])
-        self.form = attribs.get('form', '')
-        if self.form not in form_dict.get(self.id, []):
-            self.form = None
-        self.shiny = attribs.get('shiny', False)
-        if self.id not in shiny_list:
-            self.shiny = False
-        self.alolan = attribs.get('alolan', False)
-        if self.id not in alolan_list:
-            self.alolan = False
-        if self.id in lgnd_list:
-            self.legendary = True
-        elif self.id in mythical_list:
-            self.mythical = True
-        else:
-            self.legendary = False
-            self.mythical = False
-
-        if self.id in alolan_raid_boss:
-            self.alolan_raid_boss = True
-
-
-        print(self)
+    def __init__(self, pokemon_id, label=None, pokedex_id=None, pokedex_num=None, base_attack=None, base_defense=None, base_stamina=None, alias=None, tags=None, type1=None, type2=None):
+        self.pokemon_id = pokemon_id
+        self.label = label
+        self.pokedex_id = pokedex_id
+        self.pokedex_num = pokedex_num
+        self.base_attack = base_attack
+        self.base_defense = base_defense
+        self.base_stamina = base_stamina
+        self.alias = alias
+        self.tags = tags
+        self.type1 = type1
+        self.type2 = type2
 
     def __str__(self):
-        name = self.name.title()
-        if self.form:
-            name = name + f" {self.form.title()}"
-        if self.alolan:
-            name = 'Alolan ' + name
-        if self.shiny:
-            name = 'Shiny ' + name
-        return name
-
-    def pokemon_info(self):
-        self_dict = {}
-
-        # self_dict['name'] = self.name
-        # self_dict['id'] = self.id
-        # self_dict['types'] = [self.pokemon_master[self.id]['normal']['type1'],self.pokemon_master[self.id]['normal']['type2']] if self.alolan == False else [self.pokemon_master[self.id]['alolan']['type1'],self.pokemon_master[self.id]['alolan']['type2']]
-        # self_dict['pb_raid'] = self.pb_raid
-        # self_dict['weather'] = self.weather
-        # self_dict['moveset'] = self.moveset
-        # self_dict['form'] = self.form
-        # self_dict['shiny'] = self.shiny
-        # self_dict['alolan'] = self.alolan
-        # self_dict['legendary'] = self.legendary
-        # self_dict['mythical'] = self.mythical
-        self_dict['pokedex_id'] = self.id
-        self_dict['form'] = self.form
-        self_dict['shiny'] = self.shiny
-        self_dict['raid_boss_type'] = 'alolan' if self.alolan_raid_boss else 'normal'
-        self_dict['subtype'] = 'alolan' if self.alolan else 'normal'
-        self_dict['pokedex_info'] = self.pokemon_master[self.id]
-        self_dict['img_url'] = self.img_url
-
-        return self_dict
+        return self.label
 
 
-
-
-
-    async def get_pb_raid(self, weather=None, userid=None, moveset=None):
-        """Get a PokeBattler Raid for this Pokemon
-
-        This can quickly produce a PokeBattler Raid for the current
-        Pokemon, with the option of providing a PokeBattler User ID to
-        get customised results.
-
-        The resulting PokeBattler Raid object will be saved under the
-        `pb_raid` attribute of the Pokemon instance for later retrieval,
-        unless it's customised with an ID.
-
-        Parameters
-        -----------
-        weather: :class:`str`, optional
-            The weather during the raid
-        userid: :class:`int`, optional
-            The Pokebattler User ID to generate the PB Raid with
-        moveset: list or tuple, optional
-            A :class:`list` or :class:`tuple` with a :class:`str` representing
-            ``move1`` and ``move2`` of the Pokemon.
-
-        Returns
-        --------
-        :class:`eevee.cogs.pokebattler.objects.PBRaid` or :obj:`None`
-            PokeBattler Raid instance or None if not a Raid Pokemon.
-
-        Example
-        --------
-
-        .. code-block:: python3
-
-            pokemon = Pokemon(ctx.bot, 'Groudon')
-            moveset = ('Dragon Tail', 'Solar Beam')
-            pb_raid = pokemon.get_pb_raid('windy', 12345, moveset)
-        """
-
-        # if a Pokebattler Raid exists with the same settings, return it
-        if self.pb_raid:
-            if not (weather or userid) and not moveset:
-                return self.pb_raid
-            if weather:
-                self.pb_raid.change_weather(weather)
-
-        # if it doesn't exist or settings changed, generate it
-        else:
-            pb_cog = self.bot.cogs.get('PokeBattler', None)
-            if not pb_cog:
-                return None
-            if not weather:
-                weather = self.weather or 'DEFAULT'
-            weather = pb_cog.PBRaid.get_weather(weather)
-            pb_raid = await pb_cog.PBRaid.get(
-                self.bot, self, weather=self.weather, userid=userid)
-
-        # set the moveset for the Pokebattler Raid
-        if not moveset:
-            moveset = self.moveset
-        try:
-            pb_raid.set_moveset(moveset)
-        except RuntimeError:
-            pass
-
-        # don't save it if it's a user-specific Pokebattler Raid
-        if not userid:
-            self.pb_raid = pb_raid
-
-        return pb_raid
-
+    @classmethod
     @property
-    def img_url(self):
-        """:class:`str` : Pokemon sprite image URL"""
-        pkmn_no = str(self.id).zfill(3)
-        if self.form:
-            if self.form == '?':
-                form_str = 'question'
-            else:
-                form_str = self.form
-        else:
-            form_str = ""
-        if self.alolan:
-            alolan_str = "a"
-        else:
-            alolan_str = ""
-        if self.shiny:
-            shiny_str = "s"
-        else:
-            shiny_str = ""
-
-
-
-        # return ('https://raw.githubusercontent.com/FoglyOgly/'f'Meowth/discordpy-v1/images/pkmn/{pkmn_no}{form_str}_{alolan_str}{shiny_str}.png?cache=3')
-        CACHE_VERSION = 3
-        img_url = 'https://raw.githubusercontent.com/TrainingB/'f'PokemonGoImages/master/images/pkmn/{pkmn_no}{form_str}_{alolan_str}{shiny_str}.png?cache={CACHE_VERSION}'
-        img_url = f"https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{pkmn_no}{form_str}_{alolan_str}{shiny_str}.png?cache={CACHE_VERSION}"
-        return img_url
-
-
-    # async def colour(self):
-    #     """:class:`discord.Colour` : Discord colour based on Pokemon sprite."""
-    #     return await url_color(self.img_url)
-
-    @property
-    def is_raid(self):
-        """:class:`bool` : Indicates if the pokemon can show in Raids"""
-        return self.id in utils.get_raidlist(self.bot)
-
-    @property
-    def is_exraid(self):
-        """:class:`bool` : Indicates if the pokemon can show in Raids"""
-        if not self.is_raid:
-            return False
-        return self.id in self.bot.raid_info['raid_eggs']['EX']['pokemon']
-
-    @property
-    def raid_level(self):
-        """:class:`int` or :obj:`None` : Returns raid egg level"""
-        return utils.get_level(self.bot, self.id)
-
-    # def max_raid_cp(self, weather_boost=False):
-    #     """:class:`int` or :obj:`None` : Returns max CP on capture after raid
-    #     """
-    #     key = "max_cp_w" if weather_boost else "max_cp"
-    #     return self.bot.raid_pokemon[self.name][key] if self.is_raid else None
-
-    def role(self, guild=None):
-        """:class:`discord.Role` or :obj:`None` : Returns the role for
-        this Pokemon
-        """
-        if not guild:
-            guild = self.guild
-        if not guild:
-            return None
-        return discord.utils.get(guild.roles, name=self.name)
-
-    def set_guild(self, guild):
-        """:class:`discord.Guild` or :obj:`None` : Sets the relevant Guild"""
-        self.guild = guild
-
-    @property
-    def weak_against(self):
-        """:class:`dict` : Returns a dict of all types the Pokemon is
-        weak against.
-        """
-        types_eff = {}
-        for t, v in self.type_effects.items():
-            if round(v, 3) > 1:
-                types_eff[t] = v
-        return types_eff
-
-    @property
-    def strong_against(self):
-        """:class:`dict` : Returns a dict of all types the Pokemon is
-        strong against.
-        """
-        types_eff = {}
-        for t, v in self.type_effects.items():
-            if round(v, 3) < 1:
-                types_eff[t] = v
-        return types_eff
-
-    def _get_type(self):
-        """:class:`list` : Returns the Pokemon's types"""
-        return self.bot.type_list[self.id-1]
-
-    @property
-    def type_effects(self):
-        """:class:`dict` : Returns a dict of all Pokemon types and their
-        relative effectiveness as values.
-        """
-        type_eff = {}
-        for _type in self.types:
-            for atk_type in self.bot.type_chart[_type]:
-                if atk_type not in type_eff:
-                    type_eff[atk_type] = 1
-                type_eff[atk_type] *= self.bot.type_chart[_type][atk_type]
-        return type_eff
-
-    @property
-    def type_effects_grouped(self):
-        """:class:`dict` : Returns a dict of all Pokemon types and their
-        relative effectiveness as values, grouped by the following:
-            * ultra
-            * super
-            * low
-            * worst
-        """
-        type_eff_dict = {
-            'ultra' : [],
-            'super' : [],
-            'low'   : [],
-            'worst' : []
+    def to_dict(self):
+        d = {
+            'pokemon_id': self.pokemon_id,
+            'label': self.label,
+            'pokedex_id': self.pokedex_id,
+            'pokedex_num': self.pokedex_num,
+            'base_attack': self.base_attack,
+            'base_defense': self.base_defense,
+            'base_stamina': self.base_stamina,
+            'alias': self.alias,
+            'tags': self.tags,
+            'type1': self.type1,
+            'type2': self.type2
         }
-        for t, v in self.type_effects.items():
-            if v > 1.9:
-                type_eff_dict['ultra'].append(t)
-            elif v > 1.3:
-                type_eff_dict['super'].append(t)
-            elif v < 0.6:
-                type_eff_dict['worst'].append(t)
-            else:
-                type_eff_dict['low'].append(t)
-        return type_eff_dict
+        return d
 
     @classmethod
-    async def convert_pokemon(self, ctx, argument):
-        """Returns a pokemon that matches the value
-        of the argument that's being converted.
+    def from_dict(cls, data):
 
-        It first will check if it's a valid ID, and if not, will perform
-        a fuzzymatch against the list of Pokemon names.
+        pokemon_id = data['pokemon_id']
+        label = data['pokeform_display_text']
+        pokedex_id = data['pokedex_id']
+        pokedex_num = data['pokedex_num']
+        type1 = data['type_1']
+        type2 = data['type_2']
+        base_attack = data['base_attack']
+        base_defense = data['base_defense']
+        base_stamina = data['base_stamina']
+        alias = data['pokeform_alias']
+        tags = data['pokeform_tags']
 
-        Returns
-        --------
-        :class:`Pokemon` or :class:`dict`
-            If there was a close or exact match, it will return a valid
-            :class:`Pokemon`.
-            If the match is lower than 80% likeness, it will return a
-            :class:`dict` with the following keys:
-                * ``suggested`` - Next best guess based on likeness.
-                * ``original`` - Original value of argument provided.
 
-        Raises
-        -------
-        :exc:`discord.ext.commands.BadArgument`
-            The argument didn't match a Pokemon ID or name.
-        """
-        original = argument
-        argument = argument.replace('-',' ').lower()
-        if 'shiny' in argument.lower():
-            shiny = True
-            argument = argument.replace('shiny','').strip()
+        return cls(pokemon_id, label, pokedex_id, pokedex_num, base_attack, base_defense, base_stamina, alias, tags, type1, type2)
+
+
+class PokemonConverter(commands.Converter):
+
+    async def convert(self, ctx, argument) -> Pokemon:
+
+        pokemon_form = PokemonCache.to_pokemon(argument.upper())
+        if pokemon_form:
+            return pokemon_form
         else:
-            shiny = False
-        if 'alolan' in argument.lower():
-            alolan = True
-            argument = argument.replace('alolan', '').strip()
-        else:
-            alolan = False
-        form_list = [
-			'normal', 'sunny', 'rainy', 'snowy', 'sunglasses',
-			'ash', 'party', 'witch', 'santa', 'summer',
-			'defense', 'normal', 'attack', 'speed'
-		]
-        form_list.extend([' ' + c for c in ascii_lowercase])
-        form_list.extend(['?','!'])
-        f = next((x for x in form_list if x in argument.lower()), None)
-        if f:
-            form = f.strip()
-            argument = argument.replace(f, '').strip()
-        else:
-            form = None
-        if argument.isdigit():
-            try:
-                match = ctx.bot.pkmn_info['pokemon_list'][int(argument)-1]
-                score = 100
-            except IndexError:
-                raise commands.errors.BadArgument(
-                    'Pokemon ID "{}" not valid'.format(argument))
-        else:
-            pkmn_list = ctx.bot.pkmn_info['pokemon_list']
-            match, score = utils.get_match(pkmn_list, argument)
-        if match:
-            if score >= 80:
-                result_pokemon = self(ctx.bot, str(match), ctx.guild, shiny=shiny, alolan=alolan, form=form)
-                result = {
-                    'match': True,
-                    'original': original,
-                }
-                result.update(result_pokemon.pokemon_info())
-            else:
-                result = {
-                    'match' : False,
-                    'suggested' : str(match),
-                    'original' : original
-                }
+            possible_pokemon_form = await self.auto_correct(ctx, argument.upper())
+            if possible_pokemon_form:
+                pokemon_form = PokemonCache.to_pokemon(possible_pokemon_form)
+                return pokemon_form
 
-        if not result:
-            raise commands.errors.BadArgument('Pokemon "{}" not valid'.format(argument))
+        raise Exception(f"{argument} could not be resolved to a pokemon.")
 
-        return result
+    async def auto_correct(self, ctx, pokemon_as_text):
 
-    def extract_pokemon(self):
+        not_acceptable_message = f"**{pokemon_as_text}** isn't a Pokemon!"
 
-        if result['match']:
-            result['pokedex_info'][result['subtype']]
-        else:
-            result['suggested']
+        spellcheck_suggestion = SpellHelper.correction(pokemon_as_text)
+
+        if spellcheck_suggestion and spellcheck_suggestion != pokemon_as_text:
+
+            not_acceptable_message += f" Did you mean **{spellcheck_suggestion}**?"
+            replace_pokemon = await Utilities.ask_confirmation(ctx, ctx.message, not_acceptable_message, "Alright!", "That's okay!", "Timed Out!")
+            if replace_pokemon:
+                return spellcheck_suggestion
+
+        return None
+
+
+class PokemonCache:
+
+    _cache = {}
+    __shared_state = {}
+
+    def __init__(self):
+        self.__dict__ = self.__shared_state
 
     @classmethod
-    def get_pokemon(cls, ctx, argument):
-        argument = argument.lower()
-        if 'shiny' in argument.lower():
-            shiny = True
-            argument = argument.replace('shiny', '').strip()
-        else:
-            shiny = False
-        if 'alolan' in argument.lower():
-            alolan = True
-            argument = argument.replace('alolan', '').strip()
-        else:
-            alolan = False
-        form_list = [
-			'normal', 'sunny', 'rainy', 'snowy', 'sunglasses',
-			'ash', 'party', 'witch', 'santa', 'summer',
-			'defense', 'normal', 'attack', 'speed'
-		]
-        form_list.extend([' ' + c for c in ascii_lowercase])
-        f = next((x for x in form_list if x in argument.lower()), None)
-        if f:
-            form = f.strip()
-            argument = argument.replace(f, '').strip()
-        else:
-            form = None
-        if argument.isdigit():
+    def load_cache(cls, list_of_pokemon_records):
+
+        pokemon_form_master = {}
+
+        for record in list_of_pokemon_records:
+            for alias in record['pokeform_alias']:
+                pokemon_form_master[alias] = record
+
+        cls._cache = pokemon_form_master
+        SpellHelper.set_dictionary(list(pokemon_form_master.keys()))
+
+    @classmethod
+    def to_pokemon(cls, text) -> Pokemon:
+        if cls._cache.__len__() < 1:
+            raise Exception("Error : Pokemon forms are not loaded.")
+
+        if cls._cache.keys().__contains__(text.upper()):
+            my_object = cls._cache.get(text.upper())
+            return Pokemon.from_dict(my_object)
+
+        return None
+
+    @classmethod
+    async def load_cache_from_dbi(cls, dbi):
+
+        try:
+            result_record = await dbi.table('tbl_pokemon_master').query().select().getjson()
+
+            PokemonCache.load_cache(result_record)
+
+            print(f'{len(result_record)} Pokemon Form(s) Loaded from tbl_pokemon_master.')
+
+        except Exception as error:
+            raise Exception("Couldn't load pokemon forms from DB due to error" + error)
+
+
+
+class GameMasterParser:
+
+    _cache = {}
+    __shared_state = {}
+
+    def __init__(self):
+        self.__dict__ = self.__shared_state
+
+
+    @classmethod
+    async def load_pokedex(cls, dbi):
+        # if not cls._cache.__len__() == 0:
+        # with open("https://raw.githubusercontent.com/PokeMiners/game_masters/master/previous_game_masters/gm_apk1532_Wed_Sep_18_10_26_26_2019/game_master.json", "r") as fd:
+
+        with open(os.path.join('data', "game_master_000.json"), "r") as fd:
+            print('opened file')
+            pokemon_master = json.load(fd)
+
+        pokemon_master_list = await GameMasterInterface.get_pokemon_master_list(dbi)
+
+        for pmr in pokemon_master:
             try:
-                match = ctx.bot.pkmn_info['pokemon_list'][int(argument)-1]
-            except IndexError:
-                return None
-        else:
-            pkmn_list = ctx.bot.pkmn_info['pokemon_list']
-            match = utils.get_match(pkmn_list, argument)[0]
+                templateId = pmr['templateId']
 
-        if not match:
-            return None
+                if templateId.startswith('V') and templateId.__contains__('_POKEMON_'):
 
-        return cls(ctx.bot, str(match), ctx.guild, shiny=shiny, alolan=alolan, form=form)
+                    ps = pmr.get('pokemonSettings',{})
+                    pokemonId = ps.get('form', ps.get('pokemonId')).replace('_SHADOW','').replace('_PURIFIED', '').replace('_NORMAL', '')
 
 
-def setup(bot):
-    bot.add_cog(Pokedex(bot))
+
+                    if pokemon_master_list.__contains__(pokemonId):
+                        print(f"{templateId} skipped!")
+                        continue
+                    print(f"{templateId} => {pokemonId}")
+
+                    pokemon_master_list.append(pokemonId)
+
+                    data = {
+                        "pokemon_id": pokemonId,
+                        "pokemon_display_text" : pokemonId.replace('_','-').replace('FORM',''),
+                        "pokedex_id": ps.get('pokemonId'),
+                        "type_1": ps.get('type'),
+                        "type_2": ps.get('type2'),
+                        "base_attack" : ps.get('stats').get('baseAttack'),
+                        "base_defense" : ps.get('stats').get('baseDefense'),
+                        "base_stamina" : ps.get('stats').get('baseStamina'),
+                        "parent_pokemon_id" : ps.get('parentPokemonId'),
+                        "pokemon_family_id": ps.get('familyId'),
+                        "cinematic_moves" : ps.get('cinematicMoves'),
+                        "quick_moves": ps.get('quickMoves')
+                    }
+                    # print(json.dumps(data))
+                    await GameMasterInterface.update_game_master(dbi, pokemonId, data)
+
+            except Exception as error:
+                print(error)
+                print(json.dumps(pmr))
+
+        print("load_pokedex() finished.")
+
+
+class GameMasterInterface:
+
+    def __int__(self):
+       self.a=10
+
+    @classmethod
+    async def update_game_master(cls, dbi, pokemonId, data, forcedUpdate=False):
+
+        if dbi:
+            tbl_game_master = dbi.table('game_master')
+            existing_pokemon_record = await tbl_game_master.query().clear().select().where(pokemon_id=pokemonId).get_first()
+
+            if existing_pokemon_record:
+                if forcedUpdate:
+                    update_query = tbl_game_master.update(**data).where(pokemon_id=pokemonId)
+                    await update_query.commit()
+            else:
+                insert_query = tbl_game_master.insert(**data)
+                await insert_query.commit()
+
+    @classmethod
+    async def get_pokemon_master_list(cls, dbi):
+
+        tbl_game_master = dbi.table('game_master')
+        existing_pokemon_record = await tbl_game_master.query().clear().select('pokemon_id').where().get()
+
+        list_of_pokemon_id = []
+        for record in existing_pokemon_record:
+            list_of_pokemon_id.append(record.get('pokemon_id'))
+
+        return list_of_pokemon_id
+
+dbi = None
+
+async def initialize():
+    global dbi
+    dbi = DatabaseInterface()
+    await dbi.start()
+
+async def cleanup():
+    global dbi
+    await dbi.stop()
+
+
+async def test_condition():
+    try:
+
+        # something = await GameMasterInterface.get_game_master(dbi)
+        # print(something)
+        await GameMasterParser.load_pokedex(dbi)
+
+
+
+    except Exception as error:
+        print(error)
+
+
+
+def main():
+    try:
+
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(initialize())
+        loop.run_until_complete(test_condition())
+        loop.run_until_complete(cleanup())
+
+    except Exception as error:
+        print(error)
+
+
+# main()

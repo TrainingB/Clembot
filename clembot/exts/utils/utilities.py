@@ -2,6 +2,9 @@ import asyncio
 
 import discord
 from discord.ext import commands
+from clembot.core.logs import init_loggers
+from itertools import chain, cycle
+import random
 
 
 class RemoveComma(commands.Converter):
@@ -17,6 +20,9 @@ class HandleAngularBrackets(commands.Converter):
 
 
 class Utilities(commands.Cog):
+
+    logger = init_loggers()
+
     def __init__(self):
         return
 
@@ -102,10 +108,38 @@ class Utilities(commands.Cog):
         if user:
             user_mention = f"Beep Beep! **{user.display_name}** "
         error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
+        return await channel.message(embed=error_embed)
+
+    @classmethod
+    async def message(cls, channel, description, user=None):
+
+        color = discord.Colour.green()
+        user_mention = ""
+        if user:
+            user_mention = f"Beep Beep! **{user.display_name}** "
+        error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
         return await channel.send(embed=error_embed)
 
     @classmethod
-    async def _send_message(self, channel, description, user= None):
+    async def message_as_text(cls, channel, description):
+        return await channel.send(description)
+
+    @classmethod
+    async def error(cls, channel, description, user=None):
+
+        color = discord.Colour.red()
+        user_mention = ""
+        if user:
+            user_mention = f"Beep Beep! **{user.display_name}** "
+        error_message = f"{user_mention}{description}"
+        error_embed = discord.Embed(description=f"{error_message}", colour=color)
+        cls.logger.error(error_message)
+        return await channel.send(embed=error_embed)
+
+
+
+    @classmethod
+    async def _send_message(self, channel, description, user=None):
 
         color = discord.Colour.red()
         user_mention = ""
@@ -135,12 +169,13 @@ class Utilities(commands.Cog):
             print(error)
 
     @classmethod
-    async def _send_embed(self, channel, description=None, title=None, additional_fields={}, footer=None):
+    async def _send_embed(cls, channel, description=None, title=None, additional_fields={}, footer=None):
 
         embed = discord.Embed(description=description, colour=discord.Colour.gold(), title=title)
 
         for label, value in additional_fields.items():
-            embed.add_field(name="**{0}**".format(label), value=value, inline=True)
+            if value:
+                embed.add_field(name="**{0}**".format(label), value=value, inline=False)
 
         if footer:
             embed.set_footer(text=footer)
@@ -205,16 +240,41 @@ class Utilities(commands.Cog):
     async def get_image_embed(cls, channel, image_url):
         embed = discord.Embed(colour=channel.guild.me.colour)
         embed.set_thumbnail(url=image_url)
-        return await channel.send(embed=embed)
+        return await channel.message(embed=embed)
 
-    async def ask_confirmation(self, ctx, message, rusure_message, yes_message, no_message, timed_out_message):
+
+    async def ask(message, destination, user_list=None, *, react_list=['✅', '❎']):
+        if user_list and type(user_list) != __builtins__.list:
+            user_list = [user_list]
+
+
+        def check(reaction, user):
+            if user_list and type(user_list) is __builtins__.list:
+                return (user.id in user_list) and (reaction.message.id == message.id) and (reaction.emoji in react_list)
+            elif not user_list:
+                return (user.id != message.guild.me.id) and (reaction.message.id == message.id) and (reaction.emoji in react_list)
+
+
+        for r in react_list:
+            await asyncio.sleep(0.25)
+            await message.add_reaction(r)
+        try:
+            reaction, user = await Clembot.wait_for('reaction_add', check=check, timeout=60)
+            return reaction, user
+        except asyncio.TimeoutError:
+            await message.clear_reactions()
+            return
+
+
+    @classmethod
+    async def ask_confirmation(cls, ctx, message, rusure_message, yes_message, no_message, timed_out_message):
         author = message.author
         channel = message.channel
 
         reaction_list = ['✅', '❎']
         # reaction_list = ['❔', '✅', '❎']
 
-        rusure = await channel.send( _("Beep Beep! {message}".format(message=rusure_message)))
+        rusure = await ctx.channel.send(f"Beep Beep! {rusure_message}")
         await rusure.add_reaction( "✅")  # checkmark
         await rusure.add_reaction( "❎")  # cross
 
@@ -229,23 +289,161 @@ class Utilities(commands.Cog):
         except asyncio.TimeoutError:
             await rusure.delete()
             confirmation = await channel.send(_("Beep Beep! {message}".format(message=timed_out_message)))
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
             await confirmation.delete()
             return False
 
         if reaction.emoji == "❎":
             await rusure.delete()
-            confirmation = await channel.send( _("Beep Beep! {message}".format(message=no_message)))
-            await asyncio.sleep(3)
+            confirmation = await channel.send(_("Beep Beep! {message}".format(message=no_message)))
+            await asyncio.sleep(1)
             await confirmation.delete()
             return False
         elif reaction.emoji == "✅":
             await rusure.delete()
-            confirmation = await channel.send( _("Beep Beep! {message}".format(message=yes_message)))
-            await asyncio.sleep(3)
+            confirmation = await channel.send(_("Beep Beep! {message}".format(message=yes_message)))
+            await asyncio.sleep(1)
             await confirmation.delete()
             return True
 
+
+# class SnakeDraft:
+#
+#     @staticmethod
+#     def draft(cls, n, new_i = None):
+#         if new_i:
+#             i = new_i
+#         while True:
+#             for i in range(1, n + 1):
+#                 yield i
+#             for i in range(n, 0, -1):
+#                 yield i
+
+def draft(n, new_i = None):
+    if new_i:
+        i = new_i
+    while True:
+        for i in range(1, n + 1):
+            yield i
+        for i in range(n, 0, -1):
+            yield i
+
+
+
+def draft_next(size_of_team, players_already_drafted, current_player_index):
+
+    direction = 0
+    next_index = players_already_drafted % size_of_team
+    if (players_already_drafted % (size_of_team * 2)) > size_of_team - 1:
+        direction = 1
+        next_index = size_of_team - next_index - 1
+
+    print(f"({size_of_team}, {players_already_drafted}, {current_player_index}) {direction} => {next_index}")
+
+    return next_index
+
+
+def get_next(team_size):
+
+    all_players = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8']
+
+
+
+    players = all_players[:team_size]
+
+    turn = draft(players.__len__())
+
+    text = ""
+
+    for i in range(1, players.__len__() * 6 + 1):
+        index = next(turn)
+        draft_index = draft_next(players.__len__(), i - 1, index - 1)
+        print(f"({i}) \t- {index - 1} => {draft_index} {index - 1 == draft_index}")
+
+
+
+    return 1
+
+
+number_list = [1,2,3,4,5,6,7,8,9,10,11,12,12,11,10,9,8,7,6,5,4,3,2,1]
+def slot(n, x): # 0.03638 sec for 100,000x
+    return number_list[x % (n*2)]
+
+def test_slot():
+
+    print(slot(18,46))
+
+
+
+
+def test_shuffle():
+
+    my_list = [1, 2, 3, 4, 5]
+    list_copy = list(my_list)
+    random.shuffle(list_copy)
+    random.shuffle(list_copy)
+
+    print(my_list)
+    print(list_copy)
+
+
+class ListIterator:
+
+    _index = -1
+    _item_list = []
+    __list_size = 0
+
+    def __init__(self, item_list, current_index=-1):
+        self._item_list = item_list
+        self.__list_size = len(self._item_list)
+        self._index = current_index if current_index == -1 else current_index - 1
+
+    def current(self):
+        return self._item_list[self._index]
+
+    def next(self):
+        self._index += 1
+        if self._index >= self.__list_size:
+            self._index = 0
+        return self._item_list[self._index]
+
+    def prev(self):
+        self._index -= 1;
+        if self._index < 0:
+            self._index = len(self._item_list) - 1
+        return self._item_list[self._index]
+
+
+
+def test_cycle():
+
+    my_list = [1, 2, 3, 4, 5]
+    pool = cycle(my_list)
+
+    for i in range(1, 40):
+        print(f"{i} -> {pool.__next__()}")
+
+def test_myclass():
+
+    my_list = [1, 2, 3, 4, 5]
+    random.shuffle(my_list)
+    print(my_list)
+    pool = ListIterator(my_list)
+
+    for i in range(1, 40):
+        print(f"{i} -> {pool.next()}")
+        if i % 5 == 0:
+            print(f"{i} -> {pool.prev()}")
+
+
+    random.shuffle(my_list)
+    print(my_list)
+    pool = ListIterator(my_list, 3)
+
+    for i in range(1, 40):
+        print(f"{i} -> {pool.next()}")
+        if i % 5 == 0:
+            print(f"{i} -> {pool.prev()}")
 
 
 
@@ -254,12 +452,14 @@ def setup(bot):
 
 
 def main():
-    utilities = Utilities()
+    get_next(3)
 
-    print(utilities._uuid(499981743756148737))
-    print(utilities._uuid("499981743756148737"))
 
-    print(utilities._normalize("<:valor:460721754260766721>"))
-    print(utilities._normalize("<valor:460721754260766721>"))
 
-# main()
+    print(f"[utilities.py] main() finished.")
+
+
+
+
+
+#main()

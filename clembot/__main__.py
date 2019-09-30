@@ -42,7 +42,7 @@ from clembot.exts.config.guildconfigmanager import GuildConfigCache
 from clembot.exts.config.channelconfigmanager import ChannelConfigCache
 from clembot.exts.gyms.citymanager import CityManager
 from clembot.exts.gyms.gymmanager import GymManager
-from clembot.exts.pkmn.pkmn_cog import Pokemon
+from clembot.exts.pkmn.pokemon import Pokemon, PokemonCache
 from clembot.exts.profile.profilemanager import ProfileManager
 from clembot.exts.raidparty.rostermanager import RosterManager
 from clembot.exts.rolebyreaction.reactionrolemanager import ReactionRoleManager
@@ -228,7 +228,7 @@ floatzel_image_url = "http://floatzel.net/pokemon/black-white/sprites/images/{0}
 default_exts = ['exts.silph.silph','exts.utils.propertieshandler', 'exts.utils.utilities', 'exts.trade.trademanager',
                 'exts.profile.profilemanager','exts.rolebyreaction.reactrolemanager','exts.gyms.gymmanager','exts.autorespond.autoresponder',
                 'exts.raidparty.rostermanager', 'exts.config.configmanager', 'exts.pkmn.cpcalculator','exts.rolebyreaction.reactionrolemanager',
-                'exts.badges.badgemanager','exts.gyms.citymanager', 'exts.bingo.bingo_cog','exts.spawns.spawnmanager']
+                'exts.badges.badgemanager','exts.gyms.citymanager', 'exts.bingo.bingo_cog','exts.spawns.spawnmanager','exts.draft.draft_manager']
 #default_exts = ['exts.silph','exts.propertieshandler', 'exts.utilities','exts.staticreactrolemanager']
 for ext in default_exts:
     try:
@@ -641,6 +641,7 @@ def spellcheck(word):
         return _('Beep Beep! "{entered_word}" is not a Pokemon! Did you mean "{corrected_word}"?').format(entered_word=word, corrected_word=spelling.correction(word))
     else:
         return _('Beep Beep! "{entered_word}" is not a Pokemon! Check your spelling!').format(entered_word=word)
+
 
 async def autocorrect(entered_word, destination, author):
     not_a_pokemon_msg = _("Beep Beep! **{word}** isn't a Pokemon!").format(word=entered_word.title())
@@ -1284,12 +1285,16 @@ team_msg = " or ".join(["**!team {0}**".format(team) for team in config_template
 
 @Clembot.event
 async def on_ready():
+    await PokemonCache.load_cache_from_dbi(Clembot.dbi)
     Clembot.owner = discord.utils.get(Clembot.get_all_members(), id=config_template.bot_users["owner"])
-    await _print(Clembot.owner, _("Starting up..."))  # prints to the terminal or cmd prompt window upon successful connection to Discord
+    if config_template.environment != 'dev':
+        await _print(Clembot.owner, _("Starting up..."))  # prints to the terminal or cmd prompt window upon successful connection to Discord
 
     global CACHE_VERSION
     CACHE_VERSION = await MyGlobalConfigCache.get_clembot_config('cache-version')
     print(f"Cache version : {CACHE_VERSION}")
+
+
 
 
     Clembot.uptime = datetime.datetime.now()
@@ -1311,7 +1316,9 @@ async def on_ready():
     embed = discord.Embed(colour=discord.Colour.green(), description="Beep Beep! That's right!").set_author(name=_("Clembot Startup Notification"), icon_url=Clembot.user.avatar_url)
     embed.add_field(name="**Servers Connected**", value=_(" {guilds}").format(guilds=guilds), inline=True)
     embed.add_field(name="**Members Found**", value=_(" {members}").format(members=users), inline=True)
-    await Clembot.owner.send( embed=embed)
+
+    if config_template.environment != 'dev':
+        await Clembot.owner.send( embed=embed)
 
     await maint_start()
 
