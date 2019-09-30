@@ -590,7 +590,10 @@ class DraftManagerCog(commands.Cog):
     @commands.command(aliases=["load-form"], pass_context=True)
     async def _load_pokemon_form(self, ctx):
         try:
-            await PokemonCache.load_cache_from_dbi(self.dbi)
+            results = await PokemonCache.load_cache_from_dbi(self.dbi)
+
+            await Utilities.send_to_hastebin(ctx.channel, json.dumps(results))
+
             await Utilities.message(ctx.channel, f"The current cache size for pokemon is **{PokemonCache.cache_size()}**!")
         except Exception as error:
             await Utilities.error(ctx.channel, error)

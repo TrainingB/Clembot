@@ -141,7 +141,7 @@ class PokemonCache:
             PokemonCache.load_cache(result_record)
 
             print(f'{len(result_record)} Pokemon Form(s) Loaded from tbl_pokemon_master.')
-
+            return result_record
         except Exception as error:
             print(error)
             raise Exception("Couldn't load pokemon forms from DB due to error " + str(error))
