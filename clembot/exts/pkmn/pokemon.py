@@ -2,6 +2,7 @@ from discord.ext import commands
 import json
 import os
 import asyncio
+import hastebin
 from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.exts.pkmn.spelling import SpellHelper
 from clembot.exts.utils.utilities import Utilities
@@ -111,7 +112,6 @@ class PokemonCache:
 
     @classmethod
     def load_cache(cls, list_of_pokemon_records):
-
         pokemon_form_master = {}
 
         for record in list_of_pokemon_records:
@@ -144,7 +144,7 @@ class PokemonCache:
 
         except Exception as error:
             print(error)
-            raise Exception("Couldn't load pokemon forms from DB due to error" + error)
+            raise Exception("Couldn't load pokemon forms from DB due to error " + str(error))
 
 
 

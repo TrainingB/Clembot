@@ -565,12 +565,30 @@ class DraftManagerCog(commands.Cog):
         return await Utilities.error(ctx.channel, f'{error}')
 
 
+
+    async def _send_to_hastebin(self, destination, whatever):
+        whatever = whatever.encode('ascii', errors='replace').decode('utf-8')
+        await Utilities.send(destination, hastebin.post(whatever))
+
+
     @commands.command(aliases=["dump-form"], pass_context=True)
     @commands.has_permissions(manage_guild=True)
     async def _dump_pokeform(self, ctx):
-        logdata = json.dumps(PokemonCache.cache())
-        logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
-        outputlog_message = await Utilities.message(ctx.channel, hastebin.post(logdata))
+
+        await self._send_to_hastebin(ctx.channel, json.dumps(PokemonCache.cache()))
+
+
+    @commands.command(aliases=["debug-form"], pass_context=True)
+    async def _debug_pokemon_form(self, ctx):
+        try:
+
+            result_record = await self.dbi.table('tbl_pokemon_master').query().select().getjson()
+
+            await self._send_to_hastebin(ctx.channel, json.dumps(result_record))
+
+        except Exception as error:
+            await Utilities.error(ctx.channel, error)
+
 
     @commands.command(aliases=["load-form"], pass_context=True)
     async def _load_pokemon_form(self, ctx):
