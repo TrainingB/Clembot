@@ -535,7 +535,7 @@ class DraftManagerCog(commands.Cog):
 
         await Utilities.message(ctx.channel, f"Current draft order is : {draft.player_draft_order_mentions}")
 
-    @_draft.command(aliases=["add-player","ap"], pass_context=True)
+    @_draft.command(aliases=["add-player", "ap"], pass_context=True)
     @checks.guildowner_or_permissions(manage_channels=True)
     async def _draft_add_player(self, ctx, *player_list: discord.Member):
 
@@ -551,6 +551,24 @@ class DraftManagerCog(commands.Cog):
             if draft.add_player(player):
                 await Utilities.message(ctx.channel, f"**[{draft.number_of_players}/{draft.max_number_of_players}]** {player.mention} has been added to the draft.")
                 await self.draft_interface.save_draft(draft)
+
+        print(draft)
+
+
+    @_draft.command(aliases=["join"], pass_context=True)
+    async def _draft_join(self, ctx):
+
+        draft = await self.fetch_draft_for_channel(ctx.guild.id, ctx.channel.id)
+        if DraftStatus.value(draft.status) >= DraftStatus.value(DraftStatus.DRAFT):
+            return await Utilities.error(ctx.channel, f"Draft {draft} is in {draft.status} status. New players can not be added to the draft anymore.")
+
+        player = ctx.message.author
+        if draft.is_player_exists(player):
+            await Utilities.error(ctx.channel, f"{player.mention} you are already on the player list.")
+
+        if draft.add_player(player):
+            await Utilities.message(ctx.channel, f"**[{draft.number_of_players}/{draft.max_number_of_players}]** {player.mention} has been added to the draft.")
+            await self.draft_interface.save_draft(draft)
 
         print(draft)
 
@@ -716,17 +734,21 @@ class DraftManagerCog(commands.Cog):
 
     beep_notes = ("""**{member}** here are the commands for draft management. 
 
+**Player commands**
+**!draft join** - join the current draft for the channel.
+**!draft pick pokemon** - drafts a pokemon for you if it is available for drafting purposes.
+**!draft next** - send a mention to next person to make the selection
+
+
+**Admin commands (will need manage channel permissions)** 
 **!draft create** - creates a draft in the current channel. One channel can hold only one draft.
-
 **!draft set admin @user** - makes the user admin for the draft ( they need to have manage_channel permission )
-**!draft set status *status_value*** - changes the status of the draft. 
 
+**!draft set status *status_value*** - changes the status of the draft. 
 **Drafts go from CREATED -> SIGN_UP -> DRAFT -> COMPLETE.**
 
 **!draft add-player @user** - adds user to draft player team
-**!draft pick pokemon** - drafts a pokemon for you if it is available for drafting purposes.
 **!draft info** - display draft information
-**!draft next** - send a mention to next person to make the selection
 
 """)
 
