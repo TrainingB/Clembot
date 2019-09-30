@@ -93,7 +93,7 @@ class Utilities(commands.Cog):
         return emoji
 
     @classmethod
-    def _uuid(self, id):
+    def _uuid(cls, id):
         try:
             return '%x' % (hash(id) % 10 ** 8)
         except Exception as error:
@@ -101,7 +101,7 @@ class Utilities(commands.Cog):
             return id
 
     @classmethod
-    async def _send_error_message(self, channel, description, user=None):
+    async def _send_error_message(cls, channel, description, user=None):
 
         color = discord.Colour.red()
         user_mention = ""
@@ -133,20 +133,9 @@ class Utilities(commands.Cog):
             user_mention = f"Beep Beep! **{user.display_name}** "
         error_message = f"{user_mention}{description}"
         error_embed = discord.Embed(description=f"{error_message}", colour=color)
-        # await cls.logger.error(error_message)
+        cls.logger.error(error_message)
         return await channel.send(embed=error_embed)
 
-
-
-    @classmethod
-    async def _send_message(self, channel, description, user=None):
-
-        color = discord.Colour.red()
-        user_mention = ""
-        if user:
-            user_mention = f"Beep Beep! **{user.display_name}** "
-        error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
-        return await channel.send(embed=error_embed)
 
     async def _send_message(self, channel, description, title=None, footer=None, user=None):
         try:

@@ -105,6 +105,11 @@ class PokemonCache:
         return cls._cache.__len__()
 
     @classmethod
+    def cache(cls):
+        return cls._cache
+
+
+    @classmethod
     def load_cache(cls, list_of_pokemon_records):
 
         pokemon_form_master = {}
@@ -138,6 +143,7 @@ class PokemonCache:
             print(f'{len(result_record)} Pokemon Form(s) Loaded from tbl_pokemon_master.')
 
         except Exception as error:
+            print(error)
             raise Exception("Couldn't load pokemon forms from DB due to error" + error)
 
 
@@ -152,12 +158,14 @@ class GameMasterParser:
 
 
     @classmethod
-    async def load_pokedex(cls, dbi):
+    async def load_pokedex(cls, local_dbi):
         # if not cls._cache.__len__() == 0:
         # with open("https://raw.githubusercontent.com/PokeMiners/game_masters/master/previous_game_masters/gm_apk1532_Wed_Sep_18_10_26_26_2019/game_master.json", "r") as fd:
 
-        with open(os.path.join('data', "game_master_000.json"), "r") as fd:
-            print('opened file')
+        file_name = "game_master_000.json"
+
+        with open(os.path.join('data', file_name), "r") as fd:
+            print(f'opened file {file_name}')
             pokemon_master = json.load(fd)
 
         pokemon_master_list = await GameMasterInterface.get_pokemon_master_list(dbi)
@@ -170,7 +178,6 @@ class GameMasterParser:
 
                     ps = pmr.get('pokemonSettings',{})
                     pokemonId = ps.get('form', ps.get('pokemonId')).replace('_SHADOW','').replace('_PURIFIED', '').replace('_NORMAL', '')
-
 
 
                     if pokemon_master_list.__contains__(pokemonId):
@@ -195,7 +202,7 @@ class GameMasterParser:
                         "quick_moves": ps.get('quickMoves')
                     }
                     # print(json.dumps(data))
-                    await GameMasterInterface.update_game_master(dbi, pokemonId, data)
+                    await GameMasterInterface.update_game_master(local_dbi, pokemonId, data)
 
             except Exception as error:
                 print(error)
@@ -210,11 +217,11 @@ class GameMasterInterface:
        self.a=10
 
     @classmethod
-    async def update_game_master(cls, dbi, pokemonId, data, forcedUpdate=False):
+    async def update_game_master(cls, local_dbi, pokemonId, data, forcedUpdate=False):
 
-        if dbi:
-            tbl_game_master = dbi.table('game_master')
-            existing_pokemon_record = await tbl_game_master.query().clear().select().where(pokemon_id=pokemonId).get_first()
+        if local_dbi:
+            tbl_game_master = local_dbi.table('game_master')
+            existing_pokemon_record = await tbl_game_master.query().select().where(pokemon_id=pokemonId).get_first()
 
             if existing_pokemon_record:
                 if forcedUpdate:
@@ -225,10 +232,10 @@ class GameMasterInterface:
                 await insert_query.commit()
 
     @classmethod
-    async def get_pokemon_master_list(cls, dbi):
+    async def get_pokemon_master_list(cls, local_dbi):
 
-        tbl_game_master = dbi.table('game_master')
-        existing_pokemon_record = await tbl_game_master.query().clear().select('pokemon_id').where().get()
+        tbl_game_master = local_dbi.table('game_master')
+        existing_pokemon_record = await tbl_game_master.query().select('pokemon_id').where().get()
 
         list_of_pokemon_id = []
         for record in existing_pokemon_record:
@@ -276,4 +283,4 @@ def main():
         print(error)
 
 
-# main()
+#main()

@@ -1,5 +1,6 @@
 import discord
 import json
+import hastebin
 
 from discord.ext import commands
 from clembot.core import checks
@@ -559,9 +560,17 @@ class DraftManagerCog(commands.Cog):
     async def on_command_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.CheckFailure):
             return await Utilities.error(ctx.channel, f"{ctx.author.mention}, it seems like you don't have access to run this command.")
-        # elif isinstance(error, InvalidWant):
+        elif isinstance(error, discord.ext.commands.CommandInvokeError):
+            return await Utilities.error(ctx.channel, f'{error.original}')
         return await Utilities.error(ctx.channel, f'{error}')
 
+
+    @commands.command(aliases=["dump-form"], pass_context=True)
+    @commands.has_permissions(manage_guild=True)
+    async def _dump_pokeform(self, ctx):
+        logdata = json.dumps(PokemonCache.cache())
+        logdata = logdata.encode('ascii', errors='replace').decode('utf-8')
+        outputlog_message = await Utilities.message(ctx.channel, hastebin.post(logdata))
 
     @commands.command(aliases=["load-form"], pass_context=True)
     async def _load_pokemon_form(self, ctx):
