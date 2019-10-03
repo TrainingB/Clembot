@@ -62,6 +62,8 @@ class Pokemon:
         return cls(pokemon_id, label, pokedex_id, pokedex_num, base_attack, base_defense, base_stamina, alias, tags, type1, type2)
 
 
+
+
 class PokemonConverter(commands.Converter):
 
     async def convert(self, ctx, argument) -> Pokemon:
@@ -70,13 +72,14 @@ class PokemonConverter(commands.Converter):
         if pokemon_form:
             return pokemon_form
         else:
-            possible_pokemon_form = await self.auto_correct(ctx, argument.upper())
+            possible_pokemon_form = await PokemonConverter.auto_correct(ctx, argument.upper())
             if possible_pokemon_form:
                 pokemon_form = PokemonCache.to_pokemon(possible_pokemon_form)
                 return pokemon_form
 
         raise Exception(f"{argument} could not be resolved to a pokemon.")
 
+    @staticmethod
     async def auto_correct(self, ctx, pokemon_as_text):
 
         not_acceptable_message = f"**{pokemon_as_text}** isn't a Pokemon!"
@@ -96,6 +99,7 @@ class PokemonConverter(commands.Converter):
 class PokemonCache:
 
     _cache = {}
+    _pkmn_map = {}
     __shared_state = {}
 
     def __init__(self):
@@ -111,14 +115,22 @@ class PokemonCache:
 
 
     @classmethod
+    def pokemon(cls, pokemon_id):
+        return cls._pkmn_map.get(pokemon_id, None)
+
+
+    @classmethod
     def load_cache(cls, list_of_pokemon_records):
         pokemon_form_master = {}
+        pokemon_id_map = {}
 
         for record in list_of_pokemon_records:
+            pokemon_id_map[record['pokemon_id']] = record
             for alias in record['pokeform_alias']:
                 pokemon_form_master[alias] = record
 
         cls._cache = pokemon_form_master
+        cls._pkmn_map = pokemon_id_map
         SpellHelper.set_dictionary(list(pokemon_form_master.keys()))
 
     @classmethod

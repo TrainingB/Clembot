@@ -8,6 +8,13 @@ from clembot.exts.pkmn.pokemon import Pokemon, PokemonConverter, PokemonCache
 from discord.ext.commands import MemberConverter
 import random
 
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
 class Base36:
     alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
 
@@ -167,6 +174,7 @@ class Draft:
     def max_number_of_players(self):
         return self.draft_content['configuration']['max_number_of_players']
 
+
     @property
     def embed_fields(self):
 
@@ -188,18 +196,24 @@ class Draft:
             embed_fields[f"Players (in draft order) [{self.number_of_players}/{self.max_number_of_players}]"]=f"{players_mention}"
 
         if DraftStatus.value(self.status) >= DraftStatus.value(DraftStatus.DRAFT):
+            embed_fields_title = "Teams"
 
-            player_line = ""
-            for player_id in self.draft_content['player_selection'].keys():
-                player_mention = f"<@{player_id}>"
-                player_selection = f"{', '.join(self.draft_content['player_selection'][player_id])}"
-                player_line = f"{player_line}\n{player_mention} - {player_selection}"
+            for part_player_id_list in chunks(list(self.draft_content['player_selection'].keys()), 2):
+                player_line = ""
 
-            embed_fields[f"Teams"] = f"{player_line}"
+                for player_id in part_player_id_list:
+
+                    player_mention = f"<@{player_id}>"
+                    player_selection = f"{', '.join([PokemonCache.pokemon(pokemon_id).get('pokeform_display_text', 'N/A') for pokemon_id in self.player_selection[player_id]])}" # f"{', '.join(self.player_selection[player_id])}"
+                    player_selection = player_selection.replace('AZUMARILL','<:azumarill:628651311927394314>')
+                    player_line = f"{player_line}\n{player_mention} - {player_selection}"
+
+                embed_fields[f"{embed_fields_title}"] = f"{player_line}"
+                embed_fields_title = "--"
 
             pokemon_mention = ""
             for pokemon in self.draft_content['choices']['drafted']:
-                pokemon_mention = f"{pokemon_mention}{pokemon}, "
+                pokemon_mention = f"{pokemon_mention}{PokemonCache.pokemon(pokemon)}, "
 
         if DraftStatus.value(self.status) == DraftStatus.value(DraftStatus.DRAFT):
             embed_fields[f"Next to pick:"] = f"<@{self.current_player}>"
@@ -371,10 +385,17 @@ class Draft:
         self.player_selection.setdefault(player.id, []).append(pokemon.pokemon_id)
         self.add_as_drafted(pokemon)
         self.current_drafted_slots = self.current_drafted_slots + 1
-        if self.current_drafted_slots >= self.total_drafted_slots:
+        if self.complete:
             self.status = DraftStatus.COMPLETE
 
         self.current_player_index = self.next_player_index
+
+
+    @property
+    def complete(self):
+        if self.current_drafted_slots >= self.total_drafted_slots:
+            return True
+        return False
 
 
     @property
@@ -706,8 +727,10 @@ class DraftManagerCog(commands.Cog):
                 await Utilities.message(ctx.channel, f"**[{draft.current_drafted_slots}/{draft.total_drafted_slots}]** Player {player.mention} has drafted **{pokemon}** successfully.")
                 await self.draft_interface.save_draft(draft)
 
-            await Utilities.message_as_text(ctx.channel, f"<@{draft.current_player}> its your turn to make the next pick!")
-
+            if not draft.complete:
+                await Utilities.message_as_text(ctx.channel, f"<@{draft.current_player}> its your turn to make the next pick!")
+            else:
+                await Utilities.message(ctx.channel, f"The draft is complete now. You can head over to the silph.gg and choose teams.")
 
         except Exception as error:
             await Utilities.error(ctx.channel, error, ctx.author)
@@ -863,3 +886,14 @@ class DraftInterface:
 
 def setup(bot):
     bot.add_cog(DraftManagerCog(bot))
+
+
+# def main():
+#
+#     my_list = [1,2,3,4,5,6,7,8]
+#
+#     for i in chunks(my_list, 3):
+#         print(i)
+#
+#
+# main()

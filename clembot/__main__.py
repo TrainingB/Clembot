@@ -8714,8 +8714,8 @@ async def _reset_leaderboard(ctx, leaderboard_type=None):
     leaderboard_list = []
 
     addtional_leaderboard = await get_guild_local_leaderboard(ctx.guild.id)
-    if addtional_leaderboard :
-        leaderboard_list.append(addtional_leaderboard)
+    if addtional_leaderboard:
+        leaderboard_list.extend(addtional_leaderboard)
 
     if not leaderboard_type:
         return await _send_error_message(ctx.channel, "Beep Beep! **{}**, please provide leaderboard to be cleared.".format(ctx.author.mention))
