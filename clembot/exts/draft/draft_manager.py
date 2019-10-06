@@ -270,7 +270,7 @@ class Draft:
                     player_line = f"{player_line}\n{player_mention} - {player_selection}"
 
                 embed_fields[f"{embed_fields_title}"] = f"{player_line}"
-                embed_fields_title = "--"
+                embed_fields_title = f"--" if embed_fields_title == "Teams" else f"{embed_fields_title}-"
 
             pokemon_mention = ""
             for pokemon in self.draft_content['choices']['drafted']:
