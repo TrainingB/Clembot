@@ -230,9 +230,6 @@ class PokemonCache:
         print(folder_path)
 
         file_path = f"{folder_path}/{pokemon_id.upper()}.PNG"
-        # f"https://raw.githubusercontent.com/FoglyOgly/Meowth/new-core/meowth/images/pkmn/{pokemon_id.upper()}.png"
-        # f"https://raw.githubusercontent.com/FoglyOgly/Meowth/blob/new-core/meowth/images/pkmn/{pokemon_id.upper()}.png?cache={1}"
-        # f"https://github.com/FoglyOgly/Meowth/blob/new-core/meowth/images/pkmn/{pokemon_id.upper()}.png?raw=true"
 
 
         if pokemon and pokemon.emoji:
