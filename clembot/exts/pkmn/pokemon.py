@@ -9,7 +9,7 @@ from clembot.exts.utils.utilities import Utilities
 
 class Pokemon:
 
-    def __init__(self, pokemon_id, label=None, pokedex_id=None, pokedex_num=None, base_attack=None, base_defense=None, base_stamina=None, alias=None, tags=None, type1=None, type2=None):
+    def __init__(self, pokemon_id, label=None, pokedex_id=None, pokedex_num=None, base_attack=None, base_defense=None, base_stamina=None, alias=None, tags=None, type1=None, type2=None, emoji_key=None):
         self.pokemon_id = pokemon_id
         self.label = label
         self.pokedex_id = pokedex_id
@@ -21,6 +21,8 @@ class Pokemon:
         self.tags = tags
         self.type1 = type1
         self.type2 = type2
+        self.emoji_key = emoji_key
+
 
     def __str__(self):
         return self.label
@@ -30,16 +32,17 @@ class Pokemon:
     def to_dict(self):
         d = {
             'pokemon_id': self.pokemon_id,
-            'label': self.label,
+            'pokeform_display_text': self.label,
             'pokedex_id': self.pokedex_id,
             'pokedex_num': self.pokedex_num,
             'base_attack': self.base_attack,
             'base_defense': self.base_defense,
             'base_stamina': self.base_stamina,
-            'alias': self.alias,
-            'tags': self.tags,
-            'type1': self.type1,
-            'type2': self.type2
+            'pokeform_alias': self.alias,
+            'pokeform_tags': self.tags,
+            'type_1': self.type1,
+            'type_2': self.type2,
+            'emoji_key' : self.emoji_key
         }
         return d
 
@@ -57,11 +60,42 @@ class Pokemon:
         base_stamina = data['base_stamina']
         alias = data['pokeform_alias']
         tags = data['pokeform_tags']
+        emoji_key = data['emoji_key']
+
+        return cls(pokemon_id, label, pokedex_id, pokedex_num, base_attack, base_defense, base_stamina, alias, tags, type1, type2, emoji_key)
 
 
-        return cls(pokemon_id, label, pokedex_id, pokedex_num, base_attack, base_defense, base_stamina, alias, tags, type1, type2)
+    @property
+    def emoji(self):
+        if self.emoji_key:
+            return self.emoji_key
+        return None
+
+    @emoji.setter
+    def emoji(self, emoji_key):
+        self.emoji_key = emoji_key
 
 
+class OptionalPokemonConverter(commands.Converter):
+
+    async def convert(self, ctx, argument) -> Pokemon:
+
+        pokemon_form = PokemonCache.to_pokemon(argument.upper())
+        if pokemon_form:
+            return pokemon_form
+        else:
+            possible_pokemon_form = await PokemonConverter.auto_correct(ctx, argument.upper())
+            if possible_pokemon_form:
+                pokemon_form = PokemonCache.to_pokemon(possible_pokemon_form)
+                return pokemon_form
+
+        return None
+
+    @staticmethod
+    def remove_empty_members(list_of_elements):
+
+        new_list = [element for element in list_of_elements if element is not None]
+        return new_list
 
 
 class PokemonConverter(commands.Converter):
@@ -80,7 +114,7 @@ class PokemonConverter(commands.Converter):
         raise Exception(f"{argument} could not be resolved to a pokemon.")
 
     @staticmethod
-    async def auto_correct(self, ctx, pokemon_as_text):
+    async def auto_correct(ctx, pokemon_as_text):
 
         not_acceptable_message = f"**{pokemon_as_text}** isn't a Pokemon!"
 
@@ -116,7 +150,18 @@ class PokemonCache:
 
     @classmethod
     def pokemon(cls, pokemon_id):
-        return cls._pkmn_map.get(pokemon_id, None)
+        return Pokemon.from_dict(cls._pkmn_map.get(pokemon_id, None))
+
+
+    @classmethod
+    def update_cache(cls, pokemon):
+
+        pkmn_dict = pokemon.to_dict
+        for alias in pokemon.tags:
+            cls._cache[alias] = pkmn_dict
+
+        cls._pkmn_map[pokemon.pokemon_id] = pkmn_dict
+
 
 
     @classmethod
@@ -158,6 +203,63 @@ class PokemonCache:
             print(error)
             raise Exception("Couldn't load pokemon forms from DB due to error " + str(error))
 
+    @classmethod
+    async def update_pokemon(cls, local_dbi, pokemon_id, data):
+
+        if local_dbi:
+            tbl_pokemon_master = local_dbi.table('tbl_pokemon_master')
+            existing_pokemon_record = await tbl_pokemon_master.query().select().where(pokemon_id=pokemon_id).get_first()
+
+            if existing_pokemon_record:
+                print(f"updating {pokemon_id} with {data}")
+                update_query = tbl_pokemon_master.update(**data).where(pokemon_id=pokemon_id)
+                await update_query.commit()
+            else:
+                insert_query = tbl_pokemon_master.insert(**data)
+                await insert_query.commit()
+
+    @classmethod
+    async def create_emoji(cls, ctx, local_dbi, pokemon_id):
+
+        pokemon = PokemonCache.pokemon(pokemon_id)
+
+        script_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = os.path.join(script_path)
+        folder_path = os.path.join(script_path, "../../../images/pkmn")
+
+        print(folder_path)
+
+        file_path = f"{folder_path}/{pokemon_id.upper()}.PNG"
+        # f"https://raw.githubusercontent.com/FoglyOgly/Meowth/new-core/meowth/images/pkmn/{pokemon_id.upper()}.png"
+        # f"https://raw.githubusercontent.com/FoglyOgly/Meowth/blob/new-core/meowth/images/pkmn/{pokemon_id.upper()}.png?cache={1}"
+        # f"https://github.com/FoglyOgly/Meowth/blob/new-core/meowth/images/pkmn/{pokemon_id.upper()}.png?raw=true"
+
+
+        if pokemon and pokemon.emoji:
+            return pokemon.emoji
+
+
+        print(file_path)
+        emoji = '<:unknown_encounter:629202330419724288>'
+
+
+        try:
+            with open(file_path, "rb") as image:
+                f = image.read()
+                image = bytearray(f)
+
+            emoji = await ctx.channel.guild.create_custom_emoji(name=pokemon_id, image=image)
+
+            pokemon.emoji = str(emoji)
+            await PokemonCache.update_pokemon(local_dbi, pokemon_id, pokemon.to_dict)
+            PokemonCache.update_cache(pokemon)
+
+        except Exception as error:
+            print(error)
+
+
+
+        return emoji
 
 
 class GameMasterParser:

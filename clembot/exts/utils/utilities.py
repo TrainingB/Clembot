@@ -111,14 +111,14 @@ class Utilities(commands.Cog):
         return await channel.send(embed=error_embed)
 
     @classmethod
-    async def message(cls, channel, description, user=None):
+    async def message(cls, destination, description, user=None):
 
         color = discord.Colour.green()
         user_mention = ""
         if user:
             user_mention = f"Beep Beep! **{user.display_name}** "
         error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
-        return await channel.send(embed=error_embed)
+        return await destination.send(embed=error_embed)
 
     @classmethod
     async def message_as_text(cls, channel, description):
