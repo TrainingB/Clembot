@@ -1056,6 +1056,7 @@ class DraftManagerCog(commands.Cog):
             try:
                 draft.draft_pokemon(player, pokemon)
                 await Utilities.message(ctx.channel, f"**[{draft.current_drafted_slots}/{draft.total_drafted_slots}]** Player {player.mention} has drafted **{pokemon}** successfully. **[Auto Drafted]**")
+                await self.draft_interface.save_draft(draft)
 
             except Exception as error:
                 return await Utilities.message(ctx.channel, f"<@{draft.current_player}> error happened while auto-drafting. Make the next pick!")
