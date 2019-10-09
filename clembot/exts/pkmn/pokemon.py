@@ -229,7 +229,7 @@ class PokemonCache:
 
         print(folder_path)
 
-        file_path = f"{folder_path}/{pokemon_id.upper()}.PNG"
+        file_path = f"{folder_path}/{pokemon_id.upper()}.png"
 
 
         if pokemon and pokemon.emoji:
@@ -253,6 +253,7 @@ class PokemonCache:
 
         except Exception as error:
             print(error)
+            raise Exception(error)
 
 
 
