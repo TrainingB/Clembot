@@ -11,7 +11,7 @@ class BingoDataGenerator:
     def __init__(self):
         self._cache = {}
         self._new_cache = {}
-        self.cpProvider = PokemonDataProvider()
+
 
 
     pokemon_cp_level = {}
@@ -139,9 +139,9 @@ class BingoDataGenerator:
             level_json.update(
                 { f"{level}": {
                 "level": level,
-                "Max CP": self.cpProvider.calculateCP(pokemon, level, 15, 15, 15),
-                "Min CP": self.cpProvider.calculateCP(pokemon, level, 0, 0, 0),
-                "Spread" : int ((self.cpProvider.calculateCP(pokemon, level, 15, 15, 15) - self.cpProvider.calculateCP(pokemon, level, 0, 0, 0)) / 6) + 1
+                "Max CP": PokemonDataProvider.cp(pokemon, level, 15, 15, 15),
+                "Min CP": PokemonDataProvider.cp(pokemon, level, 0, 0, 0),
+                "Spread" : int ((PokemonDataProvider.cp(pokemon, level, 15, 15, 15) - PokemonDataProvider.cp(pokemon, level, 0, 0, 0)) / 6) + 1
             }
             })
 
@@ -163,7 +163,7 @@ class BingoDataGenerator:
 
         category = []
         size = ['XL','XL','XL','XL','XS','XS','XS','XS']
-        gender = self.gender_master.get(event_pokemon,[MALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN, FEMALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN])
+        gender = self.gender_master.get(event_pokemon,[MALE_SIGN, FEMALE_SIGN, MALE_SIGN, FEMALE_SIGN, FEMALE_SIGN, MALE_SIGN, FEMALE_SIGN, MALE_SIGN])
 
         bingo_card = {}
 

@@ -372,8 +372,8 @@ async def test_condition():
 
         # something = await GameMasterInterface.get_game_master(dbi)
         # print(something)
-        await GameMasterParser.load_pokedex(dbi)
-
+        # await GameMasterParser.load_pokedex(dbi)
+        await PokemonCache.load_cache_from_dbi(dbi)
 
 
     except Exception as error:
@@ -390,6 +390,8 @@ def main():
         loop.run_until_complete(initialize())
         loop.run_until_complete(test_condition())
         loop.run_until_complete(cleanup())
+
+        print(f"[pokemon.py] main() finished.")
 
     except Exception as error:
         print(error)
