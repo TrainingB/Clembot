@@ -157,7 +157,7 @@ class PokemonCache:
     def update_cache(cls, pokemon):
 
         pkmn_dict = pokemon.to_dict
-        for alias in pokemon.tags:
+        for alias in pokemon.alias:
             cls._cache[alias] = pkmn_dict
 
         cls._pkmn_map[pokemon.pokemon_id] = pkmn_dict
