@@ -618,25 +618,18 @@ class DraftManagerCog(commands.Cog):
         self.utilities = Utilities()
         self.dbi = bot.dbi
         self.draft_interface = DraftInterface(bot.dbi)
-        self._cache = {}
-        self._guild_channel_draft_cache = {}
-
-    def add_draft(self, draft: Draft):
-        self._guild_channel_draft_cache[f"{draft.guild_id}_{draft.channel_id}"] = draft.draft_code
-        self._cache[draft.draft_code] = draft
 
     async def fetch_draft_for_channel(self, guild_id, channel_id):
 
         guild_channel_key = f"{guild_id}_{channel_id}"
 
-        if not self._guild_channel_draft_cache.keys().__contains__(guild_channel_key):
-            draft_from_db = await self.draft_interface.find_draft(guild_id, channel_id)
-            if draft_from_db:
-                self.add_draft(draft_from_db)
-            else:
-                raise Exception("No draft found.")
-        draft_code = self._guild_channel_draft_cache[guild_channel_key]
-        return self._cache[draft_code]
+        draft_from_db = await self.draft_interface.find_draft(guild_id, channel_id)
+        if draft_from_db:
+            self.add_draft(draft_from_db)
+        else:
+            raise Exception("No draft found.")
+
+        return draft_from_db
 
     @commands.group(pass_context=True, hidden=True, aliases=["draft", "d"])
     async def _draft(self, ctx):
@@ -674,7 +667,6 @@ class DraftManagerCog(commands.Cog):
 
         draft = Draft(guild_id=ctx.guild.id, channel_id=draft_channel.id)
         await self.draft_interface.save_draft(draft)
-        self.add_draft(draft)
 
         return await Utilities.message(ctx.message.channel, f"A new draft can be managed in {draft_channel.mention} with code **{draft.draft_code}**")
 
@@ -800,17 +792,8 @@ class DraftManagerCog(commands.Cog):
         except Exception as error:
             await Utilities.error(ctx.channel, error)
 
-    @_draft.command(aliases=["save"], pass_context=True)
-    async def _draft_save(self, ctx):
-
-        for draft_code in self.get_cache().keys():
-            print(f"Saving draft {draft_code}")
-            await self.draft_interface.update_draft(draft_code, self._cache.keys(draft_code))
-
-
 
     async def send_dm_for_auto_draft(self, ctx, player, draft, message_content, new_selection):
-
 
         await Utilities.message(ctx.channel, f"{player.mention} check your DM for auto-draft updates!")
 
