@@ -640,7 +640,6 @@ class DraftManagerCog(commands.Cog):
 
     @commands.group(pass_context=True, hidden=True, aliases=["draft", "d"])
     async def _draft(self, ctx):
-
         if ctx.invoked_subcommand is None:
             return await Utilities.message(ctx.message.channel, f"Draft feature is under development!", user=ctx.author)
 
@@ -960,7 +959,7 @@ class DraftManagerCog(commands.Cog):
             raise Exception("Not enough details to set/change configuration. Usage `!draft set key value``")
 
         draft = await self.fetch_draft_for_channel(ctx.guild.id, ctx.channel.id)
-
+        print(f"For {ctx.channel.id} =====> {draft}")
         if key == 'auto':
 
             player = await get_member(ctx, argument_list) if argument_list else ctx.message.author
