@@ -625,11 +625,11 @@ class DraftManagerCog(commands.Cog):
 
         draft_from_db = await self.draft_interface.find_draft(guild_id, channel_id)
         if draft_from_db:
-            self.add_draft(draft_from_db)
+            return draft_from_db
         else:
             raise Exception("No draft found.")
 
-        return draft_from_db
+
 
     @commands.group(pass_context=True, hidden=True, aliases=["draft", "d"])
     async def _draft(self, ctx):
