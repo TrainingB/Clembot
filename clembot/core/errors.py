@@ -102,9 +102,14 @@ def custom_error_handling(bot, logger):
             await ctx.channel.send(missing_arg_msg(ctx))
         elif isinstance(error, commands.BadArgument):
             await ctx.channel.send(error)
-            # pages = await bot.formatter.format_help_for(ctx, ctx.command)
-            # for page in pages:
-            #     await ctx.channel.send(page)
+            try:
+                pages = await bot.formatter.format_help_for(ctx, ctx.command)
+                for page in pages:
+                    await ctx.channel.send(page)
+            except Exception as error:
+                print(error)
+                pass
+
         elif isinstance(error, commands.CommandNotFound):
             pass
         elif isinstance(error, commands.CheckFailure):
