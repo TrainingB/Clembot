@@ -82,7 +82,7 @@ class BingoCardGenerator(commands.Cog):
 
         return board
 
-    def generate_board_image(self, bingo_board,  file_name='bingo', user_name='anon', template_file="december.png"):
+    def generate_board_image(self, bingo_board,  file_name='bingo', user_name='anon', template_file="dec2019.png"):
 
         try:
             script_path = os.path.dirname(os.path.realpath(__file__))

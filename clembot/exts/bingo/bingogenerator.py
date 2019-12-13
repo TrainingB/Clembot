@@ -1,6 +1,9 @@
 import json
 import os
+import asyncio
 from random import *
+from clembot.core.data_manager.dbi import DatabaseInterface
+from clembot.exts.pkmn.pokemon import PokemonCache
 from clembot.exts.bingo.pokemondataprovider import PokemonDataProvider
 # https://json-csv.com/
 
@@ -86,9 +89,9 @@ class BingoDataGenerator:
                     }
 
 
-    box_pokemon = [ 'free', 'charmander' , 'squirtle', 'beldum' , 'larvitar' , 'shiny', 'pikachu', 'bulbasaur', 'dratini', 'eevee' ]
+    box_pokemon = [ 'free', 'swinub', 'turtwig', 'totodile' , 'torchic' , 'shiny', 'treecko', 'chimchar', 'mudkip', 'bagon' ]
 
-    box_5_pokemon = [ 'free' , 'mareep', 'cyndaquil', 'chikorita' ]
+    box_5_pokemon = [ 'free' ]
 
     def generate_mixed_card (self):
 
@@ -96,10 +99,10 @@ class BingoDataGenerator:
         MALE_SIGN = u"\u2642"
         FEMALE_SIGN = u"\u2640"
 
-        stats = ['Attack','Defense','Stamina']
+        stats = ['Attack', 'Defense', 'Stamina']
 
         category = []
-        size = ['XL','XL','XL','XL','XS','XS','XS','XS']
+        size = ['XL', 'XL', 'XL', 'XL', 'XS', 'XS', 'XS', 'XS']
         # gender = gender_master.get(event_pokemon,[u"\u2642" , u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2640",u"\u2640",u"\u2640"])
 
         bingo_card = self.generate_default_card()
@@ -111,7 +114,7 @@ class BingoDataGenerator:
             range_multiplier = 1
             box_pokemon_name = self.box_pokemon[int(bingo_cell)]
             if int(bingo_cell) == 5:
-                box_pokemon_name = self.box_5_pokemon[randint(1,3)]
+                box_pokemon_name = 'bagon'
                 range_multiplier = 1.25
             elif int(bingo_cell) == weight_box or int(bingo_cell) == height_box:
                 range_multiplier = 1.6
@@ -131,27 +134,39 @@ class BingoDataGenerator:
 
         return bingo_card
 
-    def load_pokemon_data(self, pokemon):
+    def load_pokemon_data(self, pokemon=None):
 
+        if not pokemon or pokemon in ['dec2018', 'dec2019']:
+            list_of_pokemon = self.box_pokemon
+        else:
+            list_of_pokemon = [pokemon]
 
-        level_json = {}
-        for level in range(1, 31):
-            level_json.update(
-                { f"{level}": {
-                "level": level,
-                "Max CP": PokemonDataProvider.cp(pokemon, level, 15, 15, 15),
-                "Min CP": PokemonDataProvider.cp(pokemon, level, 0, 0, 0),
-                "Spread" : int ((PokemonDataProvider.cp(pokemon, level, 15, 15, 15) - PokemonDataProvider.cp(pokemon, level, 0, 0, 0)) / 6) + 1
-            }
-            })
+        for pokemon in list_of_pokemon:
+            if pokemon == 'free' or pokemon == 'shiny':
+                continue
+            level_json = {}
+            for level in range(1, 31):
+                level_json.update(
+                    { f"{level}": {
+                    "level": level,
+                    "Max CP": PokemonDataProvider.cp(pokemon, level, 15, 15, 15),
+                    "Min CP": PokemonDataProvider.cp(pokemon, level, 0, 0, 0),
+                    "Spread" : int ((PokemonDataProvider.cp(pokemon, level, 15, 15, 15) - PokemonDataProvider.cp(pokemon, level, 0, 0, 0)) / 6) + 1
+                }
+                })
 
-        print(json.dumps(level_json, indent=2))
-        self.pokemon_cp_level[pokemon] = level_json
+            print(json.dumps(level_json, indent=2))
+            self.pokemon_cp_level[pokemon] = level_json
 
     def generate_card(self, event_pokemon='ralts'):
 
+
         if event_pokemon not in self.pokemon_cp_level.keys():
             self.load_pokemon_data(event_pokemon)
+
+        if event_pokemon in ['dec2018', 'dec2019']:
+            return self.generate_mixed_card()
+
 
         pokemon_cp = self.pokemon_cp_level.get(event_pokemon, self.pokemon_cp_level[f'{event_pokemon}'])
 
@@ -281,6 +296,7 @@ class BingoDataGenerator:
 self = BingoDataGenerator()
 
 def main():
+    init()
     test()
 
 def test1():
@@ -293,24 +309,12 @@ def test1():
 def test():
 
 
-    self.print_card(self.generate_default_card())
+    self.load_pokemon_data()
 
-    self.print_card(self.generate_card('ralts'))
+    self.print_card(self.generate_mixed_card())
 
     for i in range(1, 200):
-        self.print_card(self.generate_card())
-
-    self.print_card(self.generate_card())
-
-    self.print_card(self.generate_card())
-
-    self.print_card(self.generate_card())
-
-    self.print_card(self.generate_card())
-
-    print(self.generate_card())
-
-    print(self.print_card_as_text(self.generate_card()))
+        self.print_card(self.generate_mixed_card())
 
 
 def test3():
@@ -318,11 +322,52 @@ def test3():
 
     self.print_card(self.generate_card('ralts'))
 
+dbi = None
+
+async def initialize():
+    global dbi
+    dbi = DatabaseInterface()
+    await dbi.start()
+
+async def cleanup():
+    global dbi
+    await dbi.stop()
+
+async def load_pokemon_cache():
+    global dbi
+    try:
+        await PokemonCache.load_cache_from_dbi(dbi)
 
 
-# main()
+    except Exception as error:
+        print(error)
+
+def init():
+    try:
+
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(initialize())
+        loop.run_until_complete(load_pokemon_cache())
+        loop.run_until_complete(cleanup())
+
+        print(f"[bingogenerator.py] main() finished.")
+
+    except Exception as error:
+        print(error)
+
+
+
+
+
+
+#main()
 
 #test()
+
+
+
 
 
 
