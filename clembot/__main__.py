@@ -8711,7 +8711,7 @@ async def _reset_leaderboard(ctx, leaderboard_type=None):
     Usage: !leaderboard [type]
     Accepted types: raids, eggs, exraids, wilds, research"""
 
-    leaderboard_list = []
+    leaderboard_list = ['lifetime']
 
     addtional_leaderboard = await get_guild_local_leaderboard(ctx.guild.id)
     if addtional_leaderboard:
