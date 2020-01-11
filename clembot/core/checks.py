@@ -10,7 +10,7 @@ def is_trusted_check(ctx):
         return True
     else:
         author = ctx.author.id
-        dev_list = [289657500167438336, 339586795136090114]
+        dev_list = [289657500167438336, 339586795136090114, 310619324958244876]
         return author in dev_list
 
 
