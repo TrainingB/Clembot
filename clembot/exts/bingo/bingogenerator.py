@@ -86,7 +86,8 @@ class BingoDataGenerator:
                       'beldum': ["", "", "", "", "", "", "", ""],
                       'cyndaquil' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
                       'totodile' : [u"\u2642" , u"\u2642", u"\u2642", u"\u2640",u"\u2642",u"\u2642",u"\u2642",u"\u2642"],
-                      'piplup': [u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2642", u"\u2642", u"\u2642", u"\u2642"]
+                      'piplup': [u"\u2642", u"\u2642", u"\u2642", u"\u2640", u"\u2642", u"\u2642", u"\u2642", u"\u2642"],
+                      'rhyhorn': [u"\u2642", u"\u2640", u"\u2642", u"\u2640", u"\u2642", u"\u2640", u"\u2642", u"\u2640"]
                     }
 
 
@@ -321,7 +322,7 @@ def test():
 def test3():
     # self.test_cp_extractor(self.torchic_cp_chart)
 
-    self.print_card(self.generate_card('piplup'))
+    self.print_card(self.generate_card('rhyhorn'))
 
 dbi = None
 
@@ -363,7 +364,7 @@ def init():
 
 
 
-#main()
+main()
 
 #test()
 
