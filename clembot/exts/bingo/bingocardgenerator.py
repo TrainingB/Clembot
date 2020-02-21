@@ -110,17 +110,17 @@ class BingoCardGenerator(commands.Cog):
 
                     if len(cell) == 1:
                         text = textwrap.fill(cell[0], 12)
-                        draw.text((x_position, y_position), text, colors[counter], font)
+                        draw.text((x_position, y_position), text, colors[counter], small_font)
                     else:
                         text = textwrap.fill(cell[0], 12)
-                        draw.text((x_position, y_position - 15 ), text, colors[counter], font)
+                        draw.text((x_position, y_position - 15 ), text, colors[counter], small_font)
 
                         if len(cell[1]) == 1:
                             text = textwrap.fill(cell[1], 12)
                             draw.text((x_position + 55, y_position + 10 ), text, colors[counter], special_font)
                         else:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 12 , y_position + 20), text, colors[counter], small_font)
+                            draw.text((x_position + 22 , y_position + 20), text, colors[counter], small_font)
                     counter=counter+1
 
                     x_position += cell_width

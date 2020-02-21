@@ -188,7 +188,7 @@ class BingoDataGenerator:
         cell_1_json = pokemon_cp["{0}".format(cell_1_level)]
         cell_1_cp = randint(cell_1_json['Min CP'], cell_1_json['Max CP'])
         cell_1_range = self.keep_number_in_range(cell_1_cp, cell_1_json['Spread'], cell_1_json['Min CP'],cell_1_json['Max CP'])
-        cell_1_value = ["CP : {:>0}".format(cell_1_range)]
+        cell_1_value = ["CP:{:>0}".format(cell_1_range)]
 
         cell_2_level = randint(4,14)
         cell_2_json = pokemon_cp["{0}".format(cell_2_level)]
@@ -210,7 +210,7 @@ class BingoDataGenerator:
         cell_4_json = pokemon_cp["{0}".format(cell_4_level)]
         cell_4_cp = randint(cell_4_json['Min CP'], cell_4_json['Max CP'])
         cell_4_range = self.keep_number_in_range(cell_4_cp, cell_4_json['Spread'] * 2, cell_4_json['Min CP'], cell_4_json['Max CP']) #cell_4_json['Spread'] * 2
-        cell_4_value = ["CP : {0} ".format(cell_4_range) , "{0}".format(gender[randint(0,7)])] #
+        cell_4_value = ["CP:{0} ".format(cell_4_range) , "{0}".format(gender[randint(0,7)])] #
 
         cell_5_value = [ "" , ""]
         # ["{0}".format(event_pokemon.capitalize().center(13, ' ')), "✩"]
@@ -219,14 +219,14 @@ class BingoDataGenerator:
         cell_6_json = pokemon_cp["{0}".format(cell_6_level)]
         cell_6_cp = randint(cell_6_json['Min CP'], cell_6_json['Max CP'])
         cell_6_range = self.keep_number_in_range(cell_6_cp, cell_6_json['Spread'] * 2, cell_6_json['Min CP'], cell_6_json['Max CP']) #cell_6_json['Spread'] * 2
-        cell_6_value = ["CP : {0} ".format(cell_6_range), "{0}".format(gender[randint(0, 7)])] # , "{0}".format(gender[randint(0, 7)])
+        cell_6_value = ["CP:{0} ".format(cell_6_range), "{0}".format(gender[randint(0, 7)])] # , "{0}".format(gender[randint(0, 7)])
 
 
         cell_7_level = randint(14, 17)
         cell_7_json = pokemon_cp["{0}".format(cell_7_level)]
         cell_7_cp = randint(cell_7_json['Min CP'], cell_7_json['Max CP'])
         cell_7_range = self.keep_number_in_range(cell_7_cp, cell_7_json['Spread'], cell_7_json['Min CP'], cell_7_json['Max CP'])
-        cell_7_value = ["CP : {0} ".format(cell_7_range)]
+        cell_7_value = ["CP:{0} ".format(cell_7_range)]
 
 
         cell_8_level = randint(16,26)
@@ -236,13 +236,13 @@ class BingoDataGenerator:
         cell_8_cp = randint(cell_8_json['Min CP'], cell_8_json['Max CP'])
         cell_8_spread = (pokemon_cp["8"]["Spread"] + pokemon_cp["9"]["Spread"] + pokemon_cp["10"]["Spread"]) * 2
         cell_8_range = self.keep_number_in_range(cell_8_cp, cell_8_spread, cell_8_low_json['Min CP'], cell_8_high_json['Max CP'])
-        cell_8_value = ["CP: {0}".format(cell_8_range), "Height = {0}".format(size[randint(0, 7)])]
+        cell_8_value = ["CP:{0}".format(cell_8_range), "Height = {0}".format(size[randint(0, 7)])]
 
         cell_9_level = randint(26, 30)
         cell_9_json = pokemon_cp["{0}".format(cell_9_level)]
         cell_9_cp = randint(cell_9_json['Min CP'], cell_9_json['Max CP'])
         cell_9_range = self.keep_number_in_range(cell_9_cp, cell_9_json['Spread'], cell_9_json['Min CP'],cell_9_json['Max CP'])
-        cell_9_value = ["CP : {0} ".format(cell_9_range)]
+        cell_9_value = ["CP:{0} ".format(cell_9_range)]
 
 
         bingo_card['1'] = cell_1_value
