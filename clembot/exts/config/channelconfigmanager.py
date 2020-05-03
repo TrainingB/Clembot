@@ -5,6 +5,7 @@ from clembot.exts.config.configmanager import ConfigManager
 from clembot.exts.utils.utilities import Utilities
 
 
+
 class ChannelConfigCache(commands.Cog):
 
     def __init__(self, bot):
@@ -76,7 +77,7 @@ class ChannelConfigCache(commands.Cog):
             print(error)
 
     async def _get_config_by(self, config_name, **kwargs):
-        self.logger.info(f'get_config_by( {config_name}, {kwargs})')
+
         try:
 
             guild_channel_config_tbl = self.dbi.table('guild_channel_config')
@@ -95,7 +96,7 @@ class ChannelConfigCache(commands.Cog):
 
     async def get_city_for_channel(self, guild_id, channel_id=None, parent_channel_id=None) -> str :
         try:
-            print(f"get_city_for_channel({guild_id}, {channel_id}, {parent_channel_id})")
+
             city_for_channel = await self._get_config_by('city', guild_id=guild_id, channel_id=channel_id)
 
             if not city_for_channel:
@@ -113,7 +114,6 @@ class ChannelConfigCache(commands.Cog):
 
     async def get_city_for_channel_only(self, guild_id, channel_id=None, parent_channel_id=None) -> str :
         try:
-            print(f"get_city_for_channel_only({guild_id}, {channel_id}, {parent_channel_id})")
             city_for_channel = await self.ConfigManager._get_config_by('city', guild_id=guild_id, channel_id=channel_id)
 
             if not city_for_channel:

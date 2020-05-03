@@ -5,6 +5,59 @@ from discord.ext import commands
 from clembot.core.logs import init_loggers
 from itertools import chain, cycle
 import random
+import re
+
+
+class TextUtil:
+
+    # Convert an arbitrary string into something which
+    # is acceptable as a Discord channel name.
+    @staticmethod
+    def sanitize(name):
+        # Remove all characters other than alphanumerics,
+        # dashes, underscores, and spaces
+        ret = re.sub(r"[^a-zA-Z0-9 _\-]", "", name)
+        # Replace spaces with dashes
+        ret = ret.replace(" ", "-")
+        return ret
+
+
+
+class EmbedUtil:
+
+    def __init__(self):
+        return
+
+    @staticmethod
+    async def message(channel, description, title=None, footer=None, user=None):
+        try:
+            error_message = "The output contains more than 2000 characters."
+
+            user_mention = ""
+            if user:
+                user_mention = f"Beep Beep! **{user.display_name}** "
+
+            if len(description) >= 2000:
+                discord.Embed(description="{0}".format(error_message), colour=discord.Color.red())
+
+            message_embed = discord.Embed(description=f"{user_mention}{description}", colour=discord.Colour.green(), title=title)
+            if footer:
+                message_embed.set_footer(text=footer)
+            return await channel.send(embed=message_embed)
+        except Exception as error:
+            print(error)
+
+
+    @staticmethod
+    async def error(channel, description, user=None):
+
+        color = discord.Colour.red()
+        user_mention = ""
+        if user:
+            user_mention = f"Beep Beep! **{user.display_name}** "
+        error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
+        return await channel.send(embed=error_embed)
+
 
 
 class RemoveComma(commands.Converter):
@@ -451,8 +504,6 @@ def main():
 
 
     print(f"[utilities.py] main() finished.")
-
-
 
 
 

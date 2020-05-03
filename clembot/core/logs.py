@@ -6,17 +6,18 @@ global_logger = None
 
 
 def init_loggers():
-    print("init_loggers()")
+
     # d.py stuff
     global global_logger
 
     if global_logger:
-         return global_logger
+        return global_logger
 
+    print("init_loggers()")
     dpy_logger = logging.getLogger("discord")
-    dpy_logger.setLevel(logging.WARNING)
+    dpy_logger.setLevel(logging.INFO)
     console = logging.StreamHandler()
-    console.setLevel(logging.WARNING)
+    console.setLevel(logging.INFO)
     dpy_logger.addHandler(console)
     global_logger = dpy_logger
     # Meowth
@@ -26,7 +27,7 @@ def init_loggers():
     clembot_format = logging.Formatter(
         '%(asctime)s %(levelname)s %(module)s %(funcName)s() %(lineno)d: '
         '%(message)s',
-        datefmt="[%d/%m/%Y %H:%M]")
+        datefmt="[%m/%d/%Y %H:%M]")
 
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(clembot_format)
@@ -38,8 +39,7 @@ def init_loggers():
         maxBytes=400000, backupCount=20)
     fhandler.setFormatter(clembot_format)
 
-    logger.addHandler(fhandler)
-
-    # logger.addHandler(stdout_handler)
+    global_logger.addHandler(fhandler)
+    # global_logger.addHandler(stdout_handler)
 
     return logger

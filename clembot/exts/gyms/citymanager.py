@@ -64,7 +64,7 @@ class CityManager(commands.Cog):
 
     async def get_city_for_channel(self, guild_id, channel_id=None, parent_channel_id=None) -> str :
         try:
-            self.logger.info(f"get_city_for_channel({guild_id}, {channel_id}, {parent_channel_id})")
+
             city_for_channel = await self.MyChannelConfigCache.get_channel_config(guild_id=guild_id, channel_id=channel_id, config_name='city')
 
             if not city_for_channel:
@@ -76,7 +76,6 @@ class CityManager(commands.Cog):
             return city_for_channel
 
         except Exception as error:
-            print(error)
             self.logger.info(error)
             return None
 

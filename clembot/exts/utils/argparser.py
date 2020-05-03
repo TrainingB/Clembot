@@ -5,6 +5,7 @@ import asyncio
 from discord.ext import commands
 
 from clembot.core import time_util
+from clembot.exts.gymmanager.gym_manager_cog import GymAdapter
 
 
 class ArgParser(commands.Cog):
@@ -160,10 +161,16 @@ class ArgParser(commands.Cog):
                 for arg in list(args):
                     try:
                         if response.get('gym_info', None) is None and len(arg) > 1:
-                            gym_info = await gym_lookup_method(arg.upper(), message=gym_lookup_message)
-                            if gym_info:
-                                response['gym_info'] = gym_info
+                            # gym_info = await gym_lookup_method(arg.upper(), message=gym_lookup_message)
+                            # if gym_info:
+                            #     response['gym_info'] = gym_info
+                            #     args.remove(arg)
+
+                            gym = await GymAdapter.to_gym_by_code(arg.upper(), gym_lookup_message)
+                            if gym:
+                                response['gym'] = gym
                                 args.remove(arg)
+
                     except Exception as error:
                         print(error)
                         pass
