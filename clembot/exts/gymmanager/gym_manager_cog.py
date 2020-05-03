@@ -370,7 +370,7 @@ class GymManagerCog(commands.Cog):
         gym = await GymAdapter.to_gym_by_id(gym_id)
 
         if gym is None:
-            return await EmbedUtil.error(ctx.channel, f"No gymmanager found by id: **{gym_id}.", user=ctx.message.author)
+            return await EmbedUtil.error(ctx.channel, f"No gym found by id: **{gym_id}.", user=ctx.message.author)
 
         if attribute not in Gym.attributes:
             return await EmbedUtil.error(ctx.channel, f"Only following attributes can be updated : `{Gym.attributes}`.",
@@ -391,7 +391,7 @@ class GymManagerCog(commands.Cog):
         try:
             if raw_gym_list is None:
                 return await EmbedUtil.message(ctx.message.channel,
-                                               f"Beep Beep! **{ctx.message.author.display_name}**, please provide gymmanager information is following format. \n```!gymmanager add \n{json.dumps(Gym.default_dict, indent=1)}```\n You can use https://www.csvjson.com/csv2json to convert CSV to JSON.")
+                                               f"Beep Beep! **{ctx.message.author.display_name}**, please provide gym information is following format. \n```!gym add \n{json.dumps(Gym.default_dict, indent=1)}```\n You can use https://www.csvjson.com/csv2json to convert CSV to JSON.")
             gym_list = json.loads(raw_gym_list)
 
             for gym_dict in gym_list:
@@ -430,7 +430,7 @@ class GymManagerCog(commands.Cog):
             return await GymManagerCog._generate_gym_embed(ctx.message, gym)
         else:
             await EmbedUtil.error(ctx.message.channel,
-                                  f"I could not find any gyms with gymmanager-code **{gym_code}** in **{city}**.\nPlease use **!gymmanager list word** to see the list of gyms.",
+                                  f"I could not find any gyms with gym-code **{gym_code}** in **{city}**.\nPlease use **!gym list word** to see the list of gyms.",
                                   user=ctx.message.author)
 
     @staticmethod
@@ -447,7 +447,7 @@ class GymManagerCog(commands.Cog):
 
         if gym['gym_image']:
             gym_embed.set_thumbnail(url=gym['gym_image'])
-        roster_message = "here are the gymmanager details! "
+        roster_message = "here are the gym details! "
 
         await message.channel.send(content=f"Beep Beep! {message.author.mention} {roster_message}", embed=gym_embed)
 
@@ -482,7 +482,7 @@ class GymManagerCog(commands.Cog):
             list_of_gyms = await GymAdapter.to_gym_list(gym_code_or_name, city_state)
 
             if len(list_of_gyms) < 1:
-                return await EmbedUtil.error (message.channel, f"I could not find any gymmanager starting with **{gym_code_or_name}** for **{city_state}**!", user=message.author)
+                return await EmbedUtil.error (message.channel, f"I could not find any gym starting with **{gym_code_or_name}** for **{city_state}**!", user=message.author)
 
             gym_message_output = f"Here is a list of gyms for **{city_state}** :\n\n"
 
@@ -498,10 +498,10 @@ class GymManagerCog(commands.Cog):
             if gym_message_output:
                 await EmbedUtil.message(message.channel, gym_message_output, user=message.author)
             else:
-                await EmbedUtil.error(message.channel, f"No matches found for **{gym_code_or_name}** in **{city_state}**! **Tip:** Use first two letters of the gymmanager-name to search.", user=message.author)
+                await EmbedUtil.error(message.channel, f"No matches found for **{gym_code_or_name}** in **{city_state}**! **Tip:** Use first two letters of the gym-name to search.", user=message.author)
         except Exception as error:
             self.logger.error(error)
-            await EmbedUtil.error(message.channel, f"No matches found for **{gym_code_or_name}** in **{city_state}**! **Tip:** Use first two letters of the gymmanager-name to search.", user=message.author)
+            await EmbedUtil.error(message.channel, f"No matches found for **{gym_code_or_name}** in **{city_state}**! **Tip:** Use first two letters of the gym-name to search.", user=message.author)
 
 
 def setup(bot):

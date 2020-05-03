@@ -3369,9 +3369,6 @@ async def get_gym_info_wrapper(message, gym_code) -> Gym:
 
     gym = await GymAdapter.to_gym_by_code_city(gym_code.upper(), city_state)
 
-    gym_info_new_format = await MyGymManager.find_gym_by_gym_code(gym_code.upper(), city_state)
-
-    print(f"MyGymManager {gym_info_new_format}")
     print(f"GymRepository {gym}")
 
     return gym
@@ -6292,9 +6289,9 @@ async def setgym(ctx, gym_code=None):
                     guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['address'] = gym.gym_display_name
                     await _change_channel_name(ctx.message, gym)
             else:
-                await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}** No gyms found with gymmanager-code **{gym_code}** in **{channel_city}**. Please use **!gyms** to see the list of gyms.")
+                await _send_error_message(message.channel, f"Beep Beep... **{message.author.display_name}** No gyms found with gym-code **{gym_code}** in **{channel_city}**. Please use **!gyms** to see the list of gyms.")
         else:
-            await _send_error_message(ctx.message.channel, "Beep Beep... I will need a gymmanager-code to search for a gymmanager. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
+            await _send_error_message(ctx.message.channel, "Beep Beep... I will need a gym-code to search for a gym. Use **!gyms** with a letter to bring up all gyms starting from that letter!")
             return
     except Exception as error:
         print(error)
@@ -6586,7 +6583,7 @@ async def beep(ctx):
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Party (Status)", description=beep_raidparty.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'raidowner':
                 await ctx.message.channel.send( embed= get_beep_embed(title="Help - Raid Party (Organizer)", description=beep_raidowner.format(member=ctx.message.author.display_name), footer=footer))
-            elif args_split[0] == 'gymmanager':
+            elif args_split[0] == 'gym':
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Gym Code", description=beep_gym.format(member=ctx.message.author.display_name), footer=footer))
             elif args_split[0] == 'notification':
                 await ctx.message.channel.send(embed=get_beep_embed(title="Help - Raid Notifications", description=beep_notifications.format(member=ctx.message.author.display_name), footer=footer))
