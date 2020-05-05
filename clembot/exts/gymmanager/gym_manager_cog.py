@@ -188,6 +188,12 @@ class GymRepository:
         cls._dbi = dbi
 
     @classmethod
+    def get_status(cls):
+        is_dbi_set = cls._dbi is not None
+
+        return is_dbi_set
+
+    @classmethod
     async def search_by(cls, gym_code_or_name, city=None):
         try:
             gym_code_or_name = gym_code_or_name.upper()
@@ -290,12 +296,20 @@ class CityConfigAdapter:
 
 class GymAdapter:
 
+
+
+
     @staticmethod
     async def to_gym_by_code(gym_code, message) -> Gym:
         city = await CityConfigAdapter.get_city_for_channel(message.guild.id, message.channel.id)
         list_of_gym = await GymRepository.search_by_gym_code_city(gym_code, city)
         gym = Gym.from_dict(list_of_gym[0]) if len(list_of_gym) > 0 else None
+
+        if not gym:
+            print(f"===> Gym for ({gym_code}, {city}) not found. GymRepository DBI Status: {GymRepository.get_status()}")
+
         return gym
+
 
     @staticmethod
     async def to_gym_by_code_city(gym_code, city) -> Gym:
