@@ -932,7 +932,7 @@ async def expire_channel(channel):
                         return
                     else:
                         await channel_exists.delete()
-                        logger.info("expire_channel - Channel Deleted - " + channel.name)
+                        logger.debug("expire_channel - Channel Deleted - " + channel.name)
             except Exception as error:
                 logger.error(error)
                 pass
@@ -1013,7 +1013,7 @@ async def channel_cleanup(loop=True):
             log_str = 'channel_cleanup - Server: ' + str(guildid)
             log_str = log_str + ' - CHECKING FOR SERVER'
             if guild == None:
-                logger.info(log_str + ': NOT FOUND')
+                logger.debug(log_str + ': NOT FOUND')
                 continue
             logger.debug(((log_str + ' (') + guild.name) +
                         ')  - BEGIN CHECKING SERVER')
@@ -1027,7 +1027,7 @@ async def channel_cleanup(loop=True):
                     channel = Clembot.get_channel(channelid)
                     if channel is None:
                         del guild_dict[guildid]['contest_channel'][channelid]
-                        logger.info("channel_cleanup - Server: " + guild.name + ": Channel:" + channel.name + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
+                        logger.debug("channel_cleanup - Server: " + guild.name + ": Channel:" + channel.name + " CLEANED UP DICT - DOESN'T EXIST IN DISCORD")
                 except Exception as error:
                     continue
 
@@ -1041,10 +1041,10 @@ async def channel_cleanup(loop=True):
                 if channelmatch == None:
                     # list channel for deletion from save data
                     dict_channel_delete.append(channelid)
-                    logger.info(log_str + " - DOESN'T EXIST IN DISCORD")
+                    logger.debug(log_str + " - DOESN'T EXIST IN DISCORD")
                 # otherwise, if Clembot can still see the channel in discord
                 else:
-                    logger.info(
+                    logger.debug(
                         ((log_str + ' (') + channel.name) + ') - EXISTS IN DISCORD')
                     # if the channel save data shows it's not an active raid
                     if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['active'] == False:
@@ -1055,7 +1055,7 @@ async def channel_cleanup(loop=True):
                                 dict_channel_delete.append(channelid)
                                 # and list the channel to be deleted in discord
                                 discord_channel_delete.append(channel)
-                                logger.info(
+                                logger.debug(
                                     log_str + ' - 15+ MIN EXPIRY NONACTIVE EGG')
                                 continue
                             # and if it has been expired for longer than 5 minutes already
@@ -1064,33 +1064,33 @@ async def channel_cleanup(loop=True):
                             dict_channel_delete.append(channelid)
                                 # and list the channel to be deleted in discord
                             discord_channel_delete.append(channel)
-                            logger.info(
+                            logger.debug(
                                 log_str + ' - 5+ MIN EXPIRY NONACTIVE RAID')
                             continue
                         event_loop.create_task(expire_channel(channel))
-                        logger.info(
+                        logger.debug(
                             log_str + ' - = RECENTLY EXPIRED NONACTIVE RAID')
                         continue
                     # if the channel save data shows it as an active raid still
                     elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['active'] == True:
                         # if it's an exraid
                         if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['type'] == 'exraid':
-                            logger.info(log_str + ' - EXRAID')
+                            logger.debug(log_str + ' - EXRAID')
                             continue
                         if guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['type'] == 'raidparty':
-                            logger.info(log_str + ' - RAID PARTY')
+                            logger.debug(log_str + ' - RAID PARTY')
                         # or if the expiry time for the channel has already passed within 5 minutes
                         elif guilddict_chtemp[guildid]['raidchannel_dict'][channelid]['exp'] < fetch_current_time(channel.guild.id):
                             # list the channel to be sent to the channel expiry function
                             event_loop.create_task(expire_channel(channel))
-                            logger.info(log_str + ' - RECENTLY EXPIRED')
+                            logger.debug(log_str + ' - RECENTLY EXPIRED')
 
                             continue
 
                         elif channel not in active_raids:
                             # if channel is still active, make sure it's expiry is being monitored
                             event_loop.create_task(expiry_check(channel))
-                            logger.info(
+                            logger.debug(
                                 log_str + ' - MISSING FROM EXPIRY CHECK')
                             continue
             # for every channel listed to have save data deleted
@@ -1098,7 +1098,7 @@ async def channel_cleanup(loop=True):
                 try:
                     # attempt to delete the channel from save data
                     del guild_dict[guildid]['raidchannel_dict'][c]
-                    logger.info(
+                    logger.debug(
                         'Channel_Cleanup - Channel Savedata Cleared - ' + str(c))
                 except KeyError:
                     pass
@@ -1107,10 +1107,10 @@ async def channel_cleanup(loop=True):
                 try:
                     # delete channel from discord
                     await c.delete()
-                    logger.info(
+                    logger.debug(
                         'Channel_Cleanup - Channel Deleted - ' + c.name)
                 except:
-                    logger.info(
+                    logger.debug(
                         'Channel_Cleanup - Channel Deletion Failure - ' + c.name)
                     pass
         # save server_dict changes after cleanup
@@ -3359,17 +3359,15 @@ registers a role and a gym
 
 
 async def get_gym_by_code_message(gym_code, message):
-    return await get_gym_info_wrapper(message,gym_code)
+    return await get_gym_info_wrapper(message, gym_code)
 
 
 async def get_gym_info_wrapper(message, gym_code) -> Gym:
-
-
     city_state = await MyChannelConfigCache.get_city_for_channel(message.guild.id, message.channel.id)
 
     gym = await GymAdapter.to_gym_by_code_city(gym_code.upper(), city_state)
 
-    print(f"get_gym_info_wrapper {city_state, gym_code} : {gym}")
+    logger.info(f"get_gym_info_wrapper {city_state, gym_code} : {gym}")
 
     return gym
 
@@ -3643,13 +3641,13 @@ def is_pokemon_valid(entered_raid):
         return True
     return False
 
-raidegg_SYNTAX_ATTRIBUTE = ['command', 'egg', 'gym_info', 'timer', 'location']
+raidegg_SYNTAX_ATTRIBUTE = ['command', 'egg', 'gym', 'timer', 'location']
 
-exraid_SYNTAX_ATTRIBUTE = ['command', 'gym_info' , 'location']
+exraid_SYNTAX_ATTRIBUTE = ['command', 'gym' , 'location']
 
-raid_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'timer', 'location']
+raid_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym', 'timer', 'location']
 
-nest_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym_info', 'link']
+nest_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'gym', 'link']
 
 rsvp_SYNTAX_ATTRIBUTE =['command', 'count', 'mentions']
 
@@ -3877,6 +3875,7 @@ async def __raid(ctx, pokemon, *, location:commands.clean_content(fix_channel_me
 #
 
 async def _raid(message):
+    logger.info(f"_raid({message.clean_content})")
     fromegg = False
     if message.channel.name not in guild_dict[message.guild.id]['city_channels'].keys():
         if message.channel.id in guild_dict[message.channel.guild.id]['raidchannel_dict'] and guild_dict[message.channel.guild.id]['raidchannel_dict'][message.channel.id]['type'] == 'egg':

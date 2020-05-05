@@ -79,7 +79,7 @@ class ArgParser(commands.Cog):
         del args[0]
 
         pokemon_method = options_methods.get('pokemon', ArgParser.pokemon_validator_mock)
-        gym_lookup_method = options_methods.get('gym_info', ArgParser.gym_validator_mock)
+        gym_lookup_method = options_methods.get('gym', ArgParser.gym_validator_mock)
         eta_method = options_methods.get('eta', ArgParser.eta_validator_mock)
         link_method = options_method_optional_parameters.get('link', ArgParser.extract_link_from_text)
 
@@ -157,10 +157,10 @@ class ArgParser(commands.Cog):
                         else:
                             break
             # identify gym_code
-            elif option == 'gym_info':
+            elif option == 'gym':
                 for arg in list(args):
                     try:
-                        if response.get('gym_info', None) is None and len(arg) > 1:
+                        if response.get('gym', None) is None and len(arg) > 1:
                             # gym_info = await gym_lookup_method(arg.upper(), message=gym_lookup_message)
                             # if gym_info:
                             #     response['gym_info'] = gym_info
