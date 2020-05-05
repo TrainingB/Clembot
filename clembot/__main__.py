@@ -3369,7 +3369,7 @@ async def get_gym_info_wrapper(message, gym_code) -> Gym:
 
     gym = await GymAdapter.to_gym_by_code_city(gym_code.upper(), city_state)
 
-    print(f"GymRepository {gym}")
+    print(f"get_gym_info_wrapper {city_state, gym_code} : {gym}")
 
     return gym
 
@@ -5532,16 +5532,6 @@ def emojify_numbers(number):
 
 
 
-
-# @Clembot.command(pass_context=True, hidden=True)
-# @checks.citychannel()
-# @checks.raidset()
-# async def raidegg(ctx):
-#     await _raidegg(ctx.message)
-
-
-
-
 async def _raidegg(message):
     logger.info(f"_raidegg({message.clean_content})")
     try:
@@ -6082,25 +6072,6 @@ async def set_guild_config(ctx, config_name, *, config_values):
 
     await _get_guild_config(ctx.message, config_name)
 
-
-
-
-
-
-
-
-@Clembot.command(pass_context=True, hidden=True)
-async def gymlookup(ctx):
-    """looks up gym information based on gym code.
-
-    Usage: !gymlookup <prefix>
-    Clembot will search and will list all gyms which start with the provided prefix."""
-
-    await _gymlookup(ctx.message)
-
-
-async def _gymlookup(message):
-    return await _send_error_message(message.channel, "Beep Beep... **{member}** this command has been moved to **!gyms**.".format(member=message.author.display_name))
 
 
 @Clembot.command(pass_context=True, hidden=False)
