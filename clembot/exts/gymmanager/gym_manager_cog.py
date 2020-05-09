@@ -207,7 +207,7 @@ class GymRepository:
                 cls.logger.info(f"search_by({gym_code_or_name}, {city}) : {len(list_of_gym)} record(s) found!")
 
                 if len(list_of_gym) == 0:
-                    gym_name_query = gym_table.query().select().where(gym_table['gym_name'].ilike(f'%{gym_code_or_name}%'),city_state=city).order_by('gym_code')
+                    gym_name_query = cls._dbi.table('gym').query().select().where(gym_table['gym_name'].ilike(f'%{gym_code_or_name}%'),city_state=city).order_by('gym_code')
                     list_of_gym = await gym_name_query.getjson()
 
                 return list_of_gym

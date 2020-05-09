@@ -3,6 +3,7 @@ from discord.ext import commands
 from clembot.core.logs import init_loggers
 from clembot.exts.utils.utilities import Utilities
 from clembot.core import checks
+from clembot.exts.config.channelconfigmanager import ChannelConfigCache
 
 
 class CityManager(commands.Cog):
@@ -14,7 +15,7 @@ class CityManager(commands.Cog):
         self.logger = init_loggers()
         self.guild_dict = bot.guild_dict
         self.MyGuildConfigCache = bot.MyGuildConfigCache
-        self.MyChannelConfigCache = bot.MyChannelConfigCache
+        self.MyChannelConfigCache = ChannelConfigCache(self.bot)
         self._cache = {}
 
     @commands.command(pass_context=True, hidden=True, aliases=["get-city"])
