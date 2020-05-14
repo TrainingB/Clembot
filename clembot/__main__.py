@@ -6192,11 +6192,10 @@ async def nest(ctx):
         link = parameters.get('link', None)
         location_name = " ".join(parameters.get('others',['']))
         if link == None:
-            gym_info = None
-            if parameters.get('gym_info', None):
-                gym_info = parameters['gym_info']
-                location_name = gym_info['gym_name']
-                link = gym_info['gmap_url']
+            if parameters.get('gym', None):
+                gym = parameters['gym']
+                location_name = gym.gym_name
+                link = gym.gym_url
 
         if link:
             embed_title = _("Beep Beep! Click here for the directions to {location}!".format(location=location_name))
