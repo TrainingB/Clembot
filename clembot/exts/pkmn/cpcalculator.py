@@ -658,8 +658,8 @@ def main():
 
     for level in range(1, 41):
 
-        iv_0_cp = cpC.calculateCP('328', level, 0, 0, 0)
-        iv_100_cp = cpC.calculateCP('328', level, 15, 15, 15)
+        iv_0_cp = cpC.calculateCP('273', level, 0, 0, 0)
+        iv_100_cp = cpC.calculateCP('273', level, 15, 15, 15)
         # iv_0_pvprank = galladeIVSpread.find_pvp_rank(0,0,0)
 
         print(f"{level} - {iv_100_cp} ")
