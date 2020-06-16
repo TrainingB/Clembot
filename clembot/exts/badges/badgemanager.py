@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 from clembot.core import checks
-from clembot.exts.utils.utilities import Utilities
+from clembot.utilities.utils.utilities import Utilities
 
 
 class CustomException(Exception):
@@ -24,7 +24,6 @@ class BadgeManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
 
 
@@ -425,12 +424,6 @@ class BadgeManager(commands.Cog):
             await self._badge_grant_to_users(ctx, badge_id, role.members)
         else :
             await self._badge_grant_to_users(ctx, badge_id, ctx.message.mentions)
-
-
-def setup(bot):
-    bot.add_cog(BadgeManager(bot))
-
-
 
 
 

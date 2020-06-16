@@ -11,8 +11,10 @@ class Context(commands.Context):
         super().__init__(**kwargs)
         self.get = GetTools(self)
         if self.guild:
-            guild_data = self.bot.guild_dict[self.guild.id]
-            # self.data = settings.GuildData(self, guild_data)
+            self.guild_mgr = self.bot.data_manager.guild(self.guild.id)
+            self.guild_setting = self.guild_mgr.settings
+            self.channel_setting = self.guild_mgr.channel_settings
+
 
     async def codeblock(self, contents, syntax="py", send=True, title=None):
         paginator = commands.Paginator(prefix=f'```{syntax}', max_size=1900)
@@ -75,9 +77,8 @@ class Context(commands.Context):
                     footer=None, footer_icon=None, send=True, inline=False):
         """Send or build an embed using context details."""
 
-        embed = make_embed(title=title, content=description, msg_type=msg_type,
-                           title_url=title_url, msg_colour=colour, icon=icon,
-                           thumbnail=thumbnail, image=image, guild=self.guild)
+        embed = make_embed(msg_type=msg_type, header=title, header_icon=icon, title_url=title_url, content=description,
+                           thumbnail=thumbnail, image=image, guild=self.guild, msg_colour=colour)
         if fields:
             for key, value in fields.items():
                 ilf = inline
@@ -281,7 +282,10 @@ class GetTools:
         if isinstance(search_term, int):
             return self.get(guild.categories, id=search_term)
         if isinstance(search_term, str):
-            return self.get(guild.categories, name=search_term)
+            category = self.get(guild.categories, name=search_term)
+            if category:
+                return None
+            return self.get(guild.categories, name=int(search_term))
 
     def member(self, search_term, guild=None):
         """Get a member from the current or specified guild.

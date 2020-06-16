@@ -2,19 +2,14 @@ import logging
 import logging.handlers
 import sys
 
-global_logger = None
+_instance = None
 
 
 def init_loggers():
+    global _instance
 
-
-    global global_logger
-
-    if global_logger:
-        return global_logger
-
-    print("init_loggers()")
-
+    if _instance:
+        return _instance
 
     dpy_logfile_path = 'logs/discord.log'
     dpy_fhandler = logging.handlers.RotatingFileHandler(
@@ -26,7 +21,7 @@ def init_loggers():
     dpy_logger.addHandler(dpy_fhandler)
 
 
-    global_logger = dpy_logger
+    _instance = dpy_logger
 
 
 
@@ -36,11 +31,11 @@ def init_loggers():
 
     logger = logging.getLogger("clembot")
     logger.setLevel(logging.INFO)
-
+    _instance = logger
     clembot_format = logging.Formatter(
-        '%(asctime)s %(levelname)s %(module)s %(funcName)s() %(lineno)d: '
+        '%(asctime)s %(levelname)s [%(module)s %(funcName)s():%(lineno)d] : '
         '%(message)s',
-        datefmt="[%m/%d/%Y %H:%M]")
+        datefmt="[%m/%d/%Y %H:%M:%S]")
 
 
     stdout_handler = logging.StreamHandler(sys.stdout)
@@ -53,7 +48,11 @@ def init_loggers():
         maxBytes=400000, backupCount=20)
     fhandler.setFormatter(clembot_format)
 
-    global_logger.addHandler(fhandler)
-    # global_logger.addHandler(stdout_handler)
 
+    # global_logger.addHandler(fhandler)
+    _instance.addHandler(stdout_handler)
+    logger.info("logger initialized.")
     return logger
+
+
+Logger = init_loggers()

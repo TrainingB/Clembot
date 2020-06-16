@@ -2,16 +2,21 @@ from discord.ext import commands
 import json
 import os
 import asyncio
-import hastebin
+import math
+from clembot.core.logs import Logger
 from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.exts.pkmn.spelling import SpellHelper
-from clembot.exts.utils.utilities import Utilities
+from clembot.utilities.utils.utilities import Utilities
+from clembot.config import config_template
+from clembot.exts.pkmn.cpcalculator import CPCalculator
+
+
 
 class Pokemon:
 
-    def __init__(self, pokemon_id, label=None, pokedex_id=None, pokedex_num=None, base_attack=None, base_defense=None, base_stamina=None, alias=None, tags=None, type1=None, type2=None, emoji_key=None):
+    def __init__(self, pokemon_id, pokeform_display_text=None, pokedex_id=None, pokedex_num=None, base_attack=None, base_defense=None, base_stamina=None, alias=None, tags=None, type1=None, type2=None, emoji_key=None):
         self.pokemon_id = pokemon_id
-        self.label = label
+        self.pokeform_display_text = pokeform_display_text
         self.pokedex_id = pokedex_id
         self.pokedex_num = pokedex_num
         self.base_attack = base_attack
@@ -19,12 +24,12 @@ class Pokemon:
         self.base_stamina = base_stamina
         self.alias = alias
         self.tags = tags
-        self.type1 = type1
-        self.type2 = type2
+        self._type1 = type1
+        self._type2 = type2
         self.emoji_key = emoji_key
 
 
-    def __str__(self):
+    def __repr__(self):
         return self.label
 
 
@@ -32,7 +37,7 @@ class Pokemon:
     def to_dict(self):
         d = {
             'pokemon_id': self.pokemon_id,
-            'pokeform_display_text': self.label,
+            'pokeform_display_text': self.pokeform_display_text,
             'pokedex_id': self.pokedex_id,
             'pokedex_num': self.pokedex_num,
             'base_attack': self.base_attack,
@@ -40,8 +45,8 @@ class Pokemon:
             'base_stamina': self.base_stamina,
             'pokeform_alias': self.alias,
             'pokeform_tags': self.tags,
-            'type_1': self.type1,
-            'type_2': self.type2,
+            'type_1': self._type1,
+            'type_2': self._type2,
             'emoji_key' : self.emoji_key
         }
         return d
@@ -50,7 +55,7 @@ class Pokemon:
     def from_dict(cls, data):
 
         pokemon_id = data['pokemon_id']
-        label = data['pokeform_display_text']
+        pokeform_display_text = data['pokeform_display_text']
         pokedex_id = data['pokedex_id']
         pokedex_num = data['pokedex_num']
         type1 = data['type_1']
@@ -62,8 +67,7 @@ class Pokemon:
         tags = data['pokeform_tags']
         emoji_key = data['emoji_key']
 
-        return cls(pokemon_id, label, pokedex_id, pokedex_num, base_attack, base_defense, base_stamina, alias, tags, type1, type2, emoji_key)
-
+        return cls(pokemon_id, pokeform_display_text, pokedex_id, pokedex_num, base_attack, base_defense, base_stamina, alias, tags, type1, type2, emoji_key)
 
     @property
     def emoji(self):
@@ -74,6 +78,129 @@ class Pokemon:
     @emoji.setter
     def emoji(self, emoji_key):
         self.emoji_key = emoji_key
+
+    @property
+    def label(self):
+        if self.pokeform_display_text:
+            return self.pokeform_display_text.capitalize()
+        return None
+
+    @property
+    def type1(self):
+        if self._type1:
+            return self._type1.replace("POKEMON_TYPE_", "").upper()
+        return None
+
+    @property
+    def type2(self):
+        if self._type2:
+            return self._type2.replace("POKEMON_TYPE_", "").upper()
+        return None
+
+    @property
+    def types(self):
+        if self.type2:
+            return [self.type1, self.type2]
+        return [self.type1]
+
+    @property
+    def type1_icon(self):
+        if self.type1:
+            key = self.type1.lower()
+            return config_template.type_emoji[key]
+        return None
+
+    @property
+    def type2_icon(self):
+        if self.type2:
+            key = self.type2.lower()
+            return config_template.type_emoji[key]
+        return None
+
+    @property
+    def extended_label(self):
+        """returns pokemon(pokedex) type1 type2"""
+        extended_label=f"{self.pokeform_display_text.capitalize()} ({self.pokedex_num}) {self.type1_icon}"
+        if self.type2_icon:
+            extended_label=f"{extended_label}{self.type2_icon}"
+        return extended_label
+
+
+    @property
+    def preview_url(self):
+        url = f"https://raw.githubusercontent.com/TrainingB/PokemonGoImages/master/images/pkmn/{str(self.pokedex_num).zfill(3)}_.png?cache={25}"
+        if url:
+            return url
+        else:
+            return f"http://floatzel.net/pokemon/black-white/sprites/images/{self.pokedex_num}.png"
+
+        return url
+
+
+
+    @property
+    def weaknesses(self):
+        """
+        Given a Pokemon name, return a list of its weaknesses as defined in the type chart
+        Calculate sum of its weaknesses and resistances.
+        -2 == immune , -1 == NVE, 0 == neutral, 1 == SE, 2 == double SE
+        """
+        type_eff = {}
+        for p_type in self.types:
+            for atk_type in _TYPE_CHART[p_type]:
+                if atk_type not in type_eff:
+                    type_eff[atk_type] = 0
+                type_eff[atk_type] += _TYPE_CHART[p_type][atk_type]
+
+        # Summarize into a list of weaknesses,
+        # sorting double weaknesses to the front and marking them with 'x2'.
+        ret = []
+        for p_type, effectiveness in sorted(type_eff.items(), key=lambda x: x[1], reverse=True):
+            if effectiveness == 1:
+                ret.append(p_type.lower())
+            elif effectiveness == 2:
+                ret.append(p_type.lower() + "x2")
+
+        return ret
+
+
+    @property
+    def weaknesses_icon(self):
+        """
+        Given a list of weaknesses, return a space-separated string of their type IDs as defined in the type_id_dict
+        """
+        ret = ""
+        for weakness in self.weaknesses:
+            # Handle an "x2" postfix defining a double weakness
+            x2 = ""
+            if weakness[-2:] == "x2":
+                weakness = weakness[:-2]
+                x2 = "x2"
+
+            # Append to string
+            ret += config_template.type_emoji[weakness] + x2 + " "
+
+        return ret
+
+
+    @property
+    def raid_cp_range(self):
+        low_cp = self.calculate_cp(20, 10, 10, 10)
+        high_cp = self.calculate_cp(20, 15, 15, 15)
+        return [low_cp, high_cp]
+
+    def calculate_cp(self, level, attiv, defiv, staiv):
+        if None in [level, attiv, defiv, staiv]:
+            return None
+        else:
+            cpm = CPCalculator().cpM[level]
+            att = (self.base_attack + attiv)*cpm
+            defense = (self.base_defense + defiv)*cpm
+            sta = (self.base_stamina + staiv)*cpm
+            cp = math.floor((att*defense**0.5*sta**0.5)/10)
+            if cp < 10:
+                cp = 10
+            return cp
 
 
 class OptionalPokemonConverter(commands.Converter):
@@ -100,7 +227,8 @@ class OptionalPokemonConverter(commands.Converter):
 
 class PokemonConverter(commands.Converter):
 
-    async def convert(self, ctx, argument) -> Pokemon:
+    @staticmethod
+    async def convert(ctx, argument) -> Pokemon:
 
         pokemon_form = PokemonCache.to_pokemon(argument.upper())
         if pokemon_form:
@@ -190,14 +318,18 @@ class PokemonCache:
         return None
 
     @classmethod
-    async def load_cache_from_dbi(cls, dbi):
+    async def load_cache_from_dbi(cls, dbi, force_reload = False):
 
         try:
+
+            if cls._cache.__len__() > 0 and not force_reload:
+                return
+
             result_record = await dbi.table('tbl_pokemon_master').query().select().getjson()
 
             PokemonCache.load_cache(result_record)
 
-            print(f'{len(result_record)} Pokemon Form(s) Loaded from tbl_pokemon_master.')
+            Logger.info(f'{len(result_record)} Pokemon Form(s) Loaded from tbl_pokemon_master.')
             return result_record
         except Exception as error:
             print(error)
@@ -359,7 +491,7 @@ dbi = None
 
 async def initialize():
     global dbi
-    dbi = DatabaseInterface()
+    dbi = DatabaseInterface.get_instance() # DatabaseInterface()
     await dbi.start()
 
 async def cleanup():
@@ -398,3 +530,163 @@ def main():
 
 
 #main()
+
+
+_TYPE_CHART = {
+  "GHOST": {
+    "GHOST": 1,
+    "NORMAL": -2,
+    "POISON": -1,
+    "DARK": 1,
+    "FIGHTING": -2,
+    "BUG": -1
+  },
+  "STEEL": {
+    "STEEL": -1,
+    "ICE": -1,
+    "NORMAL": -1,
+    "FIRE": 1,
+    "PSYCHIC": -1,
+    "FLYING": -1,
+    "POISON": -2,
+    "DRAGON": -1,
+    "FIGHTING": 1,
+    "ROCK": -1,
+    "FAIRY": -1,
+    "GRASS": -1,
+    "BUG": -1,
+    "GROUND": 1
+  },
+  "DARK": {
+    "GHOST": -1,
+    "PSYCHIC": -2,
+    "FIGHTING": 1,
+    "DARK": -1,
+    "FAIRY": 1,
+    "BUG": 1
+  },
+  "ELECTRIC": {
+    "STEEL": -1,
+    "FLYING": -1,
+    "ELECTRIC": -1,
+    "GROUND": 1
+  },
+  "ICE": {
+    "STEEL": 1,
+    "FIRE": 1,
+    "ICE": -1,
+    "FIGHTING": 1,
+    "ROCK": 1
+  },
+  "NORMAL": {
+    "GHOST": -2,
+    "FIGHTING": 1
+  },
+  "FIRE": {
+    "STEEL": -1,
+    "FIRE": -1,
+    "ICE": -1,
+    "WATER": 1,
+    "ROCK": 1,
+    "FAIRY": -1,
+    "GRASS": -1,
+    "BUG": -1,
+    "GROUND": 1
+  },
+  "PSYCHIC": {
+    "GHOST": 1,
+    "DARK": 1,
+    "PSYCHIC": -1,
+    "BUG": 1,
+    "FIGHTING": -1
+  },
+  "FLYING": {
+    "ELECTRIC": 1,
+    "FIGHTING": -1,
+    "ICE": 1,
+    "ROCK": 1,
+    "GRASS": -1,
+    "BUG": -1,
+    "GROUND": -2
+  },
+  "POISON": {
+    "PSYCHIC": 1,
+    "POISON": -1,
+    "FIGHTING": -1,
+    "FAIRY": -1,
+    "GRASS": -1,
+    "BUG": -1,
+    "GROUND": 1
+  },
+  "DRAGON": {
+    "ELECTRIC": -1,
+    "FIRE": -1,
+    "ICE": 1,
+    "DRAGON": 1,
+    "WATER": -1,
+    "FAIRY": 1,
+    "GRASS": -1
+  },
+  "WATER": {
+    "STEEL": -1,
+    "ELECTRIC": 1,
+    "FIRE": -1,
+    "ICE": -1,
+    "WATER": -1,
+    "GRASS": 1
+  },
+  "FIGHTING": {
+    "PSYCHIC": 1,
+    "FLYING": 1,
+    "DARK": -1,
+    "ROCK": -1,
+    "FAIRY": 1,
+    "BUG": -1
+  },
+  "ROCK": {
+    "STEEL": 1,
+    "NORMAL": -1,
+    "FIRE": -1,
+    "FLYING": -1,
+    "POISON": -1,
+    "WATER": 1,
+    "FIGHTING": 1,
+    "GRASS": 1,
+    "GROUND": 1
+  },
+  "FAIRY": {
+    "STEEL": 1,
+    "POISON": 1,
+    "DRAGON": -2,
+    "DARK": -1,
+    "FIGHTING": -1,
+    "BUG": -1
+  },
+  "GRASS": {
+    "ELECTRIC": -1,
+    "FIRE": 1,
+    "FLYING": 1,
+    "POISON": 1,
+    "WATER": -1,
+    "ICE": 1,
+    "GRASS": -1,
+    "BUG": 1,
+    "GROUND": -1
+  },
+  "BUG": {
+    "FIRE": 1,
+    "FLYING": 1,
+    "FIGHTING": -1,
+    "ROCK": 1,
+    "GRASS": -1,
+    "GROUND": -1
+  },
+  "GROUND": {
+    "ELECTRIC": -2,
+    "ICE": 1,
+    "WATER": 1,
+    "POISON": -1,
+    "ROCK": -1,
+    "GRASS": 1
+  }
+}

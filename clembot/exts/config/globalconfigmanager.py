@@ -1,7 +1,5 @@
-from discord.ext import commands
-
-from clembot.core.logs import init_loggers
-from clembot.exts.utils.utilities import Utilities
+from clembot.core.logs import Logger
+from clembot.utilities.utils.utilities import Utilities
 
 
 class GlobalConfigCache:
@@ -9,7 +7,6 @@ class GlobalConfigCache:
     def __init__(self, dbi):
         self.dbi = dbi
         self.utilities = Utilities()
-        self.logger = init_loggers()
         self._cache = {}
 
 
@@ -30,7 +27,7 @@ class GlobalConfigCache:
 
     async def load_config(self):
 
-        self.logger.info(f'load_config()')
+        Logger.info(f'load_config()')
 
         cache = {}
         try:
@@ -45,7 +42,7 @@ class GlobalConfigCache:
             self._cache.clear()
             self._cache.update(cache)
         except Exception as error:
-            self.logger.error(error)
+            Logger.error(error)
         return None
 
     async def save_clembot_config(self, config_name, config_value):
@@ -71,8 +68,4 @@ class GlobalConfigCache:
 
         except Exception as error:
             print(error)
-
-def setup(bot):
-    bot.add_cog(GlobalConfigCache(bot.dbi))
-
 

@@ -1,17 +1,17 @@
 import json
 import datetime
 import os
-from datetime import timedelta
 
 import discord
 from discord.ext import commands
 
-from clembot.core.logs import init_loggers
-from clembot.exts.bingo.bingocardgenerator import BingoCardGenerator
+from clembot.core.logs import Logger
+from clembot.exts.bingo.bingocardwriter import BingoCardWriter
 from clembot.exts.bingo.bingogenerator import BingoDataGenerator
-from clembot.exts.config.configmanager import ConfigManager
+from clembot.exts.bingo.bingocardmanager import BingoCardManager
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
-from clembot.exts.utils.utilities import Utilities
+from clembot.utilities.utils.utilities import Utilities
+from clembot.utilities.utils.embeds import Embeds
 
 
 class BingoCog(commands.Cog):
@@ -19,18 +19,26 @@ class BingoCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.dbi = bot.dbi
-        self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
-        self.logger = init_loggers()
-        self.MyConfigManager = ConfigManager(bot)
+        self.MyBingoCardManager = BingoCardManager(bot.dbi)
         self.MyBingoDataGenerator = BingoDataGenerator()
-        self.MyBingoBoardGenerator = BingoCardGenerator()
+        self.MyBingoBoardGenerator = BingoCardWriter()
         self.MyGlobalConfigCache = GlobalConfigCache(bot.dbi)
 
 
     @commands.command(pass_context=True, hidden=True, aliases=["bingo-card"])
-    async def _bingo_card(self, ctx):
-        self.logger.info("_bingo_card() called")
+    async def cmd_bingo_card_original(self, ctx):
+        return await Embeds.error(ctx.channel, f"This command has been migrated to `!bingo card`.", user=ctx.message.author)
+
+
+    @commands.group(pass_context=True, hidden=True, aliases=["bingo"])
+    async def cmd_bingo(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await self._bingo_win(ctx)
+
+
+    @cmd_bingo.command(pass_context=True, hidden=True, aliases=["card", "bingo-card"])
+    async def cmd_bingo_card(self, ctx):
         command_option = "-new"
         is_option_new = False
         try:
@@ -46,23 +54,23 @@ class BingoCog(commands.Cog):
 
             if len(ctx.message.mentions) > 0:
                 author = ctx.message.mentions[0]
-            self.logger.info("calling")
             event_title_map = await self.MyGlobalConfigCache.get_clembot_config("bingo-event-title")
             event_title_map = json.loads(event_title_map)
-            self.logger.info(event_title_map)
+            Logger.info(event_title_map)
 
             event_pokemon = await self._get_bingo_event_pokemon(message.guild.id, "bingo-event")
 
-            self.logger.info(event_pokemon)
-            if event_pokemon == None:
-                return await self.utilities._send_error_message(message.channel,
-                                                 "Beep Beep! **{member}** The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**".format(
-                                                     ctx.message.author.display_name))
+            Logger.info(event_pokemon)
+            if event_pokemon is None:
+                return await Embeds.error(message.channel, f"The bingo-event is not set yet. Please contact an admin to run **!set bingo-event pokemon**", user=message.author)
 
-            existing_bingo_card_record = await self.MyConfigManager.find_bingo_card(ctx.message.guild.id, author.id, event_pokemon)
+
 
             if is_option_new:
                 existing_bingo_card_record = None
+            else:
+                existing_bingo_card_record = await self.MyBingoCardManager.find_bingo_card(ctx.message.guild.id,
+                                                                                           author.id, event_pokemon)
 
             if existing_bingo_card_record:
                 bingo_card = json.loads(existing_bingo_card_record['bingo_card'])
@@ -80,28 +88,29 @@ class BingoCog(commands.Cog):
                                                                user=author.mention, timestamp=timestamp))
                 file_url = file_url_message.attachments[0].url
 
-            msg = 'Beep Beep! {0.author.mention} here is your Bingo Card; please take a screenshot for future use!'.format(
-                message)
+            msg = f'Beep Beep! {author.mention} here is your Bingo Card; please take a screen-shot for future use!'
 
-            embed_msg = "**!{0}!**".format(event_title_map.get(event_pokemon, "BingO"))
+            embed_msg = "**{0}**".format(event_title_map.get(event_pokemon, "BingO"))
             embed = discord.Embed(title=embed_msg, colour=discord.Colour.gold())
             embed.set_image(url=file_url)
+            embed.set_author(name=f'Bingo card for {author.display_name}', icon_url='https://cdn.discordapp.com/attachments/707860518416941078/715487100111421510/icons8-squared-menu-96.png')
             embed.set_footer(
-                text=f"Generated for : {author.display_name} at {timestamp}/ Requested by {ctx.author.display_name}")
+                text=f"Requested by {ctx.author.display_name}")
 
             await message.channel.send(msg)
 
             await ctx.message.channel.send(embed=embed)
 
             if not existing_bingo_card_record:
-                await self.MyConfigManager.save_bingo_card(ctx.message.guild.id, author.id, event_pokemon, bingo_card,
-                                                      file_url, str(timestamp))
-                os.remove(file_path)
+                await self.MyBingoCardManager.save_bingo_card(ctx.message.guild.id, author.id, event_pokemon, bingo_card,
+                                                              file_url, str(timestamp))
+                if file_path:
+                    os.remove(file_path)
 
         except Exception as error:
             print(error)
-            # logger.info(error)
         return
+
 
     async def get_repository_channel(self, message):
         try:
@@ -112,7 +121,7 @@ class BingoCog(commands.Cog):
                 if bingo_card_repo_channel_id:
                     bingo_card_repo_channel = self.bot.get_channel(bingo_card_repo_channel_id)
 
-            if bingo_card_repo_channel == None:
+            if bingo_card_repo_channel is None:
                 bingo_card_repo_category = None
                 bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(
                     message.channel.overwrites), category=bingo_card_repo_category)
@@ -122,15 +131,14 @@ class BingoCog(commands.Cog):
             return bingo_card_repo_channel
 
         except Exception as error:
-            self.logger.error(error)
+            Logger.error(error)
 
 
-
-    @commands.command(pass_context=True, hidden=True, aliases=["bingo"])
     async def _bingo_win(self, ctx):
         try:
+            Logger.info("_bingo_win()")
             message = ctx.message
-            self.logger.info("_bingo_win called")
+
 
             event_title_map_text = await self.MyGlobalConfigCache.get_clembot_config("bingo-event-title")
             event_title_map = json.loads(event_title_map_text)
@@ -139,8 +147,8 @@ class BingoCog(commands.Cog):
 
             timestamp = (message.created_at + datetime.timedelta(
                 hours=self.guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-            existing_bingo_card_record = await self.MyConfigManager.find_bingo_card(ctx.message.guild.id,
-                                                                               ctx.message.author.id, event_pokemon)
+            existing_bingo_card_record = await self.MyBingoCardManager.find_bingo_card(ctx.message.guild.id,
+                                                                                       ctx.message.author.id, event_pokemon)
 
             if existing_bingo_card_record:
                 raid_embed = discord.Embed(
@@ -170,7 +178,7 @@ class BingoCog(commands.Cog):
 
         except Exception as error:
             print(error)
-            self.logger.info(error)
+            Logger.info(error)
         return
 
 
@@ -178,6 +186,3 @@ class BingoCog(commands.Cog):
         bingo_event_pokemon =await self.MyGlobalConfigCache.get_clembot_config(config_key)
         return bingo_event_pokemon
 
-
-def setup(bot):
-    bot.add_cog(BingoCog(bot))

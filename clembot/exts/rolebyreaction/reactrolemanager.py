@@ -4,14 +4,13 @@ import json
 import discord
 from discord.ext import commands
 
-from clembot.exts.utils.utilities import Utilities
+from clembot.utilities.utils.utilities import Utilities
 
 
 class ReactRoleManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
 
     sample_role_selection_dict = {
@@ -340,9 +339,5 @@ example:
         sample_text = json.dumps(self.sample_role_selection_dict, indent=2)
         footer = "Tip: < > denotes required and [ ] denotes optional arguments."
         await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - React Role Management", description=self.beep_react_role.format(member=ctx.message.author.display_name, example=sample_text), footer=footer))
-
-
-def setup(bot):
-    bot.add_cog(ReactRoleManager(bot))
 
 

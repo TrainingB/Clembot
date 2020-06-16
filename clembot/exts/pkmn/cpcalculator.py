@@ -4,15 +4,14 @@ import json
 from discord.ext import commands
 
 import tempfile
-import pickle
 
-from clembot.exts.utils.utilities import Utilities
+from clembot.utilities.utils.utilities import Utilities
 
 
 # from exts.pokemon import Pokemon
 
 
-class CPCalculator(commands.Cog):
+class CPCalculator:
     cpM = {1: 0.094,
            1.5: 0.135137432,
            2: 0.16639787,
@@ -91,7 +90,9 @@ class CPCalculator(commands.Cog):
            38.5: 0.781790055,
            39: 0.78463697,
            39.5: 0.787473578,
-           40: 0.79030001}
+           40: 0.79030001
+           }
+
 
     basestats = {
         "Ralts" : {
@@ -217,7 +218,7 @@ class CPCalculator(commands.Cog):
         }
     }
 
-    def __init__(self, bot):
+    def __init__(self):
         self.utilities = Utilities()
 
     @commands.group(pass_context=True, hidden=True, aliases=["calc"])
@@ -348,7 +349,7 @@ class PvpIVSpreadCalculator:
 
     def __init__(self, pkmn):
         self.pkmn = pkmn
-        self.cpM = CPCalculator(None)
+        self.cpM = CPCalculator()
         self.initialize_pvp_iv_spread()
 
     sorted_cp_chart = {}
@@ -647,10 +648,6 @@ class CachedIVCalculator:
         return rank_details
 
 
-def setup(bot):
-    bot.add_cog(CPCalculator(bot))
-
-
 def main():
 
     cpC = CachedIVCalculator()
@@ -658,8 +655,8 @@ def main():
 
     for level in range(1, 41):
 
-        iv_0_cp = cpC.calculateCP('328', level, 0, 0, 0)
-        iv_100_cp = cpC.calculateCP('328', level, 15, 15, 15)
+        iv_0_cp = cpC.calculateCP('273', level, 0, 0, 0)
+        iv_100_cp = cpC.calculateCP('273', level, 15, 15, 15)
         # iv_0_pvprank = galladeIVSpread.find_pvp_rank(0,0,0)
 
         print(f"{level} - {iv_100_cp} ")
@@ -671,7 +668,7 @@ def main():
 
 
 
-
-#main()
-
-
+if __name__ == '__main__':
+    print(f"[{os.path.basename(__file__)}] main() started.")
+    main()
+    print(f"[{os.path.basename(__file__)}] main() finished.")

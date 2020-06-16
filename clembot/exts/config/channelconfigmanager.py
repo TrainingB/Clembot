@@ -1,26 +1,75 @@
 from discord.ext import commands
 
-from clembot.core.logs import init_loggers
-from clembot.exts.config.configmanager import ConfigManager
-from clembot.exts.utils.utilities import Utilities
+from clembot.core.logs import Logger
+from clembot.utilities.utils.utilities import Utilities
+
+#
+# Logger = init_loggers()
+
+class ChannelCity:
+
+    @classmethod
+    async def get_city_for_channel_only(cls, ctx) -> str :
+        try:
+            city_for_channel = await cls._get_config_by(ctx, 'city', guild_id=ctx.guild.id, channel_id=ctx.channel.id)
+
+            if not city_for_channel:
+                city_for_channel = await cls._get_config_by(ctx, 'city', guild_id=ctx.guild.id)
+            return city_for_channel
+
+        except Exception as error:
+            Logger.info(error)
+            return None
+
+
+    @classmethod
+    async def _get_config_by(cls, ctx, config_name, **kwargs):
+        try:
+            guild_channel_config_tbl = ctx.bot.dbi.table('guild_channel_config')
+            kwargs.update(config_name=config_name)
+
+            guild_channel_query = guild_channel_config_tbl.query().select().where(**kwargs)
+
+            config_record = await guild_channel_query.get_first()
+            if config_record:
+                config_value = dict(config_record)['config_value']
+                if config_value:
+                    return config_value
+        except Exception as error:
+            Logger.error(error)
+        return None
+
+
+class MapsUtil:
+
+    # Given an arbitrary string, create a Google Maps
+    # query using the configured hints
+    @staticmethod
+    def google_url(details, channel_city):
+        """loc_list = guild_dict[channel.guild.id]['city_channels'][channel.name].split()"""
+        loc_list = channel_city.split()
+        details_list = details.split()
+        return f"https://www.google.com/maps/search/?api=1&query={'+'.join(details_list)}+{'+'.join(loc_list)}"
 
 
 
 class ChannelConfigCache(commands.Cog):
 
-    def __init__(self, bot):
-        self.bot = bot
-        self.dbi = bot.dbi
+    def __init__(self, dbi=None, bot=None):
+        self.dbi = dbi
         self.utilities = Utilities()
-        self.logger = init_loggers()
-        self.ConfigManager = ConfigManager(bot)
-        self.MyGuildConfigCache = bot.MyGuildConfigCache
+        # if bot:
+            # self.ConfigManager = BingoCardManager(bot)
+            # self.MyGuildConfigCache = bot.MyGuildConfigCache
         self._cache = {}
+
+
+
 
     async def load_channel_config(self):
 
         try:
-            self.logger.info(f'load_channel_config()')
+            Logger.info(f'load_channel_config()')
             guild_channel_config_tbl = self.dbi.table('guild_channel_config')
             guild_channel_query = guild_channel_config_tbl.query().select()
 
@@ -34,7 +83,7 @@ class ChannelConfigCache(commands.Cog):
             self._cache.update(cache)
 
         except Exception as error:
-            self.logger.error(error)
+            Logger.error(error)
 
         return None
 
@@ -91,7 +140,7 @@ class ChannelConfigCache(commands.Cog):
                 if config_value:
                     return config_value
         except Exception as error:
-            self.logger.error(error)
+            Logger.error(error)
         return None
 
     async def get_city_for_channel(self, guild_id, channel_id=None, parent_channel_id=None) -> str :
@@ -109,7 +158,7 @@ class ChannelConfigCache(commands.Cog):
 
         except Exception as error:
             print(error)
-            self.logger.info(error)
+            Logger.info(error)
             return None
 
     async def get_city_for_channel_only(self, guild_id, channel_id=None, parent_channel_id=None) -> str :
@@ -122,7 +171,7 @@ class ChannelConfigCache(commands.Cog):
 
         except Exception as error:
             print(error)
-            self.logger.info(error)
+            Logger.info(error)
             return None
 
 
@@ -136,7 +185,4 @@ class ChannelConfigCache(commands.Cog):
             print(error)
             return None
 
-
-def setup(bot):
-    bot.add_cog(ChannelConfigCache(bot))
 

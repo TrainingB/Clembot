@@ -330,5 +330,3 @@ class Silph(commands.Cog):
         else:
             await ctx.error(f'Silph Card for {silph_user} not found.')
 
-def setup(bot):
-    bot.add_cog(Silph(bot))

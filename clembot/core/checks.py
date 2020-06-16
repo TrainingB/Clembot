@@ -48,6 +48,21 @@ def check_permissions(ctx, perms):
     resolved = ch.permissions_for(author)
     return all((getattr(resolved, name, None) == value for (name, value) in perms.items()))
 
+
+async def check_can_manage_guild(ctx):
+    if await check_is_guildowner(ctx):
+        return True
+    if ctx.author.guild_permissions.manage_guild:
+        return True
+    return False
+
+async def check_is_guildowner(ctx):
+    if await is_owner(ctx):
+        return True
+    if ctx.author.id == ctx.guild.owner.id:
+        return True
+    return False
+
 def role_or_permissions(ctx, check, **perms):
     if check_permissions(ctx, perms):
         return True

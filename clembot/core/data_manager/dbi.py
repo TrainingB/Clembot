@@ -1,11 +1,11 @@
 import asyncio
 import json
-import logging
+import os
 
 import asyncpg
 from discord.ext.commands import when_mentioned_or
 
-from clembot.core.logs import init_loggers
+from clembot.core.logs import Logger
 from clembot.config import config_template
 from clembot.core.data_manager.schema import Table, Query, Insert, Update, Schema
 from clembot.core.data_manager.tables import core_table_sqls
@@ -16,58 +16,105 @@ async def init_conn(conn):
     await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog", format='binary')
 
 
+
+
+
 class DatabaseInterface:
     """Get, Create and Edit data in the connected database."""
 
-    def __init__(self,
-                 password=config_template.db_config_details.get('password'),
-                 hostname=config_template.db_config_details.get('hostname'),
-                 username=config_template.db_config_details.get('username'),
-                 database=config_template.db_config_details.get('database'),
-                 port=config_template.db_config_details['port'],
-                 debug=config_template.db_config_details['debug']):
-        self.logger = init_loggers()
-        self.loop = None
-        self.dsn = "postgres://{}:{}@{}:{}/{}".format(
-            username, password, hostname, port, database)
-        self.pool = None
-        self.prefix_conn = None
-        self.prefix_stmt = None
-        self.settings_conn = None
-        self.settings_stmt = None
-        print("------ INFO: [dbi.py] __init__() commented `self.types = sqltypes`")
-        # self.types = sqltypes
-        self.listeners = []
-        self.debug = debug
+    _instance = None
+
+    # def __init__(self,
+    #              password=config_template.db_config_details.get('password'),
+    #              hostname=config_template.db_config_details.get('hostname'),
+    #              username=config_template.db_config_details.get('username'),
+    #              database=config_template.db_config_details.get('database'),
+    #              port=config_template.db_config_details['port'],
+    #              debug=config_template.db_config_details['debug']):
+    #     self.loop = None
+    #     self.dsn = "postgres://{}:{}@{}:{}/{}".format(
+    #         username, password, hostname, port, database)
+    #     self.cxn = f"postgres://{username}@{hostname}:{port}/{database}"
+    #     Logger.info(f"[dbi.py] Connecting to : {self.cxn}")
+    #     self.pool = None
+    #     self.prefix_conn = None
+    #     self.prefix_stmt = None
+    #     self.settings_conn = None
+    #     self.settings_stmt = None
+    #     self.channel_settings_stmt = None
+    #
+    #     # self.types = sqltypes
+    #     self.listeners = []
+    #     self.debug = debug
+
+    @classmethod
+    def get_instance(cls):
+        """ Class access method. """
+        if cls._instance is None:
+            return DatabaseInterface()
+        return cls._instance
+
+    def __init__(self):
+        """ Virtually private constructor. """
+        if DatabaseInterface._instance is not None:
+            raise Exception("This class is a singleton!")
+        else:
+            DatabaseInterface._instance = self
+            password = config_template.db_config_details.get('password')
+            hostname = config_template.db_config_details.get('hostname')
+            username = config_template.db_config_details.get('username')
+            database = config_template.db_config_details.get('database')
+            port = config_template.db_config_details['port']
+            debug = config_template.db_config_details['debug']
+            self.loop = None
+            self.dsn = "postgres://{}:{}@{}:{}/{}".format(
+                username, password, hostname, port, database)
+            self.cxn = f"postgres://{username}@{hostname}:{port}/{database}"
+            Logger.info(f"[dbi.py] Connecting to : {self.cxn}")
+            self.pool = None
+            self.prefix_conn = None
+            self.prefix_stmt = None
+            self.settings_conn = None
+            self.settings_stmt = None
+            self.channel_settings_stmt = None
+            # self.types = sqltypes
+            self.listeners = []
+            self.debug = debug
+
+
 
     async def start(self, loop=None):
-        self.logger.info("start()")
-        if loop:
-            self.loop = loop
-        self.pool = await asyncpg.create_pool(
-            self.dsn, loop=loop, init=init_conn)
-        await self.prepare()
+        try:
+            Logger.info(f"start()")
+            if loop:
+                self.loop = loop
+            self.pool = await asyncpg.create_pool(
+                self.dsn, loop=loop, init=init_conn)
+            await self.prepare()
+        except Exception as error:
+            Logger.error(error)
 
     async def recreate_pool(self):
-        self.logger.warning(f'Re-creating closed database pool.')
+        Logger.warning(f'Re-creating closed database pool.')
         self.pool = await asyncpg.create_pool(
             self.dsn, loop=self.loop, init=init_conn)
 
     async def prepare(self):
-        # ensure tables exists
-        # await self.core_tables_exist()
 
         # guild prefix callable statement
-        # self.prefix_conn = await self.pool.acquire()
-        # prefix_sql = 'SELECT prefix FROM prefix WHERE guild_id=$1;'
-        # self.prefix_stmt = await self.prefix_conn.prepare(prefix_sql)
-        #
-        # # guild settings statement
-        # self.settings_conn = await self.pool.acquire()
-        # settings_sql = ('SELECT config_value FROM guild_config '
-        #                 'WHERE guild_id=$1 AND config_name=$2;')
-        # self.settings_stmt = await self.settings_conn.prepare(settings_sql)
-        print("------ INFO: [dbi.py] preapre(): guild prefix stmt & settings stmt code commented.")
+        self.prefix_conn = await self.pool.acquire()
+        prefix_sql = 'SELECT prefix FROM guild_prefix WHERE guild_id=$1;'
+        self.prefix_stmt = await self.prefix_conn.prepare(prefix_sql)
+
+        # guild settings statement
+        self.settings_conn = await self.pool.acquire()
+        settings_sql = ('SELECT config_value FROM guild_config '
+                        'WHERE guild_id=$1 AND config_name=$2;')
+        channel_settings_sql = ('SELECT config_value FROM guild_channel_config '
+                        'WHERE guild_id=$1 AND channel_id=$2 AND config_name=$3;')
+        self.settings_stmt = await self.settings_conn.prepare(settings_sql)
+        self.channel_settings_stmt = await self.settings_conn.prepare(channel_settings_sql)
+
 
     async def acquire_connection_from_pool(self):
         if not self.pool:
@@ -79,9 +126,9 @@ class DatabaseInterface:
         for k, v in core_sql.items():
             table_exists = await self.table(k).exists()
             if not table_exists:
-                self.logger.warning(f'Core table {k} not found. Creating...')
+                Logger.warning(f'Core table {k} not found. Creating...')
                 await self.execute_transaction(v)
-                self.logger.warning(f'Core table {k} created.')
+                Logger.warning(f'Core table {k} created.')
 
     async def stop(self):
         conns = (self.prefix_conn, self.settings_conn)
@@ -112,7 +159,7 @@ class DatabaseInterface:
     async def execute_query_json(self, query, *query_args):
         result = []
         if self.debug:
-            print(f"Query: {query} Parameters: {query_args}")
+            Logger.info(f"{query} Parameters: {query_args}")
         rcrds_dict = []
         try:
             if not self.pool:
@@ -141,7 +188,7 @@ class DatabaseInterface:
     async def execute_query(self, query, *query_args):
         result = []
         if self.debug:
-            print(f"Query: {query} Parameters: {query_args}")
+            Logger.info(f"{query} Parameters: {query_args}")
         try:
             if not self.pool:
                 await self.start()
@@ -152,7 +199,7 @@ class DatabaseInterface:
                     result.append(dict(rcrd))
             return result
         except asyncpg.exceptions.InterfaceError as e:
-            self.logger.error(f'Exception {type(e)}: {e}')
+            Logger.error(f'Exception {type(e)}: {e}')
             await self.recreate_pool()
             return await self.execute_query(query, *query_args)
         except Exception as error:
@@ -162,7 +209,7 @@ class DatabaseInterface:
         result = []
         try:
             if self.debug:
-                print(f"execute_transaction() : {query} {query_args}")
+                Logger.info(f"{query} {query_args}")
 
             if not self.pool:
                 await self.start()
@@ -312,4 +359,8 @@ def main():
     except Exception as error:
         print(error)
 
-#main()
+
+if __name__ == '__main__':
+    print(f"[{os.path.basename(__file__)}] main() started.")
+    main()
+    print(f"[{os.path.basename(__file__)}] main() finished.")

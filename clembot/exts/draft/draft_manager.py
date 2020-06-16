@@ -3,11 +3,10 @@ import json
 
 from discord.ext import commands
 from clembot.core import checks
-from clembot.exts.utils.utilities import Utilities
+from clembot.utilities.utils.utilities import Utilities
 from clembot.exts.pkmn.pokemon import Pokemon, PokemonConverter, PokemonCache, OptionalPokemonConverter
-from discord.ext.commands import MemberConverter, UserConverter
+from discord.ext.commands import UserConverter
 import random
-from PIL import Image
 
 
 def chunks(l, n):
@@ -65,7 +64,7 @@ class CUIDGenerator:
     def cuid(cls, id):
         try:
             value = Base36.dumps(divmod(id, 10 ** 6)[1])
-            return value
+            return value.upper()
 
         except Exception as error:
             print(error)
@@ -749,14 +748,6 @@ class DraftManagerCog(commands.Cog):
         print(draft)
 
 
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
-        if isinstance(error, discord.ext.commands.CheckFailure):
-            return await Utilities.error(ctx.channel, f"{ctx.author.mention}, it seems like you don't have access to run this command.")
-        elif isinstance(error, discord.ext.commands.CommandInvokeError):
-            return await Utilities.error(ctx.channel, f'{error.original}')
-        return await Utilities.error(ctx.channel, f'{error}')
-
 
 
 
@@ -1193,16 +1184,4 @@ async def get_member(ctx, argument_list, error_when_not_found=True):
             else:
                 return None
 
-def setup(bot):
-    bot.add_cog(DraftManagerCog(bot))
 
-
-# def main():
-#
-#     my_list = [1,2,3,4,5,6,7,8]
-#
-#     for i in chunks(my_list, 3):
-#         print(i)
-#
-#
-# main()

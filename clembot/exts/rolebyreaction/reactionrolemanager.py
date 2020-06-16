@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 from clembot.core import checks
-from clembot.exts.utils.utilities import Utilities
+from clembot.utilities.utils.utilities import Utilities
 
 
 class CustomException(Exception):
@@ -689,8 +689,5 @@ example:
     def __init__(self, bot):
         self.bot = bot
         self.utilities = Utilities()
-
-def setup(bot):
-    bot.add_cog(ReactionRoleManager(bot))
 
 

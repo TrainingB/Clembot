@@ -1,7 +1,9 @@
 import asyncio
 from discord.ext import commands
-from clembot.exts.utils.utilities import Utilities
-from clembot.exts.utils.argparser import ArgParser
+
+from clembot.utilities.utils.argparser import ArgParser
+from clembot.utilities.utils.utilities import Utilities
+
 
 CACHE_VERSION = 15
 
@@ -11,7 +13,7 @@ class SpawnManagerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.utilities = Utilities
-        self.argParser = ArgParser()
+        self.argParser = ArgParser(bot.dbi)
 
     spawn_SYNTAX_ATTRIBUTE = ['command', 'pokemon', 'latlong', 'cp', 'iv', 'lvl']
 
@@ -102,5 +104,3 @@ class SpawnEmbed:
         self.counter = 1
 
 
-def setup(bot):
-    bot.add_cog(SpawnManagerCog(bot))

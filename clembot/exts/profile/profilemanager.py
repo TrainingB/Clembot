@@ -4,14 +4,13 @@ import json
 import discord
 from discord.ext import commands
 
-from clembot.exts.utils.utilities import Utilities
+from clembot.utilities.utils.utilities import Utilities
 
 
 class ProfileManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.guild_dict = bot.guild_dict
         self.utilities = Utilities()
 
 
@@ -438,9 +437,5 @@ class ProfileManager(commands.Cog):
         await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Profile Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 
 
-
-
-def setup(bot):
-    bot.add_cog(ProfileManager(bot))
 
 

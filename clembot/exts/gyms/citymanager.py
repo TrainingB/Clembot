@@ -1,7 +1,7 @@
 from discord.ext import commands
 
-from clembot.core.logs import init_loggers
-from clembot.exts.utils.utilities import Utilities
+from clembot.core.logs import Logger
+from clembot.utilities.utils.utilities import Utilities
 from clembot.core import checks
 
 
@@ -11,10 +11,6 @@ class CityManager(commands.Cog):
         self.bot = bot
         self.dbi = bot.dbi
         self.utilities = Utilities()
-        self.logger = init_loggers()
-        self.guild_dict = bot.guild_dict
-        self.MyGuildConfigCache = bot.MyGuildConfigCache
-        self.MyChannelConfigCache = bot.MyChannelConfigCache
         self._cache = {}
 
     @commands.command(pass_context=True, hidden=True, aliases=["get-city"])
@@ -76,12 +72,12 @@ class CityManager(commands.Cog):
             return city_for_channel
 
         except Exception as error:
-            self.logger.info(error)
+            Logger.info(error)
             return None
 
     async def get_city_for_channel_only(self, guild_id, channel_id, parent_channel_id=None) -> str :
         try:
-            self.logger.info(f"read_channel_city({guild_id}, {channel_id}, {parent_channel_id})")
+            Logger.info(f"read_channel_city({guild_id}, {channel_id}, {parent_channel_id})")
             city_for_channel = await self.MyChannelConfigCache.get_channel_config(guild_id=guild_id, channel_id=channel_id, config_name='city')
 
             if not city_for_channel:
@@ -90,7 +86,7 @@ class CityManager(commands.Cog):
 
         except Exception as error:
             print(error)
-            self.logger.info(error)
+            Logger.info(error)
             return None
 
     # async def save_channel_city(self, guild_id, channel_id, city_state):
@@ -103,6 +99,5 @@ class CityManager(commands.Cog):
     #         print(error)
     #         return None
 
-def setup(bot):
-    bot.add_cog(CityManager(bot))
+
 

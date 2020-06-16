@@ -1,12 +1,10 @@
 import math
-
-from discord.ext import commands
-
-from clembot.exts.utils.utilities import Utilities
+import os
 from clembot.exts.pkmn.pokemon import PokemonCache
+from clembot.utilities.utils.dbi_test import async_db_wrapper
 
 
-class PokemonDataProvider(commands.Cog):
+class PokemonDataProvider:
 
     cpM = {
         1: 0.094,
@@ -103,11 +101,17 @@ class PokemonDataProvider(commands.Cog):
         return max(10, math.floor(0.1 * math.sqrt(attack * attack * defense * stamina)))
 
 
-def main():
+async def test(dbi):
 
+    await PokemonCache.load_cache_from_dbi(dbi)
     for level in range(1, 31):
         print(f"{level} {PokemonDataProvider.cp('trapinch', level, 0, 0, 0)} - {PokemonDataProvider.cp('trapinch', level, 15, 15, 15)}")
 
-    print(f"[pokemondataprovider.py] main() finished.")
 
-#main()
+def main():
+    async_db_wrapper(test)
+
+if __name__ == '__main__':
+    print(f"[{os.path.basename(__file__)}] main() started.")
+    main()
+    print(f"[{os.path.basename(__file__)}] main() finished.")

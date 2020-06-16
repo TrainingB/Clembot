@@ -2,10 +2,10 @@ import asyncio
 import hastebin
 import discord
 from discord.ext import commands
-from clembot.core.logs import init_loggers
-from itertools import chain, cycle
+from clembot.core.logs import Logger
+from itertools import cycle
 import random
-import re
+import re, os
 
 
 class TextUtil:
@@ -21,81 +21,44 @@ class TextUtil:
         ret = ret.replace(" ", "-")
         return ret
 
-
-
-class EmbedUtil:
-
-    def __init__(self):
-        return
-
     @staticmethod
-    async def message(channel, description, title=None, footer=None, user=None):
-        try:
-            error_message = "The output contains more than 2000 characters."
+    def extract_link_from_text(text):
+        newloc = None
+        mapsindex = text.find("/maps")
+        newlocindex = text.rfind("http", 0, mapsindex)
 
-            user_mention = ""
-            if user:
-                user_mention = f"Beep Beep! **{user.display_name}** "
+        if newlocindex == -1:
+            return newloc
+        newlocend = text.find(" ", newlocindex)
+        if newlocend == -1:
+            newloc = text[newlocindex:]
+        else:
+            newloc = text[newlocindex:newlocend + 1]
 
-            if len(description) >= 2000:
-                discord.Embed(description="{0}".format(error_message), colour=discord.Color.red())
-
-            message_embed = discord.Embed(description=f"{user_mention}{description}", colour=discord.Colour.green(), title=title)
-            if footer:
-                message_embed.set_footer(text=footer)
-            return await channel.send(embed=message_embed)
-        except Exception as error:
-            print(error)
+        return newloc
 
 
-    @staticmethod
-    async def error(channel, description, user=None):
-
-        color = discord.Colour.red()
-        user_mention = ""
-        if user:
-            user_mention = f"Beep Beep! **{user.display_name}** "
-        error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
-        return await channel.send(embed=error_embed)
-
-
-
-class RemoveComma(commands.Converter):
-    async def convert(self, ctx, argument):
-        return argument.replace(",", " ").strip()
-
-
-class HandleAngularBrackets(commands.Converter):
-    async def convert(self, ctx, argument):
-        if argument.__contains__("<") or argument.__contains__(">"):
-            await Utilities._send_error_message(ctx.channel,f"Beep Beep! **{ctx.message.author.display_name}**, **< >** just represents the placeholder. You can provide the values directly!")
-        return argument.replace("<", "").replace(">", "").strip()
-
-
-class Utilities(commands.Cog):
-
-    logger = init_loggers()
-
-    def __init__(self):
-        return
+class Utilities:
 
     numbers = {"0": ":zero:", "1": ":one:", "2": ":two:", "3": ":three:", "4": ":four:", "5": ":five:", "6": ":six:", "7": ":seven:", "8": ":eight:", "9": ":nine:"}
 
-    def trim_to(self, text, length, delimiter=","):
+    @staticmethod
+    def trim_to(text, length, delimiter=","):
         if len(text) == 0:
             return "None"
         if text and delimiter:
             return text[:text.rfind(delimiter, 0, length)] + " ** and more.**" if len(text) > length else text
         return text
 
-    def emojify_numbers(self, number):
+    @staticmethod
+    def emojify_numbers(number):
         number_emoji = ""
 
         reverse = "".join(reversed(str(number)))
 
         for digit in reverse[::-1]:
 
-            emoji = self.numbers.get(digit)
+            emoji = Utilities.numbers.get(digit)
             if not emoji:
                 emoji = ":regional_indicator_" + digit.lower() + ":"
 
@@ -103,8 +66,8 @@ class Utilities(commands.Cog):
 
         return number_emoji
 
-
-    def _normalize(self, emoji):
+    @staticmethod
+    def _normalize(emoji):
         initial_emoji = emoji
         if isinstance(emoji, discord.Reaction):
             emoji = emoji.emoji
@@ -125,7 +88,8 @@ class Utilities(commands.Cog):
         return emoji
 
 
-    def _demojify(self, emoji):
+    @staticmethod
+    def _demojify(emoji):
         # convert emoji to id
         if isinstance(emoji, discord.Reaction):
             emoji = emoji.emoji.id
@@ -139,22 +103,22 @@ class Utilities(commands.Cog):
 
         return emoji
 
-
-    def _emojify(self, emoji):
+    @staticmethod
+    def _emojify(emoji):
         if emoji.__contains__(">") and emoji.__contains__("<"):
             emoji = emoji.replace('<', '').replace('>', '')
         return emoji
 
-    @classmethod
+    @staticmethod
     def _uuid(cls, id):
         try:
             return '%x' % (hash(id) % 10 ** 8)
         except Exception as error:
-            print(error)
+            Logger.error(error)
             return id
 
-    @classmethod
-    async def _send_error_message(cls, channel, description, user=None):
+    @staticmethod
+    async def _send_error_message(channel, description, user=None):
 
         color = discord.Colour.red()
         user_mention = ""
@@ -163,8 +127,8 @@ class Utilities(commands.Cog):
         error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
         return await channel.send(embed=error_embed)
 
-    @classmethod
-    async def message(cls, destination, description, user=None):
+    @staticmethod
+    async def message(destination, description, user=None):
 
         color = discord.Colour.green()
         user_mention = ""
@@ -173,12 +137,12 @@ class Utilities(commands.Cog):
         error_embed = discord.Embed(description=f"{user_mention}{description}", colour=color)
         return await destination.send(embed=error_embed)
 
-    @classmethod
-    async def message_as_text(cls, channel, description):
+    @staticmethod
+    async def message_as_text(channel, description):
         return await channel.send(description)
 
-    @classmethod
-    async def error(cls, channel, description, user=None):
+    @staticmethod
+    async def error(channel, description, user=None):
 
         color = discord.Colour.red()
         user_mention = ""
@@ -186,11 +150,11 @@ class Utilities(commands.Cog):
             user_mention = f"Beep Beep! **{user.display_name}** "
         error_message = f"{user_mention}{description}"
         error_embed = discord.Embed(description=f"{error_message}", colour=color)
-        cls.logger.error(error_message)
+        Logger.error(error_message)
         return await channel.send(embed=error_embed)
 
-
-    async def _send_message(self, channel, description, title=None, footer=None, user=None):
+    @staticmethod
+    async def _send_message(channel, description, title=None, footer=None, user=None):
         try:
 
             error_message = "The output contains more than 2000 characters."
@@ -200,7 +164,7 @@ class Utilities(commands.Cog):
                 user_mention = f"Beep Beep! **{user.display_name}** "
 
             if len(description) >= 2000:
-                discord.Embed(description="{0}".format(error_message), colour=color)
+                discord.Embed(description="{0}".format(error_message))
 
             color = discord.Colour.green()
             message_embed = discord.Embed(description=f"{user_mention}{description}", colour=color, title=title)
@@ -208,10 +172,10 @@ class Utilities(commands.Cog):
                 message_embed.set_footer(text=footer)
             return await channel.send(embed=message_embed)
         except Exception as error:
-            print(error)
+            Logger.error(error)
 
-    @classmethod
-    async def _send_embed(cls, channel, description=None, title=None, additional_fields={}, footer=None):
+    @staticmethod
+    async def _send_embed(channel, description=None, title=None, additional_fields={}, footer=None):
 
         embed = discord.Embed(description=description, colour=discord.Colour.gold(), title=title)
 
@@ -232,7 +196,7 @@ class Utilities(commands.Cog):
 
         return await self._send_message(ctx.channel, "Beep Beep! **{}**, This feature is under-development!".format(ctx.message.author.display_name))
 
-        print("_export() called!")
+        Logger.error("_export() called!")
 
         raid_dict = ctx.bot.guild_dict[ctx.guild.id]['raidchannel_dict'][ctx.channel.id]
 
@@ -256,8 +220,8 @@ class Utilities(commands.Cog):
 
         return message_content
 
-    @classmethod
-    def get_help_embed(self, description, usage, available_value_title, available_values, mode="message"):
+    @staticmethod
+    def get_help_embed(description, usage, available_value_title, available_values, mode="message"):
 
         if mode == "message":
             color = discord.Colour.green()
@@ -271,20 +235,20 @@ class Utilities(commands.Cog):
 
         return help_embed
 
-    @classmethod
-    async def _send_error_message_and_cleanup(self, channel, message, user):
-        log_message = await self._send_error_message(channel, message, user=user)
+    @staticmethod
+    async def _send_error_message_and_cleanup(channel, message, user):
+        log_message = await GuildConfigCog._send_error_message(channel, message, user=user)
         await asyncio.sleep(8)
         await log_message.delete()
 
 
-    @classmethod
-    async def get_image_embed(cls, channel, image_url):
+    @staticmethod
+    async def get_image_embed(channel, image_url):
         embed = discord.Embed(colour=channel.guild.me.colour)
         embed.set_thumbnail(url=image_url)
         return await channel.send(embed=embed)
 
-
+    @staticmethod
     async def ask(message, destination, user_list=None, *, react_list=['✅', '❎']):
         if user_list and type(user_list) != __builtins__.list:
             user_list = [user_list]
@@ -308,8 +272,8 @@ class Utilities(commands.Cog):
             return
 
 
-    @classmethod
-    async def ask_confirmation(cls, ctx, message, rusure_message, yes_message, no_message, timed_out_message):
+    @staticmethod
+    async def ask_confirmation(ctx, message, rusure_message, yes_message, no_message, timed_out_message):
         author = message.author
         channel = message.channel
 
@@ -348,8 +312,8 @@ class Utilities(commands.Cog):
             await confirmation.delete()
             return True
 
-    @classmethod
-    async def send_to_hastebin(cls, destination, whatever):
+    @staticmethod
+    async def send_to_hastebin(destination, whatever):
         whatever = whatever.encode('ascii', errors='replace').decode('utf-8')
         await Utilities.message(destination, hastebin.post(whatever))
 
@@ -385,7 +349,7 @@ def draft_next(size_of_team, players_already_drafted, current_player_index):
         direction = 1
         next_index = size_of_team - next_index - 1
 
-    print(f"({size_of_team}, {players_already_drafted}, {current_player_index}) {direction} => {next_index}")
+    Logger.error(f"({size_of_team}, {players_already_drafted}, {current_player_index}) {direction} => {next_index}")
 
     return next_index
 
@@ -405,7 +369,7 @@ def get_next(team_size):
     for i in range(1, players.__len__() * 6 + 1):
         index = next(turn)
         draft_index = draft_next(players.__len__(), i - 1, index - 1)
-        print(f"({i}) \t- {index - 1} => {draft_index} {index - 1 == draft_index}")
+        Logger.error(f"({i}) \t- {index - 1} => {draft_index} {index - 1 == draft_index}")
 
 
 
@@ -418,7 +382,7 @@ def slot(n, x): # 0.03638 sec for 100,000x
 
 def test_slot():
 
-    print(slot(18,46))
+    Logger.error(slot(18,46))
 
 
 
@@ -430,8 +394,8 @@ def test_shuffle():
     random.shuffle(list_copy)
     random.shuffle(list_copy)
 
-    print(my_list)
-    print(list_copy)
+    Logger.error(my_list)
+    Logger.error(list_copy)
 
 
 class ListIterator:
@@ -503,8 +467,7 @@ def main():
 
 
 
-    print(f"[utilities.py] main() finished.")
-
-
-
-#main()
+if __name__ == '__main__':
+    print(f"[{os.path.basename(__file__)}] main() started.")
+    main()
+    print(f"[{os.path.basename(__file__)}] main() finished.")

@@ -8,24 +8,31 @@ import argparse
 #Launcher for clembotv2
 
 def parse_cli_args():
-    parser = argparse.ArgumentParser(description="clembot Launcher - Pokemon Go Bot for Discord")
-    parser.add_argument("--start","-s",help="Starts clembot",action="store_true")
-    parser.add_argument("--auto-restart","-r",help="Auto-Restarts clembot in case of a crash.",action="store_true")
-    parser.add_argument("--debug","-d",help="Prevents output being sent to Discord DM, as restarting could occur often.",action="store_true")
-    return parser.parse_args()
+    parser = argparse.ArgumentParser(description="Clembot Launcher - Pokemon Go Bot for Discord")
+    parser.add_argument("--no-restart", "-r", help="Disables auto-restart.", action="store_true")
+    parser.add_argument("--debug", "-d", help="Enabled debug mode.", action="store_true")
+    return parser.parse_known_args()
 
-def run_clembot(autorestart):
+def run_clembot():
     interpreter = sys.executable
     if interpreter is None:
         raise RuntimeError("Python could not be found")
 
-    cmd = [interpreter, "clembot", "launcher"]
+
+    launch_args, bot_args = parse_cli_args()
+    if launch_args.debug:
+        bot_args.append('-d')
+
+    bot_args.append('-l')
+
+    print("Launching...", end=' ', flush=True)
+
 
     while True:
-        if args.debug:
-            cmd.append("debug")
+
+
         try:
-            code = subprocess.call(cmd)
+            code = subprocess.call([interpreter, "-m", "clembot", *bot_args])
         except KeyboardInterrupt:
             code = 0
             break
@@ -34,26 +41,33 @@ def run_clembot(autorestart):
                 break
             elif code == 26:
                 #standard restart
+                if '--fromrestart' not in bot_args:
+                    bot_args.append('--fromrestart')
                 print("")
                 print("Restarting clembot")
                 print("")
                 continue
             else:
-                if not autorestart:
+                if launch_args.no_restart:
                     break
                 print("")
                 print("Restarting clembot from crash")
                 print("")
 
-    print("clembot has closed. Exit code: {exit_code}".format(exit_code=code))
+    print("Exit Code: {exit_code}".format(exit_code=code))
 
 args = parse_cli_args()
 
-if __name__ == '__main__':
+
+def main():
     abspath = os.path.abspath(__file__)
     dirname = os.path.dirname(abspath)
     os.chdir(dirname)
 
-    if args.start:
-        print("Launching clembot...")
-        run_clembot(autorestart=args.auto_restart)
+
+    print("Launching clembot...")
+    run_clembot()
+
+if __name__ == '__main__':
+    main()
+

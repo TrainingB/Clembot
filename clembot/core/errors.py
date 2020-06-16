@@ -109,7 +109,8 @@ def custom_error_handling(bot, logger):
             except Exception as error:
                 print(error)
                 pass
-
+        elif isinstance(error, commands.CommandError):
+            pass
         elif isinstance(error, commands.CommandNotFound):
             pass
         elif isinstance(error, commands.CheckFailure):

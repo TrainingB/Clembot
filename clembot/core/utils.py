@@ -40,15 +40,14 @@ def colour(*args):
     else:
         return discord.Colour.lighter_grey()
 
-def make_embed(msg_type='', title=None, icon=None, content=None,
-               msg_colour=None, guild=None, title_url=None,
-               thumbnail='', image='', fields=None, footer=None,
-               footer_icon=None, inline=False):
+def make_embed(msg_type='', header=None, header_icon=None, title=None, title_url=None, content=None, thumbnail='',
+               image='', fields=None, footer=None, footer_icon=None, inline=False, guild=None, msg_colour=None):
     """Returns a formatted discord embed object.
 
     Define either a type or a colour.
     Types are:
     error, warning, info, success, help.
+    :param title:
     """
 
     embed_types = {
@@ -75,19 +74,20 @@ def make_embed(msg_type='', title=None, icon=None, content=None,
     }
     if msg_type in embed_types.keys():
         msg_colour = embed_types[msg_type]['colour']
-        icon = embed_types[msg_type]['icon']
+        header_icon = embed_types[msg_type]['icon']
     if guild and not msg_colour:
         msg_colour = colour(guild)
     else:
         if not isinstance(msg_colour, discord.Colour):
             msg_colour = colour(msg_colour)
-    embed = discord.Embed(description=content, colour=msg_colour)
-    if not title_url:
-        title_url = discord.Embed.Empty
-    if not icon:
-        icon = discord.Embed.Empty
-    if title:
-        embed.set_author(name=title, icon_url=icon, url=title_url)
+    embed = discord.Embed(
+        title = title or discord.Embed.Empty,
+        title_url = title_url or discord.Embed.Empty,
+        description=content, colour=msg_colour)
+
+    if header:
+        embed.set_author(name=header, icon_url=header_icon or discord.Embed.Empty, url=discord.Embed.Empty)
+
     if thumbnail:
         embed.set_thumbnail(url=thumbnail)
     if image:
@@ -96,9 +96,12 @@ def make_embed(msg_type='', title=None, icon=None, content=None,
         for key, value in fields.items():
             ilf = inline
             if not isinstance(value, str):
-                ilf = value[0]
-                value = value[1]
-            embed.add_field(name=key, value=value, inline=ilf)
+                if value:
+                    ilf = value[0]
+                    value = value[1]
+                else:
+                    continue
+            embed.add_field(name=f"**{key}**", value=value, inline=ilf)
     if footer:
         footer = {'text':footer}
         if footer_icon:
