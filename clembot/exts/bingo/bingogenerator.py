@@ -180,7 +180,7 @@ class BingoDataGenerator:
 
         category = []
         size = ['XL', 'XL', 'XL', 'XL', 'XS', 'XS', 'XS', 'XS']
-        gender = self.gender_master.get(event_pokemon, [MALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN, FEMALE_SIGN, MALE_SIGN, MALE_SIGN, MALE_SIGN])
+        gender = self.gender_master.get(event_pokemon, [MALE_SIGN, FEMALE_SIGN, MALE_SIGN, FEMALE_SIGN, FEMALE_SIGN, MALE_SIGN, FEMALE_SIGN, MALE_SIGN])
 
         bingo_card = {}
 
