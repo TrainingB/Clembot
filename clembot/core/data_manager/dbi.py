@@ -72,11 +72,15 @@ class DatabaseInterface:
             self.cxn = f"postgres://{username}@{hostname}:{port}/{database}"
             Logger.info(f"[dbi.py] Connecting to : {self.cxn}")
             self.pool = None
-            self.prefix_conn = None
-            self.prefix_stmt = None
-            self.settings_conn = None
-            self.settings_stmt = None
+
+            self.guild_prefix_conn = None
+            self.guild_prefix_stmt = None
+
+            self.guild_metadata_conn = None
+            self.guild_metadata_stmt = None
+            self.guild_config_stmt = None
             self.channel_settings_stmt = None
+
             # self.types = sqltypes
             self.listeners = []
             self.debug = debug
@@ -102,18 +106,22 @@ class DatabaseInterface:
     async def prepare(self):
 
         # guild prefix callable statement
-        self.prefix_conn = await self.pool.acquire()
-        prefix_sql = 'SELECT prefix FROM guild_prefix WHERE guild_id=$1;'
-        self.prefix_stmt = await self.prefix_conn.prepare(prefix_sql)
+        self.guild_prefix_conn = await self.pool.acquire()
+        prefix_sql = 'SELECT prefix FROM guild_config WHERE guild_id=$1;'
+        self.guild_prefix_stmt = await self.guild_prefix_conn.prepare(prefix_sql)
 
         # guild settings statement
-        self.settings_conn = await self.pool.acquire()
-        settings_sql = ('SELECT config_value FROM guild_config '
-                        'WHERE guild_id=$1 AND config_name=$2;')
-        channel_settings_sql = ('SELECT config_value FROM guild_channel_config '
-                        'WHERE guild_id=$1 AND channel_id=$2 AND config_name=$3;')
-        self.settings_stmt = await self.settings_conn.prepare(settings_sql)
-        self.channel_settings_stmt = await self.settings_conn.prepare(channel_settings_sql)
+        self.guild_metadata_conn = await self.pool.acquire()
+        guild_metadata_sql = 'SELECT config_value FROM guild_metadata WHERE guild_id=$1 AND config_name=$2;'
+        self.guild_metadata_stmt = await self.guild_metadata_conn.prepare(guild_metadata_sql)
+
+        guild_config_sql = 'SELECT * from guild_config where guild_id=$1;'
+        self.guild_config_stmt = await self.guild_metadata_conn.prepare(guild_config_sql)
+
+        channel_settings_sql = 'SELECT config_value FROM guild_channel_config WHERE guild_id=$1 AND channel_id=$2 AND config_name=$3;'
+        self.channel_settings_stmt = await self.guild_metadata_conn.prepare(channel_settings_sql)
+
+
 
 
     async def acquire_connection_from_pool(self):
@@ -131,7 +139,7 @@ class DatabaseInterface:
                 Logger.warning(f'Core table {k} created.')
 
     async def stop(self):
-        conns = (self.prefix_conn, self.settings_conn)
+        conns = (self.guild_prefix_conn, self.guild_metadata_conn)
         for c in conns:
             if c:
                 await self.pool.release(c)
@@ -149,7 +157,7 @@ class DatabaseInterface:
         """
         default_prefix = bot.default_prefix
         if message.guild:
-            g_prefix = await self.prefix_stmt.fetchval(message.guild.id)
+            g_prefix = await self.guild_prefix_stmt.fetchval(message.guild.id)
             prefix = g_prefix if g_prefix else default_prefix
         else:
             prefix = default_prefix

@@ -72,6 +72,7 @@ class RSVPCog(commands.Cog):
         except Exception as error:
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
+
     @commands.group(pass_context=True, hidden=True, aliases=["s"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_started(self, ctx):

@@ -481,7 +481,7 @@ class POILocationConverter(commands.Converter):
         try:
             city = await ctx.channel_setting(ctx.channel.id, 'city')
             if city is None:
-                city = await ctx.guild_setting(key='city')
+                city = await ctx.guild_metadata(key='city')
             gym = await GymRepository(ctx.bot.dbi).to_gym_by_code_city(argument, city)
 
             if gym:

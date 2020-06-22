@@ -10,33 +10,57 @@ class GuildManager:
         else:
             self.guild_id = int(guild)
 
-    async def settings(self, key=None, value=None, *, delete=False):
+    async def metadata(self, key=None, value=None, *, delete=False):
         try:
-            config_table = self.dbi.table('guild_config')
+
+            # If key is city or timezone for high usage
+            if key in ['city', 'timezone', 'prefix']:
+                if value is not None:
+                    guild_config_table = self.dbi.table('guild_config')
+                    d = { key : value }
+                    update_query = guild_config_table.update(**d).where(guild_id=self.guild_id)
+                    return await update_query.commit()
+                    print("updated!")
+                else:
+                    config_value = await self.dbi.guild_config_stmt.fetchrow(self.guild_id)
+                    return config_value[key]
+
+
+            # If it's any other configuration
+            guild_metadata_table = self.dbi.table('guild_metadata')
 
             if delete:
                 if key:
-                    return await config_table.delete(guild_id=self.guild_id, config_name=str(key))
+                    return await guild_metadata_table.delete(guild_id=self.guild_id, config_name=str(key))
                 else:
                     return None
 
             if key is not None:
                 if value is not None:
 
-                    existing_configs = await self.settings()
-                    config_id_list = list(map(lambda cid: cid['id'] , filter(lambda cn : cn['config_name'] == key, existing_configs)))
+                    guild_metadata = await guild_metadata_table.query().select().where(guild_id=self.guild_id).getjson()
+                    config_id_list = list(map(lambda cid: cid['id'] , filter(lambda cn : cn['config_name'] == key, guild_metadata)))
                     if config_id_list and len(config_id_list) > 0:
-                        update_query = config_table.update(config_name=str(key), config_value=str(value), guild_id=self.guild_id).where(id=config_id_list[0])
+                        update_query = guild_metadata_table.update(config_name=str(key), config_value=str(value), guild_id=self.guild_id).where(id=config_id_list[0])
                         return await update_query.commit()
                     else:
-                        insert_query = config_table.insert(config_name=str(key), config_value=str(value), guild_id=self.guild_id)
+                        insert_query = guild_metadata_table.insert(config_name=str(key), config_value=str(value), guild_id=self.guild_id)
                         return await insert_query.commit()
 
                 else:
-                    return await self.dbi.settings_stmt.fetchval(self.guild_id, str(key))
+                    return await self.dbi.guild_metadata_stmt.fetchval(self.guild_id, str(key))
             else:
-                return await config_table.query().select().where(guild_id=self.guild_id).getjson()
-        except:
+                metadata_dict = await guild_metadata_table.query().select().where(guild_id=self.guild_id).getjson()
+                guild_metadata = {k['config_name']: k['config_value'] for k in metadata_dict}
+                row = await self.dbi.guild_config_stmt.fetchrow(self.guild_id)
+
+
+                guild_metadata['city'] = row['city']
+                guild_metadata['timezone'] = row['timezone']
+                return guild_metadata
+
+        except Exception as error:
+            print(error)
             raise Exception("Operation Failed!")
 
 
@@ -81,8 +105,8 @@ class GuildManager:
         Set new prefix by calling with the new prefix as an arg.
         Reset prefix to default by calling 'reset' as an arg.
         """
-        pfx_tbl = self.dbi.table('guild')
-        pfx_tbl.query.where(guild_id=self.guild_id)
+        pfx_tbl = self.dbi.table('guild_config')
+        pfx_tbl.query.select('prefix').where(guild_id=self.guild_id)
         if new_prefix:
             if new_prefix.lower() == "reset":
                 return await pfx_tbl.query.delete()

@@ -101,6 +101,33 @@ class RaidCog(commands.Cog):
     raid_SYNTAX_ATTRIBUTE = ['command', 'pkmn', 'gym', 'timer', 'location']
     raidegg_SYNTAX_ATTRIBUTE = ['command', 'egg', 'gym', 'timer', 'location']
 
+    # @commands.command(pass_context=True, hidden=True, aliases=["archive"])
+    # async def _archive(ctx):
+    #
+    #     message = ctx.message
+    #     channel = message.channel
+    #     guild = message.guild
+    #
+    #     egg_level = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('egglevel', 0)
+    #
+    #     # if egg_level != 'EX':
+    #     #     return await _send_error_message(channel, "Beep Beep! **{0}** Only EX raids can be **Archived**.".format(message.author.display_name))
+    #
+    #     is_archived = guild_dict[guild.id]['raidchannel_dict'][channel.id].get('archive', False)
+    #
+    #     if is_archived:
+    #         guild_dict[guild.id]['raidchannel_dict'][channel.id]['archive'] = False
+    #         await _send_message(channel,
+    #                             "Beep Beep! **{0}** The channel is not marked for **Archival** anymore!".format(
+    #                                 message.author.display_name))
+    #     else:
+    #         guild_dict[guild.id]['raidchannel_dict'][channel.id]['archive'] = True
+    #         await _send_message(channel,
+    #                             "Beep Beep! **{0}** The channel has been marked for **Archival**, it will not be deleted automatically!".format(
+    #                                 message.author.display_name))
+    #
+    #     return None
+
 
     @Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -209,8 +236,8 @@ class RaidCog(commands.Cog):
         !raid absol gym 43 -> reports a absol raid at gym which will expire in 43 minutes
         """
         try:
-            city = await ctx.guild_setting(key='city')
-            timezone = await ctx.guild_setting(key='timezone')
+            city = await ctx.guild_metadata(key='city')
+            timezone = await ctx.guild_metadata(key='timezone')
             Logger.info(f"_command_raid({ctx.message.content}) for {city} {timezone}")
             raid_id = next(snowflake.create())
 
@@ -372,13 +399,25 @@ class RaidCog(commands.Cog):
         except Exception as error:
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
+    @commands.command(pass_context=True, hidden=True, aliases=["reset-start"])
+    @raid_checks.raid_channel()
+    async def _reset_start(self, ctx):
+        try:
+            raid = RaidCog._get_raid_for_channel(ctx)
+            raid.start_time = None
+            await raid.update()
+            await Embeds.message(ctx.channel, f"Suggested start time has been cleared.")
+
+
+        except Exception as error:
+            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
     @commands.group(pass_context=True, hidden=True, aliases=["start"])
     @raid_checks.raid_channel()
     async def cmd_start(self, ctx, *time_as_text):
         try:
             raid = RaidCog._get_raid_for_channel(ctx)
-            timezone = await ctx.guild_setting('timezone')
+            timezone = await ctx.guild_metadata('timezone')
             start_time = TH.convert_to_timestamp(" ".join(time_as_text), timezone)
 
             if not start_time:
@@ -386,7 +425,7 @@ class RaidCog(commands.Cog):
 
             raid.start_time = start_time
             await raid.update()
-            await Embeds.message(ctx.channel, f"**B** suggested start time as **{raid.starts_at}**.")
+            await Embeds.message(ctx.channel, f"suggested start time as **{raid.starts_at}**.", user=ctx.message.author)
 
         except Exception as error:
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
@@ -493,7 +532,7 @@ class RaidCog(commands.Cog):
             nest_embed.add_field(name="**Pokemon**", value=pokemon.label.capitalize(), inline=True)
             nest_embed.add_field(name="**Where**", value=nest_location.embed_label, inline=True)
             nest_embed.set_thumbnail(url=raid_img_url)
-            hide_preview = not nest_location.is_gym or await ctx.guild_setting('nest.preview.hide') == 'true'
+            hide_preview = not nest_location.is_gym or await ctx.guild_metadata('nest.preview.hide') == 'true'
             if not hide_preview:
                 nest_embed.set_image(url=nest_location.google_preview_url)
             nest_embed.set_footer(text=f"Reported by {message.author.display_name}", icon_url=f"https://cdn.discordapp.com/avatars/{message.author.id}/{message.author.avatar}.jpg?size=32")

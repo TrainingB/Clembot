@@ -1,6 +1,6 @@
-from .profilemanager import ProfileManager
+from .profile_cog import ProfileCog
 
 
 def setup(bot):
-    bot.add_cog(ProfileManager(bot))
+    bot.add_cog(ProfileCog(bot))
 

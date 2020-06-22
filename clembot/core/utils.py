@@ -151,6 +151,8 @@ def sanitize_channel_name(name):
     ret = ret.replace(' ', '-')
     return ret
 
+
+
 async def get_raid_help(prefix, avatar, user=None):
     helpembed = discord.Embed(colour=discord.Colour.lighter_grey())
     helpembed.set_author(name="Raid Coordination Help", icon_url=avatar)

@@ -5,15 +5,32 @@ import json
 from clembot.config.constants import Icons
 
 
+"""
+create table guild_metadata (
+    guild_id bigint not null unique,
+    prefix text,
+    city text,
+    timezone text,
+    welcome boolean,
+    teams boolean,
+    config text
+);
+
+
+create table guild_config (
+    id,
+    guild_id,
+    config_name,
+    config_value
+);
+"""
+
 class GuildMetadata:
 
-    # guild_id bigint not null unique,
-    # prefix text,
-    # timezone text,
-    # city text,
-    # config text
 
-    by_guild = dict()
+    GUILD_METADATA_KEY = ['prefix', 'city', 'timezone', 'welcome', 'teams', 'config']
+
+    GUILD_CONFIG_KEY = ["hide-nest-preview", "bingo-card-repo"]
 
     def __init__(self, bot, guild):
         self.bot = bot
@@ -55,6 +72,11 @@ class GuildMetadata:
         guild_dict = await GuildMetadata.data(bot, guild_id)
         return guild_dict.get('city')
 
+    @classmethod
+    async def bingo_card_repo(cls, bot, guild_id):
+        guild_dict = await GuildMetadata.data(bot, guild_id)
+        return guild_dict.get('bingo-card-repo')
+
     @staticmethod
     def serialize(data_dict):
         return _.map_values(data_dict, lambda val: json.dumps(val) if isinstance(val, dict) else val)
@@ -90,7 +112,7 @@ class GuildMetadataEmbed:
     def __init__(self, embed):
         self.embed = embed
 
-    FIELDS = ['prefix', 'city', 'timezone']
+
 
     @classmethod
     def from_guild_metadata(cls, metadata = dict, title=None, icon_url=None):

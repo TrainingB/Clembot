@@ -10,6 +10,7 @@ from clembot.exts.bingo.bingocardwriter import BingoCardWriter
 from clembot.exts.bingo.bingogenerator import BingoDataGenerator
 from clembot.exts.bingo.bingocardmanager import BingoCardManager
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
+from clembot.exts.config.guild_metadata import GuildMetadata
 from clembot.utilities.utils.utilities import Utilities
 from clembot.utilities.utils.embeds import Embeds
 
@@ -82,7 +83,7 @@ class BingoCog(commands.Cog):
                     hours=self.guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
                 file_path = self.MyBingoBoardGenerator.generate_board(user_name=author.id, bingo_card=bingo_card,
                                                                  template_file="{0}.png".format(event_pokemon))
-                repo_channel = await self.get_repository_channel(message)
+                repo_channel = await self.get_repository_channel(ctx, message)
                 file_url_message = await repo_channel.send(file=discord.File(file_path),
                                                            content="Generated for : {user} at {timestamp}".format(
                                                                user=author.mention, timestamp=timestamp))
@@ -112,22 +113,22 @@ class BingoCog(commands.Cog):
         return
 
 
-    async def get_repository_channel(self, message):
+    async def get_repository_channel(self, ctx, message):
         try:
             bingo_card_repo_channel = None
 
-            if 'bingo_card_repo' in self.guild_dict[message.guild.id]:
-                bingo_card_repo_channel_id = self.guild_dict[message.guild.id]['bingo_card_repo']
-                if bingo_card_repo_channel_id:
-                    bingo_card_repo_channel = self.bot.get_channel(bingo_card_repo_channel_id)
+            bingo_card_repo_channel_id = await GuildMetadata.bingo_card_repo()
 
-            if bingo_card_repo_channel is None:
+            if bingo_card_repo_channel_id:
+                bingo_card_repo_channel = self.bot.get_channel(int(bingo_card_repo_channel_id))
+
+            else:
                 bingo_card_repo_category = None
                 bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(
                     message.channel.overwrites), category=bingo_card_repo_category)
 
-            bingo_card_repo = {'bingo_card_repo': bingo_card_repo_channel.id}
-            self.guild_dict[message.guild.id].update(bingo_card_repo)
+                await ctx.guild_metadata(key='bingo-card-repo', value=bingo_card_repo_channel.id)
+
             return bingo_card_repo_channel
 
         except Exception as error:

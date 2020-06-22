@@ -2,12 +2,15 @@ import json
 
 from discord.ext import commands
 
+
 from clembot.core.logs import Logger
+from clembot.exts.config.globalconfigmanager import GlobalConfigCache
+from clembot.exts.config.guild_metadata import GuildMetadata
 from clembot.utilities.utils.utilities import Utilities
 from clembot.utilities.utils.embeds import Embeds
 
 
-class GuildConfigCog(commands.Cog):
+class ConfigCog(commands.Cog):
     """Caches the guild config as well
     prefix - !
     city - city of the guild, for gym search
@@ -17,18 +20,21 @@ class GuildConfigCog(commands.Cog):
 
     """
     _cache = dict()
+    by_guild = dict()
 
-    _guild_config_key = ["prefix", "city", "timezone", "nest.preview.hide"]
-    _channel_config_key = ["city"]
+    GLOBAL_CONFIG_KEY = ["bingo-event-title", "bingo-event", "cache-version", "timezone", "bingo-event-pokemon", "next-badge-id"]
+    CHANNEL_CONFIG_KEY = ["city"]
 
     def __init__(self, bot):
         self.bot = bot
         self.dbi = bot.dbi
         self.utilities = Utilities()
+        self.global_config_cache = GlobalConfigCache(dbi=self.dbi)
+
 
 
     @commands.group(pass_context=True, hidden=True, aliases=["config"])
-    async def _command_config(self, ctx):
+    async def cmd_config(self, ctx):
         try:
             if ctx.invoked_subcommand is None:
                 return await Embeds.error(ctx.channel,
@@ -38,40 +44,57 @@ class GuildConfigCog(commands.Cog):
             Logger.error(error)
 
 
-    @_command_config.command(pass_context=True, hidden=True, aliases=["guild"])
-    async def _command_config_guild(self, ctx, config_name=None, config_value=None):
+    @cmd_config.command(pass_context=True, hidden=True, aliases=["guild"])
+    async def cmd_config_guild(self, ctx, config_name=None, config_value=None):
 
-        if config_name and config_name not in GuildConfigCog._guild_config_key:
+        if config_name and config_name not in GuildMetadata.GUILD_CONFIG_KEY and config_name not in GuildMetadata.GUILD_METADATA_KEY:
             return await Embeds.error(ctx.message.channel, "No such configuration exists.")
 
-        config = await ctx.guild_setting(key=config_name, value=config_value)
+        config = await ctx.guild_metadata(key=config_name, value=config_value)
         if config_name:
             if config_value:
-                config = await ctx.guild_setting(key=config_name)
+                config = await ctx.guild_metadata(key=config_name)
             await Embeds.message(ctx.message.channel, f"**{config_name}** is set to **{config}**")
         else:
-            await GuildConfigCog.send_guild_config_embed(ctx, config)
+            await ConfigCog.send_guild_config_embed(ctx, config)
 
 
     @staticmethod
     async def send_guild_config_embed(ctx, config):
 
-        await ctx.embed("Guild Configuration",
-                        fields = {k['config_name']:k['config_value'] for k in config if k['config_name'] in GuildConfigCog._guild_config_key},
+        embed = Embeds.make_embed(header="Guild Configuration",
+                        fields=config,
                         inline=True)
 
+        return await ctx.send(embed=embed)
 
+    @staticmethod
+    async def send_global_config_embed(ctx, config):
+        await ctx.embed("Global Configuration",
+                        fields={k[0]:k[1] for k in config.items() if k[0] in ConfigCog.GLOBAL_CONFIG_KEY and k[1] is not None or ''},
+                        inline=True)
 
+    @cmd_config.command(pass_context=True, hidden=True, aliases=["global"])
+    # @checks.is_owner()
+    async def cmd_config_global(self, ctx, config_name=None, config_value=None):
+        try:
+            await self.global_config_cache.load_config()
+            if config_name and config_name not in ConfigCog.GLOBAL_CONFIG_KEY:
+                return await Embeds.error(ctx.message.channel, "No such configuration exists.")
 
+            if config_value:
+                await self.global_config_cache.save_clembot_config(config_name, config_value)
 
+            if config_name:
+                if config_value:
+                    config = await self.global_config_cache.get_clembot_config(config_name)
+                await Embeds.message(ctx.message.channel, f"**{config_name}** is set to **{config}**")
+            else:
+                config = self.global_config_cache.get_all_config()
+                await ConfigCog.send_global_config_embed(ctx, config)
 
-
-
-
-
-
-
-
+        except Exception as error:
+            Logger.info(error)
 
 
     async def get_guild_config(self, guild_id, config_name, reload=False):

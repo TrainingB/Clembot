@@ -12,9 +12,8 @@ class Context(commands.Context):
         self.get = GetTools(self)
         if self.guild:
             self.guild_mgr = self.bot.data_manager.guild(self.guild.id)
-            self.guild_setting = self.guild_mgr.settings
+            self.guild_metadata = self.guild_mgr.metadata
             self.channel_setting = self.guild_mgr.channel_settings
-
 
     async def codeblock(self, contents, syntax="py", send=True, title=None):
         paginator = commands.Paginator(prefix=f'```{syntax}', max_size=1900)

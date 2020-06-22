@@ -57,8 +57,8 @@ class RaidPartyCog(commands.Cog):
         :return:
         """
 
-        city = await ctx.guild_setting(key='city')
-        timezone = await ctx.guild_setting(key='timezone')
+        city = await ctx.guild_metadata(key='city')
+        timezone = await ctx.guild_metadata(key='timezone')
         raid_party_id = next(snowflake.create())
 
         try:
@@ -348,3 +348,202 @@ class RaidPartyCog(commands.Cog):
         footer = "Tip: < > denotes required and [ ] denotes optional arguments."
         await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Trade Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 
+#
+# @Clembot.command(pass_context=True, hidden=True)
+# @checks.raidpartychannel()
+# async def raidover(ctx):
+#
+#     try:
+#         channel = ctx.message.channel
+#         message = ctx.message
+#         started_by = guild_dict[message.guild.id]['raidchannel_dict'][channel.id]['started_by']
+#
+#         if ctx.message.author.id == started_by:
+#
+#             clean_channel = await ask_confirmation(ctx.message, "Are you sure to delete the channel?", "The channel will be deleted shortly.", "No changes done!", "Request Timed out!")
+#             if clean_channel:
+#                 await asyncio.sleep(30)
+#                 try:
+#                     report_channel = Clembot.get_channel(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['reportcity'])
+#                     reportmsg = await report_channel.fetch_message(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['raidreport'])
+#                     expiremsg = _("**This raidparty is over!**")
+#                     await reportmsg.edit(embed=discord.Embed(description=expiremsg, colour=channel.guild.me.colour))
+#                 except Exception as error:
+#                     pass
+#                 await ctx.message.channel.delete()
+#
+#
+#         else:
+#             await _send_error_message(channel, _("Beep Beep! Only raid reporter can clean up the channel!"))
+#     except Exception as error:
+#         Logger.info(error)
+#
+#
+# @Clembot.command(pass_context=True, hidden=True)
+# @checks.raidpartychannel()
+# async def update(ctx):
+#     try:
+#         roster = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
+#         if len(roster) <= 0:
+#             await ctx.message.channel.send( content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
+#             return
+#
+#         args = ctx.message.clean_content[len("!update"):]
+#         args_split = args.lower().split()
+#
+#         location_number = 0
+#         if len(args_split) > 0:
+#             if args_split[0].isdigit():
+#                 location_number = int(args_split[0])
+#
+#         if location_number == 0:
+#             await ctx.message.channel.send( content=_("Beep Beep! I couldn't understand the location #."))
+#             return
+#
+#         del args_split[0]
+#
+#         roster_loc = None
+#         for roster_loc_at in roster:
+#             if roster_loc_at['index'] == location_number:
+#                 roster_loc = roster_loc_at
+#                 break
+#
+#         if roster_loc is None:
+#             await ctx.message.channel.send( content=_("Beep Beep! Location {location} doesn't exist on the roster!".format(location=emojify_numbers(location_number))))
+#             return
+#
+#         # if len(args_split) > 1:
+#         #     await ctx.message.channel.send( content=_("Beep Beep! That's too much to update... use `!update <location#> <pokemon-name or gymmanager-code or google map link>`"))
+#         #     return
+#
+#         arg = args_split[0].lower()
+#         # gym_info = gymutil.get_gym_info(arg, city_state=get_city_list(ctx.message))
+#         gym = await get_gym_info_wrapper(ctx.message, gym_code=arg)
+#
+#         if gym:
+#             roster_loc['gym_name'] = gym.gym_name
+#             roster_loc['gym_code'] = gym.gym_code
+#             roster_loc['lat_long'] = f"{gym.latitude},{gym.longitude}"
+#             roster_loc['gmap_link'] = gym.gym_url
+#             roster_loc['eta'] = None
+#             args_split.remove(arg.lower())
+#
+#         elif arg in pkmn_info['pokemon_list']:
+#             roster_loc['pokemon'] = arg
+#             args_split.remove(arg.lower())
+#         else:
+#             gmap_link = extract_link_from_text("".join(args_split))
+#             if gmap_link:
+#                 roster_loc['gmap_link'] = gmap_link
+#                 roster_loc['gym_name'] = "location " + str(roster_loc['index'])
+#                 roster_loc['gym_code'] = "location " + str(roster_loc['index'])
+#                 roster_loc['lat_long'] = extract_lat_long_from(gmap_link)
+#             else:
+#                 time_as_text = " ".join(args_split)
+#                 eta = convert_into_time(time_as_text, False)
+#                 if eta:
+#                     roster_loc['eta'] = time_as_text
+#                 else:
+#                     await ctx.message.channel.send( content=_("Beep Beep! I am not sure what to update;... use `!update <location#> <pokemon-name | gym-code | google map link | eta>` "))
+#                     return
+#
+#         await print_roster_with_highlight(ctx.message, location_number, "Beep Beep! Location {location} has been updated.".format(location=emojify_numbers(location_number)))
+#         return
+#
+#     except Exception as error:
+#         await ctx.message.channel.send( content=_("Beep Beep! Error : {error} {error_details}").format(error=error, error_details=str(error)))
+#
+#
+# @Clembot.command(pass_context=True, hidden=True)
+# @checks.raidpartychannel()
+# async def pathshare(ctx):
+#     try:
+#
+#         args = ctx.message.clean_content
+#         args_split = args.split()
+#         del args_split[0]
+#
+#         pathshare_url = args_split[0]
+#
+#         guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['pathshare_url'] = pathshare_url
+#         guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['pathshare_user'] = ctx.message.author.id
+#
+#         await ctx.message.channel.send(_("Beep Beep! Pathshare URL has been set to {url}!".format(url=pathshare_url)))
+#     except Exception as error:
+#         Logger.info(error)
+#
+#
+#
+# @Clembot.command(pass_context=True, hidden=True)
+# async def makeitraidparty(ctx):
+#     message = ctx.message
+#
+#     guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id] = {
+#         'reportcity': message.channel.id,
+#         'trainer_dict': {},
+#         'exp': None,  # No expiry
+#         'manual_timer': False,
+#         'active': True,
+#         'raidmessage': None,
+#         'type': 'raidparty',
+#         'pokemon': None,
+#         'egglevel': -1,
+#         'suggested_start': False,
+#         'roster': [],
+#         'roster_index': None,
+#         'started_by' : message.author.id
+#     }
+#
+#     await message.channel.send( content=_("Beep Beep! It's a raid party channel now!"))
+#
+#     return
+#
+#
+# @Clembot.command(pass_context=True, hidden=True)
+# @checks.raidpartychannel()
+# async def reset(ctx):
+#     message = ctx.message
+#
+#     guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id] = {
+#         'reportcity': message.channel.id,
+#         'trainer_dict': {},
+#         'exp': None,  # No expiry
+#         'manual_timer': False,
+#         'active': True,
+#         'raidmessage': None,
+#         'type': 'raidparty',
+#         'pokemon': None,
+#         'egglevel': -1,
+#         'suggested_start': False,
+#         'roster': [],
+#         'roster_index': None
+#     }
+#
+#     await message.channel.send( content=_("Beep Beep! The roster has been cleared!"))
+#
+#     return
+#
+#
+#
+# @Clembot.command(pass_context=True, hidden=True, aliases= ["next"])
+# @checks.raidpartychannel()
+# async def _next_location(ctx):
+#     roster = guild_dict[ctx.message.channel.guild.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
+#
+#     if len(roster) < 1:
+#         await ctx.message.channel.send( content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
+#         return
+#     roster_index = roster[0]['index']
+#
+#     if len(roster) < 2:
+#         status_message = _("Raid party is at **{current}/{total}** location. Next location doesn't exist on roster!").format(current=roster_index, total=roster_index)
+#         await ctx.message.channel.send( content=_("Beep Beep! {status_message}").format(status_message=status_message))
+#         return
+#
+#     roster_index = roster[1]['index']
+#
+#     roster_message = _("Raid Party will be headed next to location {location_number} on the roster!").format(location_number=emojify_numbers(roster_index))
+#
+#     await print_roster_with_highlight(ctx.message, roster_index, roster_message)
+#     return
+#

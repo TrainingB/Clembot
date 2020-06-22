@@ -16,6 +16,7 @@ from clembot.core.data_manager import DatabaseInterface, DataManager
 from clembot.core.logs import Logger
 import datetime
 
+from clembot.exts.autorespond.auto_response_cog import AutoResponse
 from clembot.exts.config.guild_metadata import GuildMetadata
 
 
@@ -62,8 +63,8 @@ class Bot(commands.AutoShardedBot):
             Logger.info(f'The database {db_name} not found. Please fix the config file.')
             sys.exit(0)
 
-        prefix_table = self.dbi.table('guild_prefix')
-        results = await prefix_table.query.get()
+        prefix_table = self.dbi.table('guild_config')
+        results = await prefix_table.query.select('guild_id', 'prefix').get()
         self.prefixes = dict(results)
         return True
 
@@ -120,7 +121,15 @@ class Bot(commands.AutoShardedBot):
             return
         ctx = await self.get_context(message, cls=Context)
         if not ctx.command:
-            return
+            prefix = await ctx.guild_metadata('prefix')
+            content_without_prefix = message.content.replace(prefix, '')
+            auto_response = AutoResponse.from_cache(ctx.guild.id, ctx.channel.id, content_without_prefix)
+            if auto_response:
+                return await ctx.send(auto_response.respond_with)
+
+                # if ar_image_message:
+                #     return await _send_image_embed(message.channel, ar_image_message)
+
         try:
             await self.invoke(ctx)
         except Exception as error:
@@ -161,7 +170,10 @@ class Bot(commands.AutoShardedBot):
 
         # load extensions marked for preload in config
         for ext in self.preload_extensions:
-            self.load_extension(ext)
+            try:
+                self.load_extension(ext)
+            except Exception as error:
+                print(error)
 
         print("Clembot is back on!")
 

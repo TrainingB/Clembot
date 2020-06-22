@@ -1,4 +1,4 @@
-from discord.ext.commands import Cog, command
+from discord.ext.commands import Cog, command, group
 
 import discord
 import asyncio
@@ -91,7 +91,7 @@ class Core(Cog):
         return
 
 
-    @command(pass_context=True, hidden=True, aliases=["about bot"])
+    @group(pass_context=True, hidden=True, aliases=["about bot"])
     async def cmd_about(self, ctx):
         try:
             # if ctx.invoked_subcommand is not None:
@@ -224,8 +224,48 @@ class Core(Cog):
             await ctx.author.send(embed=embed)
 
 
+    @command(pass_context=True, hidden=True)
+    # @checks.is_owner()
+    async def mysetup(ctx):
+        text=[]
+        current_guild = ctx.message.guild
+
+        user = ctx.message.guild.me
+
+        for permission in user.guild_permissions:
+            if permission[1]:
+                text.append("{permission}".format(permission=permission[0]) )
+
+        raid_embed = discord.Embed(colour=discord.Colour.gold())
+        raid_embed.add_field(name="**Username:**", value=_("{option}").format(option=user.name))
+        raid_embed.add_field(name="**Roles:**", value=_("{roles}").format(roles=" \ ".join(text)))
+        raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=user, format="jpg")))
+        await ctx.send(embed=raid_embed)
+
+    @cmd_about.command(pass_context=True)
+    async def me(self, ctx):
+        author = ctx.message.author
+
+        await self._about_user(author, ctx.message.channel)
 
 
+    async def _about_user(self, user, target_channel):
+        text = []
+        for role in user.roles:
+            text.append(role.name)
+
+        raid_embed = discord.Embed(colour=discord.Colour.gold())
+        raid_embed.add_field(name="**Username:**", value=_("{option}").format(option=user.name))
+        raid_embed.add_field(name="**Roles:**", value=_("{roles}").format(roles=" \ ".join(text)))
+        raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=user, format="jpg")))
+        await target_channel.send(embed=raid_embed)
+
+
+    @command(pass_context=True, hidden=True, aliases=["about-me"])
+    async def _about_me(self, ctx):
+        author = ctx.message.author
+
+        await self._about_user(author, ctx.message.channel)
 
 
 def setup(bot):

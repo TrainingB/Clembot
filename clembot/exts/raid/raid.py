@@ -87,7 +87,7 @@ class RosterLocation:
 
     @classmethod
     async def from_command_text(cls, ctx, text):
-        timezone = await ctx.guild_setting(key='timezone')
+        timezone = await ctx.guild_metadata(key='timezone')
         args = text.split()[1:]
 
         if args[0] == 'egg':

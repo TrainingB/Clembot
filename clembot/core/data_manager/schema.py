@@ -75,12 +75,17 @@ class SQLOperator:
         return cls('=', 'in', '{value} {operator} any({column})')
 
     @classmethod
+    def icontains_(cls):
+        return cls('ilike', 'in', '{value} {operator} any({column})')
+
+    @classmethod
     def is_(cls):
         return cls('IS', 'is', cls.default_template)
 
     @classmethod
     def is_null_(cls):
         return cls('IS', 'is', '{column} {operator} null')
+
 
 class SQLComparison:
     def __init__(self, operator, aggregate, column, value=None,
@@ -201,7 +206,11 @@ class Column:
     def contains_(self, value):
         return SQLComparison(
             SQLOperator.contains_(), self.aggregate, self.full_name, value)
-    
+
+    def icontains_(self, value):
+        return SQLComparison(
+            SQLOperator.icontains_(), self.aggregate, self.full_name, value)
+
     def is_(self, value):
         return SQLComparison(
             SQLOperator.is_(), self.aggregate, self.full_name, value)
