@@ -6247,7 +6247,7 @@ async def setgym(ctx, gym_code=None):
                 parent_city_id = guild_dict[message.guild.id]['raidchannel_dict'][message.channel.id].get('reportcity', 0)
 
             channel_city = await MyChannelConfigCache.get_city_for_channel(guild.id, channel.id, parent_city_id)
-            gym = await GymRepository.search_by_gym_code_city(gym_code, channel_city)
+            gym = await GymAdapter.to_gym_by_code_city(gym_code, channel_city)
 
             # gym_info = await _get_gym_info(ctx.message, gym_code)
 
@@ -8552,21 +8552,21 @@ async def print_roster(message, roster_message=None):
     return
 
 
-async def _generate_gym_embed(message, gym_info):
-    embed_title = _("Click here for direction to {gymname}!").format(gymname=gym_info['gym_name'])
+async def _generate_gym_embed(message, gym_info: Gym):
+    embed_title = _("Click here for direction to {gymname}!").format(gymname=gym_info.gym_name)
 
-    embed_desription = _("**Gym Code :** {gymcode}\n**Gym Name :** {gymname}\n**City :** {city}").format(gymcode=gym_info['gym_code_key'], gymname=gym_info['original_gym_name'], city=gym_info['gym_location_city'])
+    embed_desription = f"**Gym Code :** {gym_info.gym_code}\n**Gym Name :** {gym_info.gym_display_name}\n**City :** {gym_info.city_state}"
 
-    raid_embed = discord.Embed(title=_("Beep Beep! {embed_title}").format(embed_title=embed_title), url=gym_info['gmap_url'], description=embed_desription)
+    raid_embed = discord.Embed(title=f"Beep Beep! {embed_title}", url=gym_info.gym_url, description=embed_desription)
 
-    embed_map_image_url = fetch_gmap_image_link(gym_info['latitude'] + "," + gym_info['longitude'])
+    embed_map_image_url = fetch_gmap_image_link(f"{gym_info.latitude},{gym_info.longitude}")
     raid_embed.set_image(url=embed_map_image_url)
 
-    if gym_info['gym_image']:
-        raid_embed.set_thumbnail(url=gym_info['gym_image'])
+    if gym_info.gym_image:
+        raid_embed.set_thumbnail(url=gym_info.gym_image)
     roster_message = "here are the gym details! "
 
-    await message.channel.send( content=_("Beep Beep! {member} {roster_message}").format(member=message.author.mention, roster_message=roster_message), embed=raid_embed)
+    await message.channel.send(content=f"Beep Beep! {message.author.mention} {roster_message}", embed=raid_embed)
 
 
 
