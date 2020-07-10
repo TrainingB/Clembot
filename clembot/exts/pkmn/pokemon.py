@@ -1,15 +1,17 @@
-from discord.ext import commands
-import json
-import os
 import asyncio
+import json
 import math
-from clembot.core.logs import Logger
+import os
+
+from discord.ext import commands
+from discord.ext.commands import BadArgument
+
+from clembot.config import config_template
 from clembot.core.data_manager.dbi import DatabaseInterface
+from clembot.core.logs import Logger
+from clembot.exts.pkmn.cpcalculator import CPCalculator
 from clembot.exts.pkmn.spelling import SpellHelper
 from clembot.utilities.utils.utilities import Utilities
-from clembot.config import config_template
-from clembot.exts.pkmn.cpcalculator import CPCalculator
-
 
 
 class Pokemon:
@@ -239,7 +241,7 @@ class PokemonConverter(commands.Converter):
                 pokemon_form = PokemonCache.to_pokemon(possible_pokemon_form)
                 return pokemon_form
 
-        raise Exception(f"{argument} could not be resolved to a pokemon.")
+        raise BadArgument(f"{argument} could not be resolved to a pokemon.")
 
     @staticmethod
     async def auto_correct(ctx, pokemon_as_text):

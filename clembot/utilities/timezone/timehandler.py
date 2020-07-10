@@ -1,9 +1,11 @@
 import os
-from datetime import datetime, timedelta, timezone
-from calendar import timegm
 import time
-from dateparser import parse
+from calendar import timegm
+from datetime import datetime, timedelta
+
 import pytz
+from dateparser import parse
+
 from clembot.core.logs import Logger
 
 _UTC = 'UTC'
@@ -38,11 +40,14 @@ def epoch(date_time: datetime, zone: str = None) -> float:
     return timegm(pytz.timezone(zone).localize(date_time).utctimetuple())
 
 
-def current_epoch(second_precision: bool=True) -> float:
+def current_epoch(second_precision: bool=True, day_precision: bool=False) -> float:
     """
     Returns UTC Epoch (TZ aware date time converted into epoch)
     second & microseconds are removed if second_precision is false
     """
+    if day_precision:
+        return epoch(pytz.UTC.localize(datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)), _UTC)
+
     if second_precision:
         return time.time()
 

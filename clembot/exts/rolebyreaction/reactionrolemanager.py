@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from clembot.core import checks
+from clembot.core.bot import command, group
 from clembot.utilities.utils.utilities import Utilities
 
 
@@ -133,7 +134,7 @@ example:
         return additional_fields
 
 
-    @commands.command(pass_context=True, hidden=True, aliases=["purge"])
+    @command(pass_context=True, hidden=True, aliases=["purge"])
     async def _purge(self, ctx, message_count:int, message_id_to_stop: int = None):
 
         if message_count > 50:
@@ -146,7 +147,7 @@ example:
 
     league_options = ['self-assign', 'manage-via-role' , 'remove-roles']
 
-    @commands.group(pass_context=True, hidden=True, aliases=["league"])
+    @group(pass_context=True, hidden=True, aliases=["league"])
     async def _league(self, ctx, title, body=None, channel: discord.TextChannel=None ):
 
         if not channel:
@@ -161,7 +162,7 @@ example:
     async def _league_register(self, ctx, title, channel: discord.TextChannel = None):
         await self.utilities._send_message(ctx.channel, f"League has been created!")
 
-    @commands.command(pass_context=True, hidden=True, aliases=["say"])
+    @command(pass_context=True, hidden=True, aliases=["say"])
     async def _say(self, ctx, title, body=None, channel: discord.TextChannel=None ):
 
         if not channel:
@@ -183,12 +184,12 @@ example:
 
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["reaction-role", "rtr"])
+    @group(pass_context=True, hidden=True, aliases=["reaction-role", "rtr"])
     async def _reaction_role(self, ctx):
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
 
-    @commands.group(pass_context=True, hidden=True, aliases=["mini-event", "me"])
+    @group(pass_context=True, hidden=True, aliases=["mini-event", "me"])
     async def _mini_event(self, ctx):
 
         if ctx.invoked_subcommand is None:

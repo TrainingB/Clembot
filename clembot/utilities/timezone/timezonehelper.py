@@ -1,6 +1,8 @@
 import datetime as dt
-import pytz
 import os
+
+import pytz
+
 
 def possible_timezones(tz_offset, common_only=True):
     # pick one of the timezone collections

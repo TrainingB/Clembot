@@ -7,6 +7,8 @@ from discord.ext import commands
 
 
 # from clembot import utils
+from clembot.core.bot import command
+
 
 def convert_to_bool(argument):
     lowered = argument.lower()
@@ -303,7 +305,7 @@ class Silph(commands.Cog):
     async def get_silph_card(self, silph_user):
         return await SilphCard.get_trainer_card(silph_user)
 
-    @commands.command()
+    @command()
     async def silphcard(self, ctx, silph_user: str = None):
         """Displays a user's Silph Road Trainer Card."""
         guild_data = ctx.bot.guild_dict[ctx.guild.id]

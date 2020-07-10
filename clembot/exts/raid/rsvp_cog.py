@@ -1,5 +1,6 @@
 from discord.ext import commands
 
+from clembot.core.bot import group
 from clembot.core.commands import Cog
 from clembot.exts.raid import raid_checks
 from clembot.exts.raid.errors import RSVPNotEnabled
@@ -30,7 +31,7 @@ class RSVPCog(commands.Cog):
         if isinstance(error, RSVPNotEnabled):
             await Embeds.error(ctx.channel, 'RSVP commands are not enabled for this channel.', ctx.message.author)
 
-    @commands.group(pass_context=True, hidden=True, aliases=["c"])
+    @group(pass_context=True, hidden=True, aliases=["c"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_coming(self, ctx):
         try:
@@ -41,7 +42,7 @@ class RSVPCog(commands.Cog):
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["h"])
+    @group(pass_context=True, hidden=True, aliases=["h"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_here(self, ctx):
         try:
@@ -52,7 +53,7 @@ class RSVPCog(commands.Cog):
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["i"])
+    @group(pass_context=True, hidden=True, aliases=["i"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_interested(self, ctx):
         try:
@@ -62,7 +63,7 @@ class RSVPCog(commands.Cog):
         except Exception as error:
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
-    @commands.group(pass_context=True, hidden=True, aliases=["x"])
+    @group(pass_context=True, hidden=True, aliases=["x"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_cancel(self, ctx):
         try:
@@ -73,7 +74,7 @@ class RSVPCog(commands.Cog):
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["s"])
+    @group(pass_context=True, hidden=True, aliases=["s"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_started(self, ctx):
         """Signal that a raid is starting.
@@ -109,7 +110,7 @@ class RSVPCog(commands.Cog):
 
         return status
 
-    @commands.group(pass_context=True, hidden=True, aliases=["mention"])
+    @group(pass_context=True, hidden=True, aliases=["mention"])
     @raid_checks.rsvp_enabled()
     async def cmd_mention(self, ctx, *, status_with_message=None):
         try:
@@ -143,7 +144,7 @@ class RSVPCog(commands.Cog):
         except Exception as error:
             await Embeds.error(ctx.channel, error)
 
-    @commands.group(pass_context=True, hidden=True, aliases=["list"])
+    @group(pass_context=True, hidden=True, aliases=["list"])
     async def cmd_list(self, ctx):
         try:
             rsvp_enabled = RSVPCog.get_rsvp_source(ctx)

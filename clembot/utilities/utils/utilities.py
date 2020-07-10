@@ -1,11 +1,16 @@
 import asyncio
-import hastebin
-import discord
-from discord.ext import commands
-from clembot.core.logs import Logger
-from itertools import cycle
+import os
 import random
-import re, os
+import re
+from itertools import cycle
+
+import discord
+import hastebin
+
+from clembot.core.bot import command
+from clembot.core.error_handler import wrap_error
+from clembot.core.logs import Logger
+from clembot.utilities.utils.embeds import Embeds
 
 
 class TextUtil:
@@ -24,12 +29,12 @@ class TextUtil:
     @staticmethod
     def extract_link_from_text(text):
         newloc = None
-        mapsindex = text.find("/maps")
+        mapsindex = text.find_first("/maps")
         newlocindex = text.rfind("http", 0, mapsindex)
 
         if newlocindex == -1:
             return newloc
-        newlocend = text.find(" ", newlocindex)
+        newlocend = text.find_first(" ", newlocindex)
         if newlocend == -1:
             newloc = text[newlocindex:]
         else:
@@ -191,7 +196,7 @@ class Utilities:
         except Exception as error:
             return await channel.send(error)
 
-    @commands.command(name="export")
+    @command(name="export")
     async def _export(self, ctx):
 
         return await self._send_message(ctx.channel, "Beep Beep! **{}**, This feature is under-development!".format(ctx.message.author.display_name))
@@ -205,7 +210,7 @@ class Utilities:
         if len(channel_mentions) < 1:
             await self._send_error_message(ctx.channel, "Beep Beep! **{}**, Please provide the channel reference to export the details!".format(ctx.message.author.display_name))
 
-    @commands.command(name="clean_content")
+    @command(name="clean_content")
     async def _clean_content(self, message):
 
         message_content = {}
@@ -237,7 +242,7 @@ class Utilities:
 
     @staticmethod
     async def _send_error_message_and_cleanup(channel, message, user):
-        log_message = await GuildConfigCog._send_error_message(channel, message, user=user)
+        log_message = await Embeds.error(channel, message, user=user)
         await asyncio.sleep(8)
         await log_message.delete()
 
@@ -273,6 +278,7 @@ class Utilities:
 
 
     @staticmethod
+    @wrap_error
     async def ask_confirmation(ctx, message, rusure_message, yes_message, no_message, timed_out_message):
         author = message.author
         channel = message.channel
@@ -294,20 +300,20 @@ class Utilities:
             reaction, user = await ctx.bot.wait_for('reaction_add', check=check, timeout=10)
         except asyncio.TimeoutError:
             await rusure.delete()
-            confirmation = await channel.send(_("Beep Beep! {message}".format(message=timed_out_message)))
+            confirmation = await channel.send(f"Beep Beep! {timed_out_message}")
             await asyncio.sleep(1)
             await confirmation.delete()
             return False
 
         if reaction.emoji == "❎":
             await rusure.delete()
-            confirmation = await channel.send(_("Beep Beep! {message}".format(message=no_message)))
+            confirmation = await channel.send(f"Beep Beep! {no_message}")
             await asyncio.sleep(1)
             await confirmation.delete()
             return False
         elif reaction.emoji == "✅":
             await rusure.delete()
-            confirmation = await channel.send(_("Beep Beep! {message}".format(message=yes_message)))
+            confirmation = await channel.send(f"Beep Beep! {yes_message}")
             await asyncio.sleep(1)
             await confirmation.delete()
             return True

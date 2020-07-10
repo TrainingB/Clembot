@@ -1,6 +1,7 @@
+import json
+
 import discord
 import pydash as _
-import json
 
 from clembot.config.constants import Icons
 

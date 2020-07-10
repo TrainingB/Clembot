@@ -5,6 +5,9 @@ import discord
 from discord.ext import commands
 from discord.ext.commands.errors import CommandError
 
+from clembot.config.constants import Icons
+from clembot.utilities.utils.embeds import Embeds
+
 
 class TeamSetCheckFail(CommandError):
     'Exception raised checks.teamset fails'
@@ -65,11 +68,10 @@ class ExRaidChannelCheckFail(CommandError):
 def missing_arg_msg(ctx):
     prefix = ctx.prefix.replace(ctx.bot.user.mention, '@' + ctx.bot.user.name)
     command = ctx.invoked_with
+    parent = f"{next(iter(ctx.command.parent.aliases))} " if ctx.command.parent else ""
     callback = ctx.command.callback
     sig = list(signature(callback).parameters.keys())
     (args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations) = getfullargspec(callback)
-    rq_args = []
-    nr_args = []
     if defaults:
         rqargs = args[:(- len(defaults))]
     else:
@@ -80,35 +82,39 @@ def missing_arg_msg(ctx):
     arg_num = len(ctx.args) - 1
     sig.remove('ctx')
     args_missing = sig[arg_num:]
-    msg = "Beep Beep! I'm missing some details! Usage: {prefix}{command}".format(prefix=prefix, command=command)
-    for a in sig:
-        if kwonlydefaults:
-            if a in kwonlydefaults.keys():
-                msg += ' [{0}]'.format(a)
-                continue
-        if a!='self':
-            if a in args_missing:
-                msg += ' **<{0}>**'.format(a)
-            else:
-                msg += ' <{0}>'.format(a)
-    return msg
+
+    return prefix, parent, command, args_missing
+
 
 def custom_error_handling(bot, logger):
 
     @bot.event
     async def on_command_error(ctx, error):
         channel = ctx.channel
+
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.channel.send(missing_arg_msg(ctx))
+
+            prefix, parent, command, missing_args = missing_arg_msg(ctx)
+
+            error_message = await ctx.send(embed=Embeds.make_embed(
+                header_icon=Icons.bot_error, msg_color=discord.Color.dark_red(),
+                header=f"Wait, that's not enough!",
+                content=f'I\'m missing some details. \n\n**Correct Usage:** `{prefix}{parent}{command} {" ".join(missing_args)}`\n\nYou can tap 🗑️ to delete this message.'))
+
+            await error_message.add_reaction('🗑️')
+
         elif isinstance(error, commands.BadArgument):
+            await ctx.bot.send_cmd_help(
+                ctx, title=f'Bad Argument - {error}', msg_type='error')
+
             await ctx.channel.send(error)
-            try:
-                pages = await bot.formatter.format_help_for(ctx, ctx.command)
-                for page in pages:
-                    await ctx.channel.send(page)
-            except Exception as error:
-                print(error)
-                pass
+            # try:
+            #     pages = await bot.formatter.format_help_for(ctx, ctx.command)
+            #     for page in pages:
+            #         await ctx.channel.send(page)
+            # except Exception as error:
+            #     print(error)
+            pass
         elif isinstance(error, commands.CommandError):
             pass
         elif isinstance(error, commands.CommandNotFound):

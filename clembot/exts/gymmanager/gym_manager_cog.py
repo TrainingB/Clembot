@@ -1,16 +1,16 @@
-from discord.ext import commands
-from clembot.core.logs import Logger
-from clembot.core import checks
+import asyncio
+import json
 
+import discord
+from discord.ext import commands
+
+from clembot.core import checks
+from clembot.core.bot import group
+from clembot.core.logs import Logger
+from clembot.exts.config.channelconfigmanager import ChannelConfigCache
 from clembot.exts.gymmanager.gym import Gym, GymRepository
 from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.utilities import Utilities
-
-from clembot.exts.config.channelconfigmanager import ChannelConfigCache
-
-import asyncio
-import discord
-import json
 
 
 class GymManagerCog(commands.Cog):
@@ -25,7 +25,7 @@ class GymManagerCog(commands.Cog):
         self.CityManager = ChannelConfigCache(bot.dbi, bot)
         self.gymRepository = GymRepository(self._dbi)
 
-    @commands.group(pass_context=True, hidden=True, aliases=["gym"])
+    @group(pass_context=True, hidden=True, aliases=["gym"])
     async def _command_gym(self, ctx):
         try:
             if ctx.invoked_subcommand is None:
@@ -137,7 +137,7 @@ class GymManagerCog(commands.Cog):
 
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["gyms"])
+    @group(pass_context=True, hidden=True, aliases=["gyms"])
     async def _command_gyms(self, ctx, gym_code_or_name=None, city=None):
         await self._gyms(ctx.message, gym_code_or_name, city)
 

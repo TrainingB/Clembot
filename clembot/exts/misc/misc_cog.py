@@ -1,9 +1,9 @@
 import asyncio
 import json
-
-import discord
 import re
 import time
+
+import discord
 from discord.ext.commands import command
 
 from clembot.core import checks

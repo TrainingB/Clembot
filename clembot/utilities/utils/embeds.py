@@ -1,7 +1,10 @@
+import asyncio
+
 import discord
 
 from clembot.config import config_template
 from clembot.core.logs import Logger
+
 
 class Emojis:
 
@@ -39,6 +42,33 @@ class Embeds:
         return
 
     @staticmethod
+    async def ask_for_input(ctx, prompt_embed, validate_response=None):
+        """
+        returns cancel if configuration is cancelled.
+        """
+        def check(msg):
+            return msg.author == ctx.message.author and msg.channel == ctx.channel
+
+        await ctx.send(embed=prompt_embed)
+
+        while True:
+            try:
+                response = await ctx.bot.wait_for('message', check=check, timeout=60)
+            except asyncio.TimeoutError:
+                await Embeds.error(ctx.channel, 'Too late!')
+                return "cancel"
+            except Exception as error:
+                break
+            response_content = response.content.strip()
+            if response_content == "cancel" or (validate_response and validate_response(response_content)):
+                return response_content
+            else:
+                await Embeds.error(ctx.channel, 'I could not interpret your response. Try again!')
+                continue
+        return "cancel"
+
+
+    @staticmethod
     def google_location_preview_url(lat_long):
         key = config_template.api_keys["google-api-key"]
         gmap_base_url = f"https://maps.googleapis.com/maps/api/staticmap?center={lat_long}&markers=color:blue%7C{lat_long}&maptype=roadmap&size=250x125&zoom=15&key={key}"
@@ -74,6 +104,18 @@ class Embeds:
             user_mention = f"**{user.display_name}** "
         error_embed = discord.Embed(description=f"{Emojis.error} {user_mention}{description}", colour=color)
         return await channel.send(embed=error_embed)
+
+    @staticmethod
+    async def error_notification(ctx, header, error, disappear_in=30):
+        """The message stays for 30 seconds and disappears!"""
+        try:
+            err_msg = await ctx.send(embed=Embeds.make_embed(msg_type='error', header=header, content=error.__str__()))
+            if disappear_in:
+                await asyncio.sleep(disappear_in)
+                await err_msg.delete()
+        except Exception as err:
+            Logger.error(err)
+
 
     @staticmethod
     def make_embed(msg_type='', header=None, header_icon=None, title=None, title_url=None, content=None, thumbnail='',

@@ -2,12 +2,12 @@ import json
 
 from discord.ext import commands
 
-
+from clembot.core.bot import group
 from clembot.core.logs import Logger
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
 from clembot.exts.config.guild_metadata import GuildMetadata
-from clembot.utilities.utils.utilities import Utilities
 from clembot.utilities.utils.embeds import Embeds
+from clembot.utilities.utils.utilities import Utilities
 
 
 class ConfigCog(commands.Cog):
@@ -22,7 +22,7 @@ class ConfigCog(commands.Cog):
     _cache = dict()
     by_guild = dict()
 
-    GLOBAL_CONFIG_KEY = ["bingo-event-title", "bingo-event", "cache-version", "timezone", "bingo-event-pokemon", "next-badge-id"]
+    GLOBAL_CONFIG_KEY = ["bingo-event-title", "cache-version", "timezone", "bingo-event-pokemon", "next-badge-id"]
     CHANNEL_CONFIG_KEY = ["city"]
 
     def __init__(self, bot):
@@ -33,7 +33,7 @@ class ConfigCog(commands.Cog):
 
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["config"])
+    @group(pass_context=True, hidden=True, aliases=["config"])
     async def cmd_config(self, ctx):
         try:
             if ctx.invoked_subcommand is None:
@@ -54,6 +54,8 @@ class ConfigCog(commands.Cog):
         if config_name:
             if config_value:
                 config = await ctx.guild_metadata(key=config_name)
+            else:
+                config = await ctx.guild_metadata(key=config_name, delete=True)
             await Embeds.message(ctx.message.channel, f"**{config_name}** is set to **{config}**")
         else:
             await ConfigCog.send_guild_config_embed(ctx, config)

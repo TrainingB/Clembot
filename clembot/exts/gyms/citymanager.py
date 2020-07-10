@@ -1,8 +1,9 @@
 from discord.ext import commands
 
+from clembot.core import checks
+from clembot.core.bot import command
 from clembot.core.logs import Logger
 from clembot.utilities.utils.utilities import Utilities
-from clembot.core import checks
 
 
 class CityManager(commands.Cog):
@@ -13,11 +14,11 @@ class CityManager(commands.Cog):
         self.utilities = Utilities()
         self._cache = {}
 
-    @commands.command(pass_context=True, hidden=True, aliases=["get-city"])
+    @command(pass_context=True, hidden=True, aliases=["get-city"])
     async def get_city(self, ctx):
         await self._get_city(ctx)
 
-    @commands.command(pass_context=True, hidden=True, aliases=["set-city"])
+    @command(pass_context=True, hidden=True, aliases=["set-city"])
     async def _set_city(self, ctx, city_state):
         city_state = city_state.upper()
 
@@ -25,7 +26,7 @@ class CityManager(commands.Cog):
 
         await self._get_city(ctx)
 
-    @commands.command(pass_context=True, hidden=True, aliases=["set-guild-city"])
+    @command(pass_context=True, hidden=True, aliases=["set-guild-city"])
     @checks.guildowner_or_permissions(manage_guild=True)
     async def _set_guild_city(self, ctx, city_state):
 
@@ -34,7 +35,7 @@ class CityManager(commands.Cog):
         await self.MyGuildConfigCache.save_guild_config(ctx.message.guild.id, 'city', city_state)
         await self._get_guild_city(ctx.message)
 
-    @commands.command(pass_context=True, hidden=True, aliases=["get-guild-city"])
+    @command(pass_context=True, hidden=True, aliases=["get-guild-city"])
     @checks.guildowner_or_permissions(manage_guild=True)
     async def get_guild_city(self, ctx):
         await self._get_guild_city(ctx.message)

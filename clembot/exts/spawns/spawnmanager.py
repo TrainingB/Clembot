@@ -1,9 +1,10 @@
 import asyncio
+
 from discord.ext import commands
 
+from clembot.core.bot import group
 from clembot.utilities.utils.argparser import ArgParser
 from clembot.utilities.utils.utilities import Utilities
-
 
 CACHE_VERSION = 15
 
@@ -29,7 +30,7 @@ class SpawnManagerCog(commands.Cog):
             number = None
         return number
 
-    @commands.group(pass_context=True, hidden=True, aliases=["spawn", "sp"])
+    @group(pass_context=True, hidden=True, aliases=["spawn", "sp"])
     async def _spawn(self, ctx):
         try:
             argument_text = ctx.message.clean_content.lower()

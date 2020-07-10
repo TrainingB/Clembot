@@ -1,6 +1,7 @@
+import asyncio
+
 from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.core.logs import Logger
-import asyncio
 
 test_dbi = None
 

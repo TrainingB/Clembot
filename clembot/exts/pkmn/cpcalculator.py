@@ -1,10 +1,9 @@
+import json
 import math
 import os
-import json
-from discord.ext import commands
-
 import tempfile
 
+from clembot.core.bot import group
 from clembot.utilities.utils.utilities import Utilities
 
 
@@ -221,7 +220,7 @@ class CPCalculator:
     def __init__(self):
         self.utilities = Utilities()
 
-    @commands.group(pass_context=True, hidden=True, aliases=["calc"])
+    @group(pass_context=True, hidden=True, aliases=["calc"])
     async def _calc(self, ctx):
 
         if ctx.invoked_subcommand is None:

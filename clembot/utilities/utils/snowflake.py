@@ -1,6 +1,7 @@
 """Create 64bit unique IDs with timestamps embedded."""
 
-import time, os
+import os
+import time
 
 # 07 Aug 2017 16:26:00 GMT
 CLEM_EPOCH = 1502123160

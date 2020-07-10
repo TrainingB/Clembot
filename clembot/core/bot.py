@@ -1,23 +1,23 @@
-import sys, os
+import datetime
+import os
 import platform
-import asyncpg
-import pkg_resources
+import sys
 from enum import Enum
+
+import asyncpg
 import discord
+import pkg_resources
+from dateutil.relativedelta import relativedelta
 from discord.ext import commands
 from discord.utils import cached_property
-
-from dateutil.relativedelta import relativedelta
-
 
 from clembot.config import config_template
 from clembot.core.context import Context
 from clembot.core.data_manager import DatabaseInterface, DataManager
+from clembot.core.error_handler import wrap_error
 from clembot.core.logs import Logger
-import datetime
 
-from clembot.exts.autorespond.auto_response_cog import AutoResponse
-from clembot.exts.config.guild_metadata import GuildMetadata
+from clembot.utilities.utils import pagination
 
 
 class ExitCodes(Enum):
@@ -31,7 +31,6 @@ class Bot(commands.AutoShardedBot):
     def __init__(self, **kwargs):
         Logger.info("bot initialized.")
         self.default_prefix = config_template.default_prefix
-        self.owner = config_template.bot_users['owner']
         self.dbi = DatabaseInterface.get_instance() # DatabaseInterface(**config_template.db_config_details)
         self.data_manager = DataManager(self.dbi)
 
@@ -43,11 +42,14 @@ class Bot(commands.AutoShardedBot):
         self.ext_dir = os.path.join(self.bot_dir, "exts")
         self.preload_extensions = config_template.preload_extensions
         self.req_perms = discord.Permissions(config_template.bot_permissions)
-        kwargs = dict(owner_id=self.owner,
+        kwargs = dict(owner_id=config_template.bot_users['owner'],
                       command_prefix=self.dbi.prefix_manager,
-                      status=discord.Status.dnd, **kwargs)
+                      status=discord.Status.online, **kwargs)
         super().__init__(**kwargs)
+        self.owner_id = config_template.bot_users['owner']
+        self.owner = self.get_user(config_template.bot_users['owner'])
         self.loop.run_until_complete(self._db_connect())
+        self.auto_responses = {}
 
     async def _db_connect(self):
         Logger.info("_db_connect()")
@@ -64,8 +66,9 @@ class Bot(commands.AutoShardedBot):
             sys.exit(0)
 
         prefix_table = self.dbi.table('guild_config')
-        results = await prefix_table.query.select('guild_id', 'prefix').get()
-        self.prefixes = dict(results)
+        results = await prefix_table.query.select('guild_id', 'prefix').getjson()
+        if results:
+            self.prefixes = dict(results)
         return True
 
     @property
@@ -120,15 +123,14 @@ class Bot(commands.AutoShardedBot):
         if message.author.bot:
             return
         ctx = await self.get_context(message, cls=Context)
-        if not ctx.command:
-            prefix = await ctx.guild_metadata('prefix')
-            content_without_prefix = message.content.replace(prefix, '')
-            auto_response = AutoResponse.from_cache(ctx.guild.id, ctx.channel.id, content_without_prefix)
-            if auto_response:
-                return await ctx.send(auto_response.respond_with)
 
-                # if ar_image_message:
-                #     return await _send_image_embed(message.channel, ar_image_message)
+        # if not a valid command
+        if not ctx.command:
+            # Auto-Respond Code
+            key = message_key(ctx, message)
+            if key in ctx.bot.auto_responses:
+                auto_response = ctx.bot.auto_responses.get(key)
+                await ctx.send(auto_response)
 
         try:
             await self.invoke(ctx)
@@ -154,11 +156,12 @@ class Bot(commands.AutoShardedBot):
 
 
     async def on_guild_join(self, guild):
-        d = {
+        guild_metadata_table = self.dbi.table('guild_metadata')
+        guild_metadata_table_insert = guild_metadata_table.insert({
             'guild_id': guild.id,
             'prefix': '!'
-        }
-        await GuildMetadata.insert(self, d)
+        })
+        await guild_metadata_table_insert.commit()
 
     async def on_message(self, message):
         await self.process_commands(message)
@@ -173,7 +176,8 @@ class Bot(commands.AutoShardedBot):
             try:
                 self.load_extension(ext)
             except Exception as error:
-                print(error)
+                import traceback
+                print(traceback.format_exc())
 
         print("Clembot is back on!")
 
@@ -187,18 +191,59 @@ class Bot(commands.AutoShardedBot):
         """
         return discord.utils.get(iterable, **attrs)
 
-# def command(*args, **kwargs):
-#     def decorator(func):
-#         category = kwargs.get("category")
-#         func.command_category = category
-#         result = commands.command(*args, **kwargs)(func)
-#         return result
-#     return decorator
-#
-# def group(*args, **kwargs):
-#     def decorator(func):
-#         category = kwargs.get("category")
-#         func.command_category = category
-#         result = commands.group(*args, **kwargs)(func)
-#         return result
-#     return decorator
+
+    def get_cog_commands(self, cog_name):
+
+        cog = self.get_cog(cog_name)
+
+        return cog
+
+    async def send_cmd_help(self, ctx, **kwargs):
+        """Function to invoke help output for a command.
+
+        Parameters
+        -----------
+        ctx: :class:`discord.ext.commands.Context`
+            Context object from the originally invoked command.
+        per_page: :class:`int`
+            Number of entries in the help embed page. 12 is default.
+        title: :class:`str`
+            Title of the embed message.
+        """
+        try:
+            if ctx.invoked_subcommand:
+                kwargs['title'] = kwargs.get('title', 'Sub-Command Help')
+                p = await pagination.Pagination.from_command(
+                    ctx, ctx.invoked_subcommand, **kwargs)
+            else:
+                kwargs['title'] = kwargs.get('title', 'Command Help')
+                p = await pagination.Pagination.from_command(
+                    ctx, ctx.command, **kwargs)
+            await p.paginate()
+        except discord.DiscordException as exc:
+            await ctx.send(exc)
+
+def command(*args, **kwargs):
+    def decorator(func):
+        category = kwargs.get("category")
+        func.command_category = category
+        error_wrapped_func = wrap_error(func)
+        result = commands.command(*args, **kwargs)(error_wrapped_func)
+        return result
+    return decorator
+
+def group(*args, **kwargs):
+    def decorator(func):
+        category = kwargs.get("category")
+        func.command_category = category
+        error_wrapped_func = wrap_error(func)
+        result = commands.group(*args, **kwargs)(error_wrapped_func)
+        return result
+    return decorator
+
+def message_key(ctx, message):
+    prefix = ctx.bot.prefixes.get(message.guild.id, config_template.default_prefix)
+    content_without_prefix = message.content.replace(prefix, '')
+    return f'{message.guild.id}___{message.channel.id}___{content_without_prefix}'
+
+

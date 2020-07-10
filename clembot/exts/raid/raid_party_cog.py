@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 
 from clembot.core import checks
+from clembot.core.bot import group, command
 from clembot.core.logs import Logger
 from clembot.exts.pkmn.pokemon import PokemonCache
 from clembot.exts.raid.raid import RaidRepository, RaidParty, RosterLocation
@@ -48,7 +49,7 @@ class RaidPartyCog(commands.Cog):
             raise NoRaidForChannelError(f"Raid not found for channel {ctx.channel.mention}.")
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["raidparty", "rp", "raid-party"])
+    @group(pass_context=True, hidden=True, aliases=["raidparty", "rp", "raid-party"])
     async def cmd_raidparty(self, ctx, party_title):
         """
 
@@ -77,7 +78,7 @@ class RaidPartyCog(commands.Cog):
         Logger.info(raid_party)
 
 
-    @commands.command(pass_context=True, hidden=True, aliases=["roster"])
+    @command(pass_context=True, hidden=True, aliases=["roster"])
     async def cmd_raidparty_roster(self, ctx):
         try:
             raid_party = RaidPartyCog._get_raid_for_channel(ctx)
@@ -90,7 +91,7 @@ class RaidPartyCog(commands.Cog):
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
         pass
 
-    @commands.command(pass_context=True, hidden=True, aliases=["rinfo"])
+    @command(pass_context=True, hidden=True, aliases=["rinfo"])
     async def cmd_raidparty_info(self, ctx):
         try:
             raid_party = RaidPartyCog._get_raid_for_channel(ctx)
@@ -100,7 +101,7 @@ class RaidPartyCog(commands.Cog):
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
         pass
 
-    @commands.command(pass_context=True, hidden=True, aliases=["where"])
+    @command(pass_context=True, hidden=True, aliases=["where"])
     async def cmd_raidparty_where(self, ctx, location_number: int):
         try:
             raid_party = RaidPartyCog._get_raid_for_channel(ctx)
@@ -116,7 +117,7 @@ class RaidPartyCog(commands.Cog):
             await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
         pass
 
-    @commands.command(pass_context=True, hidden=True, aliases=["move"])
+    @command(pass_context=True, hidden=True, aliases=["move"])
     async def cmd_raidparty_move(self, ctx):
         try:
             raid_party = RaidPartyCog._get_raid_for_channel(ctx)
@@ -131,7 +132,7 @@ class RaidPartyCog(commands.Cog):
         pass
 
 
-    @commands.command(pass_context=True, hidden=True, aliases=["add"])
+    @command(pass_context=True, hidden=True, aliases=["add"])
     async def cmd_raidparty_add(self, ctx):
         try:
             raid_party = RaidPartyCog._get_raid_for_channel(ctx)
@@ -158,7 +159,7 @@ class RaidPartyCog(commands.Cog):
         await ctx.channel.send(content=message, embed=embed)
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["import"])
+    @group(pass_context=True, hidden=True, aliases=["import"])
     async def _import(self, ctx):
 
         if ctx.invoked_subcommand is None:
@@ -195,7 +196,7 @@ class RaidPartyCog(commands.Cog):
 
 
 
-    @commands.command(pass_context=True, hidden=True, aliases=["rosterx"])
+    @command(pass_context=True, hidden=True, aliases=["rosterx"])
     @checks.raidpartychannel()
     async def _rosterx(self, ctx):
 

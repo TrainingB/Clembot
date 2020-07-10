@@ -1,8 +1,9 @@
 
 import discord
+
 from clembot.core.bot import Bot
 from clembot.core.data_manager.dbi import DatabaseInterface
-from clembot.config import config_template
+
 
 class UsesBotInterface:
 

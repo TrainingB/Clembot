@@ -1,5 +1,9 @@
 import discord
+
 from clembot.core.data_manager.dbi import DatabaseInterface
+from clembot.core.logs import Logger
+from clembot.utilities.utils.embeds import Embeds
+
 
 class GuildManager:
 
@@ -10,8 +14,26 @@ class GuildManager:
         else:
             self.guild_id = int(guild)
 
+    async def timezone(self, ctx):
+        timezone = await self.metadata('timezone')
+        if timezone:
+            return timezone
+
+        await Embeds.error_notification(ctx, "Missing Guild Configuration", "Contact an admin and ask them to setup timezone using `!config timezone`.")
+
+
     async def metadata(self, key=None, value=None, *, delete=False):
         try:
+
+            config_value = await self.dbi.guild_config_stmt.fetchrow(self.guild_id)
+            if not config_value:
+                guild_config_table = self.dbi.table('guild_config')
+                d = {
+                    'guild_id' : self.guild_id
+                }
+                insert_query = guild_config_table.insert(**d)
+                await insert_query.commit()
+                Logger.info("[ALERT] ======> Added Guild Config Row")
 
             # If key is city or timezone for high usage
             if key in ['city', 'timezone', 'prefix']:
@@ -19,8 +41,7 @@ class GuildManager:
                     guild_config_table = self.dbi.table('guild_config')
                     d = { key : value }
                     update_query = guild_config_table.update(**d).where(guild_id=self.guild_id)
-                    return await update_query.commit()
-                    print("updated!")
+                    await update_query.commit()
                 else:
                     config_value = await self.dbi.guild_config_stmt.fetchrow(self.guild_id)
                     return config_value[key]
@@ -31,7 +52,7 @@ class GuildManager:
 
             if delete:
                 if key:
-                    return await guild_metadata_table.delete(guild_id=self.guild_id, config_name=str(key))
+                    return await guild_metadata_table.query().where(guild_id=self.guild_id, config_name=str(key)).delete()
                 else:
                     return None
 

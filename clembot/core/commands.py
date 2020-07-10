@@ -1,13 +1,16 @@
-from discord.ext.commands import Cog, command, group
-
-import discord
 import asyncio
 import functools
 import textwrap
 
+import discord
+from discord.ext import commands
+from discord.ext.commands import Cog
+
 from clembot.config.constants import Icons
+from clembot.core.bot import command, group
 from clembot.core.logs import Logger
 from clembot.utilities.utils.embeds import Embeds
+from clembot.utilities.utils.pagination import Pagination
 
 
 class Cog(Cog):
@@ -266,6 +269,30 @@ class Core(Cog):
         author = ctx.message.author
 
         await self._about_user(author, ctx.message.channel)
+
+    @command(name='help', category='Bot Info')
+    async def _help(self, ctx, *, command_name: str = None):
+        """Shows help on available commands."""
+        try:
+            if command_name is None:
+                p = await Pagination.from_bot(ctx)
+            else:
+                entity = (#self.bot.get_category(command_name) or
+                          self.bot.get_cog(command_name) or
+                          self.bot.get_command(command_name))
+                if entity is None:
+                    clean = command_name.replace('@', '@\u200b')
+                    return await ctx.send(f'Command or category "{clean}" not found.')
+                elif isinstance(entity, commands.Command):
+                    p = await Pagination.from_command(ctx, entity)
+                elif isinstance(entity, str):
+                    p = await Pagination.from_category(ctx, entity)
+                else:
+                    p = await Pagination.from_cog(ctx, entity)
+
+            await p.paginate()
+        except Exception as e:
+            await ctx.send(e)
 
 
 def setup(bot):

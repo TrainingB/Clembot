@@ -1,13 +1,14 @@
+import asyncio
 import os
 import re
-from clembot.core import time_util
-import asyncio
 
+import discord
+
+from clembot.core import time_util
+from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.exts.config.channel_metadata import ChannelMetadata
 from clembot.exts.gymmanager.gym import Gym, GymRepository
 from clembot.exts.pkmn.pokemon import PokemonConverter, PokemonCache
-import discord
-from clembot.core.data_manager.dbi import DatabaseInterface
 
 
 class GymLookupExtension:
@@ -28,7 +29,7 @@ class GymLookupExtension:
 
 class ArgParser:
 
-    def __init__(self, dbi):
+    def __init__(self, dbi=None):
         self.gymLookupExtension = None
         self.dbi = dbi
         if dbi:
@@ -99,8 +100,9 @@ class ArgParser:
 
         response['length'] = len(args)
 
-        command = args[0]
-        del args[0]
+        if 'command' in list_of_options:
+            command = args[0]
+            del args[0]
 
         pokemon_method = options_methods.get('pokemon', ArgParser.pokemon_validator_mock)
         eta_method = options_methods.get('eta', ArgParser.eta_validator_mock)

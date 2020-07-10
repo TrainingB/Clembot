@@ -14,6 +14,7 @@ class Context(commands.Context):
             self.guild_mgr = self.bot.data_manager.guild(self.guild.id)
             self.guild_metadata = self.guild_mgr.metadata
             self.channel_setting = self.guild_mgr.channel_settings
+            self.guild_timezone = self.guild_mgr.timezone
 
     async def codeblock(self, contents, syntax="py", send=True, title=None):
         paginator = commands.Paginator(prefix=f'```{syntax}', max_size=1900)
@@ -84,7 +85,8 @@ class Context(commands.Context):
                 if not isinstance(value, str):
                     ilf = value[0]
                     value = value[1]
-                embed.add_field(name=key, value=value, inline=ilf)
+                if value:
+                    embed.add_field(name=key, value=value, inline=ilf)
         if footer:
             footer = {'text':footer}
             if footer_icon:
@@ -385,3 +387,5 @@ class GetTools:
             return bot.get_emoji(search_term)
         if isinstance(search_term, str):
             return self.get(bot.emojis, name=search_term)
+
+

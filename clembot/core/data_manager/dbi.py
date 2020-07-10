@@ -5,10 +5,10 @@ import os
 import asyncpg
 from discord.ext.commands import when_mentioned_or
 
-from clembot.core.logs import Logger
 from clembot.config import config_template
 from clembot.core.data_manager.schema import Table, Query, Insert, Update, Schema
 from clembot.core.data_manager.tables import core_table_sqls
+from clembot.core.logs import Logger
 
 
 async def init_conn(conn):

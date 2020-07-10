@@ -1,6 +1,6 @@
 import pkgutil
-import discord
-from discord.ext import commands
+
+from clembot.core.bot import group
 from clembot.core.commands import Cog
 
 
@@ -35,7 +35,7 @@ class CogManager(Cog):
                 f"Extension {name} {'reloaded' if was_loaded else 'loaded'}")
 
 
-    @commands.group(category="Owner", aliases=['ext'], invoke_without_command=True)
+    @group(category="Owner", aliases=['ext'], invoke_without_command=True)
     async def extension(self, ctx):
         """Commands to manage extensions."""
         pass
@@ -44,7 +44,7 @@ class CogManager(Cog):
     @extension.group(invoke_without_command=True, aliases=['load'])
     async def cmd_ext_load(self, ctx, *extensions):
         if not extensions:
-            pass
+            return await ctx.send("No such extension.")
 
         for ext in extensions:
             name = ext.replace('_', ' ').title()

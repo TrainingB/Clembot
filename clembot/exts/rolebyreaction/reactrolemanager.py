@@ -4,6 +4,7 @@ import json
 import discord
 from discord.ext import commands
 
+from clembot.core.bot import group, command
 from clembot.utilities.utils.utilities import Utilities
 
 
@@ -97,7 +98,7 @@ class ReactRoleManager(commands.Cog):
             return emoji_array[0]
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["react-role", "rr"])
+    @group(pass_context=True, hidden=True, aliases=["react-role", "rr"])
     async def _react_role(self, ctx):
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
@@ -153,7 +154,7 @@ class ReactRoleManager(commands.Cog):
                 continue
 
 
-    @commands.command(pass_context=True, hidden=True, aliases=["select"])
+    @command(pass_context=True, hidden=True, aliases=["select"])
     async def _select_react_role(self, ctx, group_name=None):
         try:
             available_groups = ctx.bot.guild_dict[ctx.guild.id].setdefault('react-roles', {}).keys()

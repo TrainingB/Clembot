@@ -6,18 +6,18 @@ from enum import Enum
 from typing import Union
 
 import discord
-from clembot.config import config_template
 from discord.ext import commands
+
+from clembot.config import config_template
+from clembot.config.constants import Icons
 from clembot.core.logs import Logger
 from clembot.core.time_util import convert_into_time
 from clembot.exts.gymmanager.gym import POILocation, POILocationConverter
 from clembot.exts.pkmn.pokemon import Pokemon, PokemonCache, PokemonConverter
 from clembot.utilities.timezone import timehandler as TH
-from clembot.utilities.utils.snowflake import CUIDGenerator, Snowflake
-
-from clembot.utilities.utils.utilities import TextUtil
-from clembot.config.constants import Icons
 from clembot.utilities.utils.embeds import Embeds, color
+from clembot.utilities.utils.snowflake import CUIDGenerator, Snowflake
+from clembot.utilities.utils.utilities import TextUtil
 from clembot.utilities.utils.utilities import Utilities
 
 fcounter = 0
@@ -55,7 +55,8 @@ class ChannelMessage:
 
         try:
             message = await channel.fetch_message(message_id)
-        except:
+        except Exception as error:
+            print(error)
             return channel, None
 
         return channel, message
@@ -116,7 +117,7 @@ class RosterLocation:
     @property
     def raid_at(self):
         if self.poi_location:
-            return self.poi_location.embed_label
+            return self.poi_location.gym_embed_label
 
     def raid_location_embed(self):
         return (RosterLocationEmbed.from_roster_location(self)).embed
@@ -807,7 +808,7 @@ class Raid (RSVPEnabled):
     def __init__(self, raid_id=None, bot=None, guild_id=None, channel_id=None, author_id = None,
                  report_message: str = None,
                  raid_type=None, level=None,
-                 raid_location: POILocation = None, pkmn :Pokemon =None, timer=None,
+                 raid_location: POILocation=None, pkmn :Pokemon=None, timer=None,
                  reported_time=None, hatch_time=None, expiry_time=None, start_time=None,
                  response_message: str = None, channel_message: str = None, timezone=None,
                  trainer_dict=dict()):
@@ -942,7 +943,7 @@ class Raid (RSVPEnabled):
         return self.guild.get_channel(self.channel_id)
 
 
-    def __getstate__(self):
+    def get_raid_dict(self):
         """Returns the raid_dict column value for the raid"""
         state_dict = {
             'raid_type': self.raid_type,
@@ -969,7 +970,7 @@ class Raid (RSVPEnabled):
 
     def get_state(self):
         """Returns the DB representation of the raid report"""
-        state = self.__getstate__()
+        state = self.get_raid_dict()
         db_state = {
             'raid_id': self.id,
             'guild_id': self.guild_id,
@@ -977,6 +978,12 @@ class Raid (RSVPEnabled):
             'raid_dict': json.dumps(state)
         }
         return db_state
+
+
+
+    def create_task_tuple(self, coro):
+        task_id = CUIDGenerator.cuid(self.snowflake.next())
+        return self.bot.loop.create_task(coro), task_id
 
 
     @classmethod
@@ -1243,7 +1250,7 @@ class Raid (RSVPEnabled):
 
     async def update(self):
         raid_table = self.bot.dbi.table('raid_report')
-        raid_table_update = raid_table.update(raid_dict=json.dumps(self.__getstate__())).where(raid_id=self.id)
+        raid_table_update = raid_table.update(raid_dict=json.dumps(self.get_raid_dict())).where(raid_id=self.id)
         await raid_table_update.commit()
         Raid.cache(raid=self)
         await self.update_messages()
@@ -1362,9 +1369,7 @@ class Raid (RSVPEnabled):
             self.monitor_task = self.create_task_tuple(self.monitor_status())
 
 
-    def create_task_tuple(self, coro):
-        task_id = CUIDGenerator.cuid(self.snowflake.next())
-        return self.bot.loop.create_task(coro), task_id
+
 
 
     async def expire_raid(self):
@@ -1537,7 +1542,7 @@ class RaidEmbed:
 
         fields = {
             f"**{field_title}**" : name,
-            "**Where**" : raid_location.embed_label,
+            "**Where**" : raid_location.gym_embed_label,
             "**Weaknesses**" : weakness,
             "**CP Range**" : cp_range,
             "**Suggested Start**" : start,
@@ -1549,9 +1554,7 @@ class RaidEmbed:
         return cls(embed)
 
 
-def get_user_icon_url(user: discord.Member):
-    icon_url = f"https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.jpg?size=32"
-    return icon_url
+
 
 class EggEmbed:
     raid_icon = 'https://media.discordapp.net/attachments/423492585542385664/512682888236367872/imageedit_1_9330029197.png'
@@ -1585,7 +1588,7 @@ class EggEmbed:
 
         fields = {
             "**Level**" : f"{level}",
-            "**Where**" : f"{raid_location.embed_label}",
+            "**Where**" : f"{raid_location.gym_embed_label}",
             "**Possible Bosses**" : f"Bosses based on level"
         }
 

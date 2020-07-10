@@ -1,9 +1,9 @@
-import discord
-import pydash as _
 import json
 
-from clembot.config.constants import Icons
+import discord
+import pydash as _
 
+from clembot.config.constants import Icons
 
 """
 create table guild_metadata (
@@ -30,7 +30,7 @@ class GuildMetadata:
 
     GUILD_METADATA_KEY = ['prefix', 'city', 'timezone', 'welcome', 'teams', 'config']
 
-    GUILD_CONFIG_KEY = ["hide-nest-preview", "bingo-card-repo"]
+    GUILD_CONFIG_KEY = ["hide-nest-preview", "bingo-card-repo", "bingo-event-title", "bingo-event-pokemon"]
 
     def __init__(self, bot, guild):
         self.bot = bot
@@ -45,37 +45,28 @@ class GuildMetadata:
         _data = report_guild_query.where(guild_id=self.guild.id)
         return _data
 
-    @classmethod
-    def cache(cls, guild_dict):
-        GuildMetadata.by_guild[guild_dict.get('guild_id')] = guild_dict
-
 
     @classmethod
-    async def data(cls, bot, guild_id):
-
-        guild_metadata = GuildMetadata.by_channel.get(guild_id)
-        if guild_metadata:
-            return guild_metadata
+    async def data(cls, bot, guild_id, config_name):
 
         report_guild_query = bot.dbi.table('guild_metadata').query()
-        _data = report_guild_query.where(guild_id=guild_id)
+        _data = report_guild_query.where(guild_id=guild_id, config_name=config_name)
         db_record = await _data.get()
 
         if db_record:
             guild_metadata = GuildMetadata.deserialize(dict(db_record[0]))
 
-        GuildMetadata.cache(guild_metadata)
         return guild_metadata
 
     @classmethod
     async def city(cls, bot, guild_id):
-        guild_dict = await GuildMetadata.data(bot, guild_id)
-        return guild_dict.get('city')
+        guild_dict = await GuildMetadata.data(bot, guild_id, 'city')
+        return guild_dict.get('config_value')
 
     @classmethod
     async def bingo_card_repo(cls, bot, guild_id):
-        guild_dict = await GuildMetadata.data(bot, guild_id)
-        return guild_dict.get('bingo-card-repo')
+        guild_dict = await GuildMetadata.data(bot, guild_id, 'bingo-card-repo')
+        return guild_dict.get('config_value')
 
     @staticmethod
     def serialize(data_dict):

@@ -7,22 +7,21 @@ import discord
 from discord.ext import commands
 
 import clembot.utilities.timezone.timehandler as TH
-
+from clembot.config.constants import ClembotReactions
+from clembot.core.bot import command, group
 from clembot.core.commands import Cog
 from clembot.core.logs import Logger
-from clembot.exts.config import ChannelConfigCache
 from clembot.exts.config.channel_metadata import ChannelMetadata
 from clembot.exts.gymmanager.gym import Gym, GymRepository, POILocation, POILocationConverter
+from clembot.exts.pkmn.pokemon import PokemonConverter, PokemonCache
+from clembot.exts.profile.user_guild_profile import UserGuildProfile
 from clembot.exts.raid import raid_checks
 from clembot.exts.raid.errors import NotARaidChannel, NotARaidReportChannel
 from clembot.exts.raid.raid import ChannelMessage, Raid, RaidRepository, DiscordOperations
 from clembot.utilities.utils import snowflake
 from clembot.utilities.utils.argparser import ArgParser
-
 from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.utilities import Utilities
-
-from clembot.exts.pkmn.pokemon import PokemonConverter, PokemonCache
 
 
 async def get_gym_by_code_message(dbi, gym_code, message):
@@ -101,7 +100,7 @@ class RaidCog(commands.Cog):
     raid_SYNTAX_ATTRIBUTE = ['command', 'pkmn', 'gym', 'timer', 'location']
     raidegg_SYNTAX_ATTRIBUTE = ['command', 'egg', 'gym', 'timer', 'location']
 
-    # @commands.command(pass_context=True, hidden=True, aliases=["archive"])
+    # @command(pass_context=True, hidden=True, aliases=["archive"])
     # async def _archive(ctx):
     #
     #     message = ctx.message
@@ -148,6 +147,7 @@ class RaidCog(commands.Cog):
         #     await ctx.error(f'{ctx.prefix}{ctx.invoked_with} must be used in a Train Channel!')
         # elif isinstance(error, RaidNotActive):
         #     await ctx.error(f'Raid must be active to use {ctx.prefix}{ctx.invoked_with}')
+
 
     async def expire_raid(self, raid):
         """
@@ -215,19 +215,16 @@ class RaidCog(commands.Cog):
             Logger.error(error)
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["info"])
+    @command(pass_context=True, hidden=True, aliases=["info"])
     @raid_checks.raid_channel()
     async def cmd_info(self, ctx):
-        try:
-            raid = RaidCog._get_raid_for_channel(ctx)
-            await Embeds.message(ctx.channel, f"Reported at: {raid.reported_at} Hatches at: {raid.hatches_at} Expires At: {raid.expires_at}")
-            await Embeds.message(ctx.channel, json.dumps(raid.__getstate__(), indent=2))
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
-        pass
+        raid = RaidCog._get_raid_for_channel(ctx)
+        await Embeds.message(ctx.channel, f"Reported at: {raid.reported_at} Hatches at: {raid.hatches_at} Expires At: {raid.expires_at}")
+        await Embeds.message(ctx.channel, json.dumps(raid.get_raid_dict(), indent=2))
 
-    @commands.group(pass_context=True, hidden=True, aliases=["raid", "r"])
+
+    @group(pass_context=True, hidden=True, aliases=["raid", "r"])
     @raid_checks.raid_report_enabled()
     async def cmd_raid(self, ctx, pokemon):
         """
@@ -235,93 +232,106 @@ class RaidCog(commands.Cog):
         !raid 4 gym 12 -> reports a level 4 raid at gym and egg will hatch in 12 minutes
         !raid absol gym 43 -> reports a absol raid at gym which will expire in 43 minutes
         """
-        try:
-            city = await ctx.guild_metadata(key='city')
-            timezone = await ctx.guild_metadata(key='timezone')
-            Logger.info(f"_command_raid({ctx.message.content}) for {city} {timezone}")
-            raid_id = next(snowflake.create())
 
-            report_message = f"{ctx.message.channel.id}-{ctx.message.id}"
+        city = await ctx.guild_metadata(key='city')
+        timezone = await ctx.guild_metadata(key='timezone')
+        Logger.info(f"_command_raid({ctx.message.content}) for {city} {timezone}")
+        raid_id = next(snowflake.create())
 
-            dscrd = DiscordOperations(self.bot)
+        report_message = f"{ctx.message.channel.id}-{ctx.message.id}"
 
-            raid_type = "raid"
-            if pokemon.isdigit():
-                raid_type = "egg"
+        dscrd = DiscordOperations(self.bot)
 
-
-            syntax = self.raid_SYNTAX_ATTRIBUTE
-            if raid_type == "egg":
-                syntax = self.raidegg_SYNTAX_ATTRIBUTE
-
-            argument_text = ctx.message.clean_content.lower()
-            parameters = await self.ArgParser.parse_arguments(argument_text, syntax, {'gym': get_gym_by_code_message},
-                                                              {'message': ctx.message, 'dbi': ctx.bot.dbi }, ctx)
-            Logger.info(f"[{argument_text}] => {parameters}")
-
-            p_length, p_level, p_pkmn, p_gym, p_timer, p_others = [parameters.get(var_name, None) for var_name in
-                                                                   ['length', 'egg', 'pkmn', 'gym', 'timer', 'others']]
-
-            if p_length < 3:
-                return await Embeds.error(ctx.message.channel, f"Not enough information to create raid.")
-
-            if p_level is None and p_pkmn is None and len(p_others) > 0:
-                for word in p_others:
-                    try:
-                        p_pkmn = await PokemonConverter.convert(word, ctx, word)
-                        break
-                    except:
-                        continue
-
-            if p_level is None and p_pkmn is None:
-                return await Embeds.error(ctx.message.channel, f"Not enough information to create raid.")
+        raid_type = "raid"
+        if pokemon.isdigit():
+            raid_type = "egg"
 
 
-            raid_location = POILocation.from_gym(p_gym) if p_gym else POILocation.from_location_city(
-                ' '.join(str(elem) for elem in p_others), city)
+        syntax = self.raid_SYNTAX_ATTRIBUTE
+        if raid_type == "egg":
+            syntax = self.raidegg_SYNTAX_ATTRIBUTE
 
-            raid = Raid(raid_id=raid_id, bot=self.bot, guild_id = ctx.guild.id,
-                        author_id=ctx.message.author.id, raid_type=raid_type, level=p_level, timer=p_timer,
-                        pkmn=p_pkmn, raid_location=raid_location, report_message=report_message, timezone=timezone )
+        argument_text = ctx.message.clean_content.lower()
+        parameters = await self.ArgParser.parse_arguments(argument_text, syntax, {'gym': get_gym_by_code_message},
+                                                          {'message': ctx.message, 'dbi': ctx.bot.dbi }, ctx)
+        Logger.info(f"[{argument_text}] => {parameters}")
 
-            # create channel
-            # respond in new channel that raid has been created
-            # respond to raid report saying channel has been created
+        p_length, p_level, p_pkmn, p_gym, p_timer, p_others = [parameters.get(var_name, None) for var_name in
+                                                               ['length', 'egg', 'pkmn', 'gym', 'timer', 'others']]
 
-            new_raid_channel = await dscrd.create_channel(ctx, raid)
-            raid.channel_id = new_raid_channel.id
+        if p_length < 3:
+            return await Embeds.error(ctx.message.channel, f"Not enough information to create raid.")
 
-            raid.raid_channel_id = new_raid_channel.id
+        if p_level is None and p_pkmn is None and len(p_others) > 0:
+            for word in p_others:
+                try:
+                    p_pkmn = await PokemonConverter.convert(word, ctx, word)
+                    break
+                except:
+                    continue
 
-            if raid.is_egg:
-                raid_embed = await raid.egg_embed()
-            else:
-                raid_embed = await raid.raid_embed()
-
-            raid.response_message = ChannelMessage.from_message(
-                await dscrd.send_raid_response(raid, raid_embed, ref_channel=new_raid_channel))
-            raid.channel_message = ChannelMessage.from_message(
-                await dscrd.send_raid_channel_message(raid, raid_embed, raid_channel=new_raid_channel))
-
-            if p_timer is not None:
-                await Embeds.message(new_raid_channel, raid.timer_message)
-
-            if p_gym:
-                roles_to_notify = [discord.utils.get(ctx.guild.roles, id=role_id)
-                                   for role_id in GuildNotificationAdapter.get_roles_to_notify(ctx.guild.id,
-                                                                                               p_gym.gym_code)]
-                # TODO if roles_to_notify send notification
-
-            await raid.insert()
-            self.bot.loop.create_task(raid.monitor_status())
-            Logger.info(raid)
-
-        except Exception as error:
-            Logger.error('error', error)
+        if p_level is None and p_pkmn is None:
+            return await Embeds.error(ctx.message.channel, f"Not enough information to create raid.")
 
 
+        raid_location = POILocation.from_gym(p_gym) if p_gym else POILocation.from_location_city(
+            ' '.join(str(elem) for elem in p_others), city)
 
-    @commands.group(pass_context=True, hidden=True, aliases=["assume"])
+        raid = Raid(raid_id=raid_id, bot=self.bot, guild_id = ctx.guild.id,
+                    author_id=ctx.message.author.id, raid_type=raid_type, level=p_level, timer=p_timer,
+                    pkmn=p_pkmn, raid_location=raid_location, report_message=report_message, timezone=timezone )
+
+        # create channel
+        # respond in new channel that raid has been created
+        # respond to raid report saying channel has been created
+
+        new_raid_channel = await dscrd.create_channel(ctx, raid)
+        raid.channel_id = new_raid_channel.id
+
+        raid.raid_channel_id = new_raid_channel.id
+
+        if raid.is_egg:
+            raid_embed = await raid.egg_embed()
+        else:
+            raid_embed = await raid.raid_embed()
+
+        raid.response_message = ChannelMessage.from_message(
+            await dscrd.send_raid_response(raid, raid_embed, ref_channel=new_raid_channel))
+        raid.channel_message = ChannelMessage.from_message(
+            await dscrd.send_raid_channel_message(raid, raid_embed, raid_channel=new_raid_channel))
+
+        if p_timer is not None:
+            await Embeds.message(new_raid_channel, raid.timer_message)
+
+        if p_gym:
+            roles_to_notify = [discord.utils.get(ctx.guild.roles, id=role_id)
+                               for role_id in GuildNotificationAdapter.get_roles_to_notify(ctx.guild.id,
+                                                                                           p_gym.gym_code)]
+            # TODO if roles_to_notify send notification
+
+        await raid.insert()
+
+        # TODO: record raid report for leader-board
+        user_guild_profile = await UserGuildProfile.find(self.bot, user_id=ctx.message.author.id, guild_id=ctx.guild.id)
+        user_guild_profile.record_report('eggs' if raid.is_egg else 'raids')
+        await user_guild_profile.update()
+
+
+        self.bot.loop.create_task(raid.monitor_status())
+        Logger.info(raid)
+
+
+
+    @command(pass_context=True, hidden=True, aliases=["record"])
+    async def cmd_raid_record(self, ctx, type, leaderboard='lifetime'):
+        user_guild_profile = await UserGuildProfile.find(self.bot, user_id=ctx.message.author.id, guild_id=ctx.guild.id)
+        user_guild_profile.record_report(type, leaderboard)
+        await user_guild_profile.update()
+
+        await Embeds.message(ctx.channel, f"**{leaderboard}** : {user_guild_profile.leaderboard_status(leaderboard)}")
+
+
+    @group(pass_context=True, hidden=True, aliases=["assume"])
     @raid_checks.raid_channel()
     async def cmd_assume(self, ctx, pkmn: PokemonConverter):
         # validate for assume is allowed or not
@@ -389,93 +399,89 @@ class RaidCog(commands.Cog):
             raise NoRaidForChannelError(f"Raid not found for channel {ctx.channel.mention}.")
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["timer"])
+    @command(pass_context=True, hidden=True, aliases=["timer"])
     @raid_checks.raid_channel()
     async def cmd_timer(self, ctx):
-        try:
-            raid = RaidCog._get_raid_for_channel(ctx)
-            await Embeds.message(ctx.channel, raid.timer_message)
+        raid = RaidCog._get_raid_for_channel(ctx)
+        await Embeds.message(ctx.channel, raid.timer_message)
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
-    @commands.command(pass_context=True, hidden=True, aliases=["reset-start"])
+    @command(pass_context=True, hidden=True, aliases=["reset-start"])
     @raid_checks.raid_channel()
-    async def _reset_start(self, ctx):
-        try:
-            raid = RaidCog._get_raid_for_channel(ctx)
-            raid.start_time = None
-            await raid.update()
-            await Embeds.message(ctx.channel, f"Suggested start time has been cleared.")
+    async def cmd_reset_start(self, ctx):
+        raid = RaidCog._get_raid_for_channel(ctx)
+        raid.start_time = None
+        await raid.update()
+        await Embeds.message(ctx.channel, f"Suggested start time has been cleared.")
 
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
-
-    @commands.group(pass_context=True, hidden=True, aliases=["start"])
+    @command(pass_context=True, hidden=True, aliases=["start"])
     @raid_checks.raid_channel()
     async def cmd_start(self, ctx, *time_as_text):
-        try:
-            raid = RaidCog._get_raid_for_channel(ctx)
-            timezone = await ctx.guild_metadata('timezone')
-            start_time = TH.convert_to_timestamp(" ".join(time_as_text), timezone)
 
-            if not start_time:
-                return await Embeds.error(ctx.channel, "I couldn't understand time format. Try again like this: `!start HH:MM AM/PM`")
+        raid = RaidCog._get_raid_for_channel(ctx)
+        timezone = await ctx.guild_metadata('timezone')
+        start_time = TH.convert_to_timestamp(" ".join(time_as_text), timezone)
 
-            raid.start_time = start_time
-            await raid.update()
-            await Embeds.message(ctx.channel, f"suggested start time as **{raid.starts_at}**.", user=ctx.message.author)
+        if not start_time:
+            return await Embeds.error(ctx.channel, "I couldn't understand time format. Try again like this: `!start HH:MM AM/PM`")
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        raid.start_time = start_time
+        await raid.update()
+        await Embeds.message(ctx.channel, f"suggested start time as **{raid.starts_at}**.", user=ctx.message.author)
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["timerset"])
+
+    @command(pass_context=True, hidden=True, aliases=["timerset"])
     @raid_checks.raid_channel()
     async def cmd_timerset(self, ctx, timer):
-        try:
-            raid = RaidCog._get_raid_for_channel(ctx)
 
-            Logger.info(f"timerset({raid.cuid}, {timer})")
-            if timer.isdigit():
-                expire_in_minutes = int(timer)
-                raid.update_time(TH.current_epoch(second_precision=False) + timedelta(minutes=expire_in_minutes).seconds)
-                await raid.update()
-                await Embeds.message(ctx.channel, raid.timer_message)
-            else:
-                # TODO: handle time input?
-                await Embeds.error(ctx.channel, f"I couldn't understand the time format. Try again like this: `!timerset 10`",
-                                   user=ctx.message.author)
+        raid = RaidCog._get_raid_for_channel(ctx)
 
-            # await Embeds.message(ctx.channel, f"Reported at: {raid.reported_at} Hatches at: {raid.hatches_at} Expires At: {raid.expires_at}")
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        Logger.info(f"timerset({raid.cuid}, {timer})")
+        if timer.isdigit():
+            expire_in_minutes = int(timer)
+            raid.update_time(TH.current_epoch(second_precision=False) + timedelta(minutes=expire_in_minutes).seconds)
+            await raid.update()
+            await Embeds.message(ctx.channel, raid.timer_message)
+        else:
+            # TODO: handle time input?
+            await Embeds.error(ctx.channel, f"I couldn't understand the time format. Try again like this: `!timerset 10`",
+                               user=ctx.message.author)
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["boss"])
+    @group(pass_context=True, hidden=True, aliases=["boss"])
     @raid_checks.raid_channel()
     async def cmd_boss(self, ctx, boss: PokemonConverter):
-        try:
-            raid = RaidCog._get_raid_for_channel(ctx)
+        raid = RaidCog._get_raid_for_channel(ctx)
 
-            if TH.is_in_future(raid.hatch_time):
-                return await Embeds.error(ctx.channel, f"Please wait until the egg has hatched before changing it to an open raid!",
-                                          user=ctx.message.author)
+        if TH.is_in_future(raid.hatch_time):
+            return await Embeds.error(ctx.channel, f"Please wait until the egg has hatched before changing it to an open raid!",
+                                      user=ctx.message.author)
 
-            if raid.pkmn:
-                return await Embeds.error(ctx.channel, f"Raid boss has already been assigned to this channel.",
-                                          user=ctx.message.author)
+        if raid.pkmn:
+            return await Embeds.error(ctx.channel, f"Raid boss has already been assigned to this channel.",
+                                      user=ctx.message.author)
 
-            await raid.report_hatch(boss)
-
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        await raid.report_hatch(boss)
 
 
+    @Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        """If user reacted 🗑 where I added 🗑 already, delete the message."""
+        if payload.user_id == self.bot.user.id:
+            return
+        emoji = str(payload.emoji)
+        if emoji == ClembotReactions.TRASH.value:
+            channel = self.bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+            payload_reaction = next(filter(lambda r: (r.emoji == payload.emoji.name), message.reactions), None)
+            if payload_reaction and payload_reaction.me:
+                await message.delete()
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["clean-up"])
+
+    @group(pass_context=True, hidden=True, aliases=["clean-up"])
     async def cmd_clean(self, ctx):
 
         query = self._dbi.table("raid_report").query().where(guild_id=ctx.guild.id).order_by("raid_report_id", True)
@@ -490,10 +496,6 @@ class RaidCog(commands.Cog):
                 print(f"{channel.name} ({channel_id})")
                 # await channel.delete()
 
-        print(f"_command_xclean() finished!")
-
-
-
 
     def get_pokemon_image_url(self, pokedex_number):
         # url = icon_list.get(str(pokedex_number))
@@ -505,49 +507,40 @@ class RaidCog(commands.Cog):
             return "http://floatzel.net/pokemon/black-white/sprites/images/{pokedex}.png".format(pokedex=pokedex_number)
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["nest"])
+    @group(pass_context=True, hidden=True, aliases=["nest"])
     async def cmd_nest(self, ctx, pokemon: PokemonConverter, *location_args):
         """
         !nest chimchar MESC
         !nest pikachu somewhere closer
         !nest aron some park http://google-url.com
         """
-        try:
-            message = ctx.message
-            if len(location_args) > 0:
-                nest_location = await POILocationConverter.convert_from_text(ctx, *location_args)
-            else:
-                return await Embeds.error(ctx.channel, f"The correct usage are: ```!nest pokemon location```", user = ctx.message.author)
-            Logger.info(f"{ctx.message.content} => {pokemon} | {nest_location.embed_label} ")
 
-            # await EmbedUtil.message(ctx.channel, f"{pokemon} | {nest_location.embed_label}")
+        message = ctx.message
+        if len(location_args) > 0:
+            nest_location = await POILocationConverter.convert_from_text(ctx, *location_args)
+        else:
+            return await Embeds.error(ctx.channel, f"The correct usage are: ```!nest pokemon location```", user = ctx.message.author)
+        Logger.info(f"{ctx.message.content} => {pokemon} | {nest_location.gym_embed_label} ")
 
-            embed_title = ":map: **A new nest has been reported!**"
-            raid_img_url = pokemon.preview_url
+        # await EmbedUtil.message(ctx.channel, f"{pokemon} | {nest_location.embed_label}")
 
-            # embed_desription = _("**Pokemon :** {pokemon}\n**Nest Reported at :** {location}\n").format(pokemon=pokemon.label.capitalize(), location=nest_location.name)
+        embed_title = ":map: **A new nest has been reported!**"
+        raid_img_url = pokemon.preview_url
 
-            nest_embed = discord.Embed(title=embed_title, description="", colour=discord.Colour.gold(), timestamp=TH.datetime.utcnow())
+        # embed_desription = _("**Pokemon :** {pokemon}\n**Nest Reported at :** {location}\n").format(pokemon=pokemon.label.capitalize(), location=nest_location.name)
 
-            nest_embed.add_field(name="**Pokemon**", value=pokemon.label.capitalize(), inline=True)
-            nest_embed.add_field(name="**Where**", value=nest_location.embed_label, inline=True)
-            nest_embed.set_thumbnail(url=raid_img_url)
-            hide_preview = not nest_location.is_gym or await ctx.guild_metadata('nest.preview.hide') == 'true'
-            if not hide_preview:
-                nest_embed.set_image(url=nest_location.google_preview_url)
-            nest_embed.set_footer(text=f"Reported by {message.author.display_name}", icon_url=f"https://cdn.discordapp.com/avatars/{message.author.id}/{message.author.avatar}.jpg?size=32")
-            await ctx.channel.send(embed=nest_embed)
+        nest_embed = discord.Embed(title=embed_title, description="", colour=discord.Colour.gold(), timestamp=TH.datetime.utcnow())
 
-        except Exception as error:
-            Logger.info("{0} while processing message.".format(error))
-
-        finally:
-            await asyncio.sleep(15)
-            try:
-                await ctx.message.delete()
-            except:
-                pass
-
+        nest_embed.add_field(name="**Pokemon**", value=pokemon.label.capitalize(), inline=True)
+        nest_embed.add_field(name="**Where**", value=nest_location.gym_embed_label, inline=True)
+        nest_embed.set_thumbnail(url=raid_img_url)
+        hide_preview = not nest_location.is_gym or await ctx.guild_metadata('nest.preview.hide') == 'true'
+        if not hide_preview:
+            nest_embed.set_image(url=nest_location.google_preview_url)
+        nest_embed.set_footer(text=f"Reported by {message.author.display_name}", icon_url=f"https://cdn.discordapp.com/avatars/{message.author.id}/{message.author.avatar}.jpg?size=32")
+        await ctx.channel.send(embed=nest_embed)
+        await asyncio.sleep(15)
+        await ctx.message.delete()
 
 
 

@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+from clembot.core.bot import group
+
 
 class PropertiesHandler(commands.Cog):
 
@@ -38,7 +40,7 @@ class PropertiesHandler(commands.Cog):
     # !add-notes
     # !
 
-    @commands.group(pass_context=True, hidden=True, aliases=["notes"])
+    @group(pass_context=True, hidden=True, aliases=["notes"])
     async def _notes(self, ctx):
         if ctx.invoked_subcommand is None:
 

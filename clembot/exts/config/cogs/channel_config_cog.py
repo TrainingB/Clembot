@@ -3,11 +3,11 @@ import asyncio
 import pydash as _
 from discord.ext import commands
 
+from clembot.config.constants import Icons
+from clembot.core.bot import group
 from clembot.core.logs import Logger
 from clembot.exts.config.channel_metadata import ChannelMetadata
-
 from clembot.utilities.utils.embeds import Embeds
-from clembot.config.constants import Icons
 
 
 class ManagementCog(commands.Cog):
@@ -18,7 +18,7 @@ class ManagementCog(commands.Cog):
     FEATURES = ['raid', 'wild', 'nest', 'research', 'trade', 'rocket']
     CITY_FEATURES = ['raid', 'wild', 'nest', 'research', 'trade', 'rocket']
 
-    @commands.group(pass_context=True, hidden=True, aliases=["abort"])
+    @group(pass_context=True, hidden=True, aliases=["abort"])
     async def cmd_abort(self, ctx):
         channel_id = ctx.channel.id
         if ChannelMetadata.config_in_progress(channel_id):
@@ -28,7 +28,7 @@ class ManagementCog(commands.Cog):
         return await Embeds.error(ctx.channel, "No configuration found in progress.")
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["cstatus"])
+    @group(pass_context=True, hidden=True, aliases=["cstatus"])
     async def cmd_status(self, ctx):
         channel_id = ctx.channel.id
 
@@ -37,7 +37,7 @@ class ManagementCog(commands.Cog):
         return await ctx.send(embed=ChannelMetadata.embed(ctx, report_channel_dict))
 
 
-    @commands.group(pass_context=True, hidden=True, aliases=["disable"])
+    @group(pass_context=True, hidden=True, aliases=["disable"])
     async def cmd_disable(self, ctx, *features):
         """
         Disable features in the channel.
@@ -67,7 +67,7 @@ class ManagementCog(commands.Cog):
             Logger.error(error)
             await Embeds.error(ctx.channel, error)
 
-    @commands.group(pass_context=True, hidden=True, aliases=["enable"])
+    @group(pass_context=True, hidden=True, aliases=["enable"])
     async def cmd_enable(self, ctx, *features):
         """
         Enable features in the channel.

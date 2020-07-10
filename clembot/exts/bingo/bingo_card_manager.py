@@ -2,6 +2,7 @@ import json
 
 from clembot.core.logs import Logger
 
+
 class BingoCardManager:
 
     def __init__(self, dbi):

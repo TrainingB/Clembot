@@ -2,9 +2,6 @@ import os
 
 from discord.ext import commands
 
-from clembot.core.logs import Logger
-from clembot.exts.pkmn.pokemon import PokemonCache
-
 
 class PokemonCog(commands.Cog):
     """

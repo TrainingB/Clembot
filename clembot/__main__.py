@@ -1,4 +1,5 @@
-import sys, os
+import os
+import sys
 
 from clembot.utilities.utils.argparser import ArgParser
 
@@ -34,8 +35,8 @@ from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.core.errors import custom_error_handling
 
 from clembot.exts.autorespond.auto_response_cog import AutoResponseCog
-from clembot.exts.badges.badgemanager import BadgeManager
-from clembot.exts.bingo.bingogenerator import BingoDataGenerator
+
+
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
 from clembot.exts.config.cogs.config_cog import ConfigCog
 from clembot.exts.config.channelconfigmanager import ChannelConfigCache
@@ -74,7 +75,7 @@ def run_bot(debug=False, launcher=None, from_restart=False):
 
     bot.load_extension('clembot.core.commands')
     bot.load_extension('clembot.core.cog_manager')
-
+    custom_error_handling(bot, Logger)
     try:
         loop.run_until_complete(bot.start(config_template.bot_token))
         Logger.info("started!")
@@ -281,7 +282,7 @@ Clembot.MyChannelConfigCache = MyChannelConfigCache
 
 Clembot.MyTradeManager = TradeManager(Clembot)
 Clembot.MyAutoResponder = AutoResponseCog(Clembot)
-Clembot.MyBadgeManager = BadgeManager(Clembot)
+Clembot.MyBadgeManager = BadgeCog(Clembot)
 
 
 
@@ -2102,99 +2103,6 @@ async def all(ctx):
     return
 
 
-@Clembot.command(pass_context=True, hidden=True, aliases=["w"])
-@checks.wildset()
-@checks.citychannel()
-async def wild(ctx):
-    """Report a wild Pokemon spawn location.
-
-    Usage: !wild <species> <location>
-    Clembot will insert the details (really just everything after the species name) into a
-    Google maps link and post the link to the same channel the report was made in."""
-    await _wild(ctx.message)
-
-
-async def _wild(message):
-    try:
-        timestamp = (message.created_at + datetime.timedelta(hours=guild_dict[message.channel.guild.id]['offset'])).strftime(_('%I:%M %p (%H:%M)'))
-        wild_split = message.clean_content.lower().split()
-        del wild_split[0]
-        if len(wild_split) <= 1:
-            await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!wild <pokemon name> <location>**"))
-            return
-        else:
-            content = ' '.join(wild_split)
-            entered_wild = content.split(' ', 1)[0]
-            entered_wild = get_name(entered_wild).lower() if entered_wild.isdigit() else entered_wild.lower()
-            wild_details = content.split(' ', 1)[1]
-            if entered_wild not in pkmn_info['pokemon_list']:
-                entered_wild2 = ' '.join([content.split(' ', 2)[0], content.split(' ', 2)[1]]).lower()
-                if entered_wild2 in pkmn_info['pokemon_list']:
-                    entered_wild = entered_wild2
-                    try:
-                        wild_details = content.split(' ', 2)[2]
-                    except IndexError:
-                        await message.channel.send( _("Beep Beep! Give more details when reporting! Usage: **!wild <pokemon name> <location>**"))
-                        return
-            wild_gmaps_link = create_gmaps_query(wild_details, message.channel)
-            rgx = '[^a-zA-Z0-9]'
-            pkmn_match = next((p for p in pkmn_info['pokemon_list'] if re.sub(rgx, '', p) == re.sub(rgx, '', entered_wild)), None)
-
-            if pkmn_match:
-                entered_wild = pkmn_match
-            else:
-                entered_wild = await autocorrect(entered_wild, message.channel, message.author)
-            wild = discord.utils.get(message.guild.roles, name=entered_wild)
-
-            if wild is None:
-                title_or_mention = "**{0}**".format(entered_wild.capitalize())
-            else:
-                title_or_mention = "**{0}**".format(wild.mention)
-
-            # if wild is None:
-            #     wild = await guild.create_role(name=entered_wild, hoist=False, mentionable=True)
-            #     await asyncio.sleep(0.5)
-
-            wild_number = pkmn_info['pokemon_list'].index(entered_wild) + 1
-            expiremsg = _('**This {pokemon} has despawned!**').format(pokemon=entered_wild.title())
-
-            wild_img_url = "https://raw.githubusercontent.com/FoglyOgly/Clembot/master/images/pkmn/{0}_.png".format(str(wild_number).zfill(3))
-
-            wild_img_url = get_pokemon_image_url(wild_number)  # This part embeds the sprite
-            wild_embed = discord.Embed(title=_("Beep Beep! Click here for my directions to the wild {pokemon}!").format(pokemon=entered_wild.capitalize()), description=_("Ask {author} if my directions aren't perfect!").format(author=message.author.display_name), url=wild_gmaps_link, colour=message.guild.me.colour)
-            wild_embed.add_field(name=_('**Details:**'), value=_('{pokemon} ({pokemonnumber}) {type}').format(pokemon=entered_wild.capitalize(), pokemonnumber=str(wild_number), type=''.join(get_type(message.guild, wild_number))), inline=False)
-            # wild_embed.add_field(name='**Reactions:**', value= "🏎: I'm on my way!\n 💨 The Pokemon despawned!".format(parse_emoji(message.guild, ':dash:')))
-            wild_embed.add_field(name='**Reactions:**', value="🏎: I'm on my way!\n💨: The Pokemon despawned!")
-
-            if message.author.avatar:
-                wild_embed.set_footer(text=_('Reported by @{author} - {timestamp}').format(author=message.author.display_name, timestamp=timestamp), icon_url='https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}?size={size}'.format(user=message.author, format='jpg', size=32))
-            else:
-                wild_embed.set_footer(text=_('Reported by @{author} - {timestamp}').format(author=message.author.display_name, timestamp=timestamp), icon_url=message.author.default_avatar_url)
-            wild_embed.set_thumbnail(url=wild_img_url)
-            wildreportmsg = await message.channel.send(content=_("Beep Beep! Wild {pokemon} reported by {member}! Details: {location_details}").format(pokemon=title_or_mention, member=message.author.mention, location_details=wild_details) , embed=wild_embed)
-
-            await asyncio.sleep(0.25)
-            await wildreportmsg.add_reaction('🏎')
-            await asyncio.sleep(0.25)
-            await wildreportmsg.add_reaction('💨')
-            await asyncio.sleep(0.25)
-            wild_dict = copy.deepcopy(guild_dict[message.guild.id].get('wildreport_dict',{}))
-            wild_dict[wildreportmsg.id] = {
-                'exp':time.time() + 3600,
-                'expedit': {"content":wildreportmsg.content,"embedcontent":expiremsg},
-                'reportmessage':message.id,
-                'reportchannel':message.channel.id,
-                'reportauthor':message.author.id,
-                'location':wild_details,
-                'pokemon':entered_wild,
-                'omw': []
-            }
-            guild_dict[message.guild.id]['wildreport_dict'] = wild_dict
-
-            await record_reported_by(message.guild.id, message.channel.name, message.author.id, 'wilds')
-
-    except Exception as error:
-        Logger.info(error)
 
 
 reactionRoleManager = ReactionRoleManager(Clembot)
@@ -2256,22 +2164,7 @@ async def on_raw_reaction_add(reaction):
     # except Exception as error:
     #     logger.error(error)
 
-async def expire_wild(message):
-    guild = message.channel.guild
-    channel = message.channel
-    wild_dict = guild_dict[guild.id]['wildreport_dict']
-    try:
-        expiremsg = _('**This {pokemon} has despawned!**').format(pokemon=guild_dict[guild.id]['wildreport_dict'][message.id]['pokemon'].title())
-        await message.edit(embed=discord.Embed(description=expiremsg, colour=message.embeds[0].colour.value))
-        await message.clear_reactions()
-    except discord.errors.NotFound:
-        pass
-    try:
-        user_message = await channel.fetch_message(wild_dict[message.id]['reportmessage'])
-        await user_message.delete()
-    except discord.errors.NotFound:
-        pass
-    del guild_dict[guild.id]['wildreport_dict'][message.id]
+
 
 async def autocorrect(entered_word, destination, author):
     msg = _("Beep Beep! **{word}** isn't a Pokemon!").format(word=entered_word.title())
@@ -3589,12 +3482,12 @@ async def on_message(message):
 
 def extract_link_from_text(text):
     newloc = None
-    mapsindex = text.find("/maps")
+    mapsindex = text.find_first("/maps")
     newlocindex = text.rfind("http", 0, mapsindex)
 
     if newlocindex == -1:
         return newloc
-    newlocend = text.find(" ", newlocindex)
+    newlocend = text.find_first(" ", newlocindex)
     if newlocend == -1:
         newloc = text[newlocindex:]
     else:
@@ -5006,11 +4899,11 @@ async def new(ctx):
 
         details = " ".join(location_split)
         if "/maps" in message.content:
-            mapsindex = message.content.find("/maps")
+            mapsindex = message.content.find_first("/maps")
             newlocindex = message.content.rfind("http", 0, mapsindex)
             if newlocindex == -1:
                 return
-            newlocend = message.content.find(" ", newlocindex)
+            newlocend = message.content.find_first(" ", newlocindex)
             if newlocend == -1:
                 newloc = message.content[newlocindex:]
             else:

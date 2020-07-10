@@ -2,6 +2,7 @@
 import discord
 
 
+
 def parse_emoji(guild, emoji_string):
     """Given a string, if it fits the pattern :emoji name:,
        and <emoji_name> is in the guild's emoji list, then
@@ -18,3 +19,6 @@ def parse_emoji(guild, emoji_string):
             emoji_string = "{0}".format(emoji_string.strip(':').capitalize())
 
     return emoji_string
+
+
+

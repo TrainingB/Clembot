@@ -428,11 +428,19 @@ class POILocation:
         return self.gym is not None
 
     @property
-    def embed_label(self):
+    def gym_embed_label(self):
         if self.is_gym:
             directions = f"[{self.gym.gym_display_name}]({self.url})"
         else:
             directions = f"[{self.name} (Unknown Gym)]({self.url})"
+        return directions
+
+    @property
+    def embed_label(self):
+        if self.is_gym:
+            directions = f"[{self.gym.gym_display_name}]({self.url})"
+        else:
+            directions = f"[{self.name}]({self.url})"
         return directions
 
     @property
@@ -441,6 +449,10 @@ class POILocation:
             return self.gym.google_preview_url
         return None
 
+    def __str__(self):
+        directions = f"[{self.name}]({self.url})"
+
+        return directions
 
     def __repr__(self):
         directions = f"[{self.name}]({self.url})"
