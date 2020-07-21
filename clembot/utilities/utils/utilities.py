@@ -5,7 +5,6 @@ import re
 from itertools import cycle
 
 import discord
-import hastebin
 
 from clembot.core.bot import command
 from clembot.core.errors import wrap_error
@@ -321,7 +320,7 @@ class Utilities:
     @staticmethod
     async def send_to_hastebin(destination, whatever):
         whatever = whatever.encode('ascii', errors='replace').decode('utf-8')
-        await Utilities.message(destination, hastebin.post(whatever))
+        print(whatever)
 
 
 # class SnakeDraft:
