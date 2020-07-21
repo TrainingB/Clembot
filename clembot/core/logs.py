@@ -45,12 +45,12 @@ def init_loggers():
     logfile_path = 'logs/clembot.log'
     fhandler = logging.handlers.RotatingFileHandler(
         filename=str(logfile_path), encoding='utf-8', mode='a',
-        maxBytes=400000, backupCount=20)
+        maxBytes=400000, backupCount=10)
     fhandler.setFormatter(clembot_format)
 
 
-    # global_logger.addHandler(fhandler)
-    _instance.addHandler(stdout_handler)
+    _instance.addHandler(fhandler)
+    # _instance.addHandler(stdout_handler)
     logger.info("logger initialized.")
     return logger
 
