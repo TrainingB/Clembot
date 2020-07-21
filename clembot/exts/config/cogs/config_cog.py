@@ -97,7 +97,7 @@ class ConfigCog(commands.Cog):
                                                content=f"{timezones} \n\n ||You can tap 🗑️ to delete this message.||",
                                                 footer="Timezone info from Olson database"))
 
-        await response_message.add_reaction(MyEmojis.TRASH.value)
+        await response_message.add_reaction(MyEmojis.TRASH)
 
 
     @group(pass_context=True, hidden=True, aliases=["config"])

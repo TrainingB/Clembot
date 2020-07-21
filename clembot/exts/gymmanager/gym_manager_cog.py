@@ -105,7 +105,7 @@ class GymManagerCog(commands.Cog):
 
     async def send_gym_embed(self, ctx, gym_code, city=None):
 
-        city = await self.CityManager.get_city_for_channel(ctx.guild.id, ctx.channel.id) if city is None else city
+        city = await ctx.city()
 
         gym = await self.gymRepository.to_gym_by_code_city(gym_code, city)
 
@@ -139,10 +139,11 @@ class GymManagerCog(commands.Cog):
 
     @group(pass_context=True, hidden=True, aliases=["gyms"])
     async def _command_gyms(self, ctx, gym_code_or_name=None, city=None):
+        city = await ctx.city()
         await self._gyms(ctx.message, gym_code_or_name, city)
 
 
-    async def _gyms(self, message, gym_code_or_name = None, city=None):
+    async def _gyms(self, message, gym_code_or_name = None, city_state=None):
 
         gym_code_or_name = gym_code_or_name.upper() if gym_code_or_name is not None else gym_code_or_name
 
@@ -151,8 +152,6 @@ class GymManagerCog(commands.Cog):
             return
 
         try:
-
-            city_state = await self.CityManager.get_city_for_channel(message.guild.id, message.channel.id) if city is None else city
 
             if not city_state:
                 return await Embeds.error(message.channel, "this channel doesn't have a city assigned. Please contact an admin to assign a city.", user=message.author)

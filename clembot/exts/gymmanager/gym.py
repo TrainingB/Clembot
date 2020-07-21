@@ -319,7 +319,7 @@ class GymRepository:
 
 
     async def to_gym_by_code(self, gym_code, message) -> Gym:
-        city = await ChannelMetadata.city({dbi: self.dbi}, message.channel.id)
+        city = await ChannelMetadata.city({'dbi': self.dbi}, message.channel.id)
         list_of_gym = await self.search_by_gym_code_city(gym_code, city)
         gym = Gym.from_dict(list_of_gym[0]) if len(list_of_gym) > 0 else None
         return gym

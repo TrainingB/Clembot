@@ -117,8 +117,9 @@ class RaidMaster:
 
         if level:
             raid_master = cls.by_level.get(str(level), None)
+            return raid_master
 
-        return raid_master
+        raise Exception(f"Error : Raid bosses (level - {level}) are not loaded.")
 
     def __getitem__(self, item):
         """use [] operator to access members, simpler to create entity objects"""

@@ -437,12 +437,8 @@ class RaidCog(commands.Cog):
         if payload.user_id == self.bot.user.id:
             return
 
-        # b'\xf0\x9f\x97\x91\xef\xb8\x8f'
-        print(Utilities._normalize(payload.emoji).encode())
-        print(Utilities._normalize(MyEmojis.TRASH.value).encode())
-
         emoji = str(payload.emoji)
-        if emoji == MyEmojis.TRASH.value:
+        if emoji == MyEmojis.TRASH:
             channel = self.bot.get_channel(payload.channel_id)
             message = await channel.fetch_message(payload.message_id)
             payload_reaction = next(filter(lambda r: (r.emoji == payload.emoji.name), message.reactions), None)
