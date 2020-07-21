@@ -246,3 +246,84 @@ async def ask(bot, message, user_list=None, timeout=60, *, react_list=['✅', '�
     except asyncio.TimeoutError:
         await message.clear_reactions()
         return
+
+
+
+numbers_text = ["zero","one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+
+one_to_ten = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '🔟']
+
+
+
+
+def emojify(numbers_text, one_to_ten, guild, normalized_emoji):
+
+    emoji_array = [':%s:%s' %(guild_emoji.name,guild_emoji.id) for guild_emoji in guild.emojis if guild_emoji.name == normalized_emoji or str(guild_emoji) == normalized_emoji]
+
+    if len(emoji_array) > 0:
+        return emoji_array[0]
+
+    if normalized_emoji in numbers_text:
+        normalized_emoji = numbers_text.index(normalized_emoji)
+        normalized_emoji = f'{normalized_emoji}\u20e3'
+
+    if normalized_emoji.isdigit():
+        normalized_emoji = f'{normalized_emoji}\u20e3'
+
+    if normalized_emoji in one_to_ten:
+        return normalized_emoji
+
+    return None
+
+def _new_serialize(emoji):
+    if isinstance(emoji, discord.Reaction):
+         emoji = emoji.emoji
+    if isinstance(emoji, discord.Emoji):
+        emoji = '%s:%s' % (emoji.name, emoji.id)
+    elif isinstance(emoji, discord.PartialEmoji):
+        emoji = emoji._as_reaction()
+    elif isinstance(emoji, str):
+        pass
+
+    if emoji.__contains__(">") and emoji.__contains__("<"):
+        emoji = emoji.replace('<','').replace('>','')
+    return emoji
+
+
+def serialize(guild, emoji):
+    emoji_array = [guild_emoji.name for guild_emoji in guild.emojis if guild_emoji.name == emoji or str(guild_emoji) == emoji]
+
+    if len(emoji_array) > 0:
+        return emoji_array[0]
+
+    if emoji in numbers_text:
+        emoji = numbers_text.index(emoji)
+        emoji = f'{emoji}\u20e3'
+
+    if emoji.isdigit():
+        emoji = f'{emoji}\u20e3'
+
+    if emoji in one_to_ten:
+        return emoji
+
+    return None
+
+def demojify(guild, emoji_string):
+
+    if emoji_string in one_to_ten:
+        return emoji_string
+
+    emoji = emoji_string.replace('<','').replace('>','').split(":")[1]
+
+    return emoji
+
+# convert input to standard emoji format
+
+def printable(guild, emoji_text):
+    if emoji_text in one_to_ten:
+        return emoji_text
+
+    emoji_array = ['<:%s:%s>' % (guild_emoji.name, guild_emoji.id) for guild_emoji in guild.emojis if guild_emoji.name == emoji_text or str(guild_emoji) == emoji_text]
+
+    if len(emoji_array) > 0:
+        return emoji_array[0]

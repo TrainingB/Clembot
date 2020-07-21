@@ -45,7 +45,7 @@ class ChannelMetadata:
 
 
     @classmethod
-    async def data(cls, bot, channel_id):
+    async def find(cls, bot, channel_id, guild_id = None):
 
         channel_metadata = ChannelMetadata.by_channel.get(channel_id)
         if channel_metadata:
@@ -57,13 +57,16 @@ class ChannelMetadata:
 
         if db_record:
             channel_metadata = ChannelMetadata.deserialize(dict(db_record[0]))
+            ChannelMetadata.cache(channel_metadata)
+            return channel_metadata
 
-        ChannelMetadata.cache(channel_metadata)
-        return channel_metadata
+        await ChannelMetadata.insert(bot, {'channel_id': channel_id, 'guild_id': guild_id})
+        return ChannelMetadata.by_channel.get(channel_id)
+
 
     @classmethod
     async def city(cls, bot, channel_id):
-        channel_dict = await ChannelMetadata.data(bot, channel_id)
+        channel_dict = await ChannelMetadata.find(bot, channel_id)
         return channel_dict.get('city')
 
     @staticmethod
@@ -142,7 +145,7 @@ class ChannelConfigEmbed:
         if not title:
             title = "Here are the current configurations for this channel"
 
-        embed = discord.Embed(title=title)
+        embed = discord.Embed(title=title, colour=discord.Color.blue())
 
         if not icon_url:
             icon_url = Icons.configure
@@ -154,7 +157,6 @@ class ChannelConfigEmbed:
 
         embed.add_field(name="**:white_check_mark: Enabled Features**", value=enabled_features if len(enabled_features) > 0 else '-', inline=True)
         embed.add_field(name="**:negative_squared_cross_mark: Disabled Features**", value=disabled_features if len(disabled_features) > 0 else '-', inline=True)
-
 
         return cls(embed)
 

@@ -1,18 +1,22 @@
 import asyncio
 import copy
 import json
+import traceback
 
 import discord
 from discord.ext import commands
 
+from clembot.config.constants import MyEmojis
 from clembot.core import checks
 from clembot.core.bot import group, command
 from clembot.core.logs import Logger
-from clembot.exts.pkmn.pokemon import PokemonCache
+from clembot.exts.pkmn.gm_pokemon import Pokemon
+
+from clembot.exts.raid import raid_checks
 from clembot.exts.raid.raid import RaidRepository, RaidParty, RosterLocation
 from clembot.exts.raid.raid_cog import NoRaidForChannelError
 from clembot.utilities.utils import snowflake
-from clembot.utilities.utils.embeds import Embeds, Emojis
+from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.utilities import Utilities
 
 
@@ -29,7 +33,7 @@ class RaidPartyCog(commands.Cog):
     async def pickup_raidpartydata(self):
         Logger.info("pickup_raidpartydata()")
 
-        await PokemonCache.load_cache_from_dbi(self.bot.dbi)
+        await Pokemon.load(self.bot)
         for rcrd in await RaidRepository.find_raid_parties():
             self.bot.loop.create_task(self.pickup_raidparty(rcrd))
 
@@ -124,7 +128,7 @@ class RaidPartyCog(commands.Cog):
 
             await raid_party.move()
 
-            success_message = f"{Emojis.info} Raid party is moving to next location."
+            success_message = f"{MyEmojis.INFO} Raid party is moving to next location."
             await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
 
         except Exception as error:
@@ -146,7 +150,7 @@ class RaidPartyCog(commands.Cog):
             roster_location = await RosterLocation.from_command_text(ctx, ctx.message.content)
             await raid_party.append(roster_location)
 
-            success_message = f"{Emojis.info} Location {raid_party.current_location_index} has been added to the roster."
+            success_message = f"{MyEmojis.INFO} Location {raid_party.current_location_index} has been added to the roster."
             await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
 
         except Exception as error:
@@ -197,7 +201,7 @@ class RaidPartyCog(commands.Cog):
 
 
     @command(pass_context=True, hidden=True, aliases=["rosterx"])
-    @checks.raidpartychannel()
+    @raid_checks.raid_channel()
     async def _rosterx(self, ctx):
 
         # message = await self.utilities._send_message(ctx.channel, "New roster under construction.", user=ctx.message.author)
@@ -213,7 +217,7 @@ class RaidPartyCog(commands.Cog):
             await message.add_reaction('\u27a1')
             await message.add_reaction('\u23f9')
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
         try:
             is_timed_out = False
@@ -239,7 +243,7 @@ class RaidPartyCog(commands.Cog):
             await message.remove_reaction('\u23f9', ctx.bot.user)
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
     async def print_roster(self, ctx, message, roster_message=None):
 
@@ -310,7 +314,7 @@ class RaidPartyCog(commands.Cog):
                         marker2=marker)
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
         return roster_msg
 

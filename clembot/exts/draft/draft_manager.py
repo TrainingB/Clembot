@@ -1,4 +1,5 @@
 import json
+import traceback
 
 import discord
 from discord.ext import commands
@@ -7,8 +8,10 @@ from discord.ext.commands import UserConverter
 from clembot.core import checks
 from clembot.core.bot import group, command
 from clembot.core.commands import Cog
+from clembot.core.logs import Logger
 from clembot.exts.draft.draft import DraftStatus, Draft, DraftInterface
-from clembot.exts.pkmn.pokemon import PokemonConverter, PokemonCache, OptionalPokemonConverter
+from clembot.exts.pkmn.gm_pokemon import Pokemon
+from clembot.exts.pkmn.pokemon import OptionalPokemonXConverter, PokemonXCache
 from clembot.utilities.utils.utilities import Utilities
 
 
@@ -40,12 +43,12 @@ class DraftManagerCog(Cog):
 
 
     @_draft.command(aliases=["check"], pass_context=True)
-    @checks.guildowner_or_permissions(manage_channels=True)
+    @checks.is_guild_owner()
     async def _draft_check(self, ctx, text):
 
         try:
 
-            pokemon = await PokemonConverter.convert(text, ctx, text)
+            pokemon = await Pokemon.convert(text, ctx, text)
 
             if pokemon:
                 await Utilities.message(ctx.channel, f"{pokemon} details {pokemon.to_dict}")
@@ -56,7 +59,7 @@ class DraftManagerCog(Cog):
 
 
     @_draft.command(aliases=["create", "new"], pass_context=True)
-    @checks.guildowner_or_permissions(manage_channels=True)
+    @checks.is_guild_owner()
     async def _draft_create(self, ctx, draft_channel: discord.TextChannel = None):
 
         if draft_channel is None:
@@ -83,12 +86,12 @@ class DraftManagerCog(Cog):
             else:
                 return await Utilities.error(ctx.message.channel, f"No draft found for **{ctx.channel.mention}**")
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             return await Utilities.error(ctx.message.channel, f"{error}")
 
 
     @_draft.command(aliases=["reset"], pass_context=True)
-    @checks.guildowner_or_permissions(manage_channels=True)
+    @checks.is_guild_owner()
     async def _draft_reset(self, ctx, mode=None):
         draft = await self.fetch_draft_for_channel(ctx.guild.id, ctx.channel.id)
 
@@ -103,7 +106,7 @@ class DraftManagerCog(Cog):
 
 
     @_draft.command(aliases=["shuffle"], pass_context=True)
-    @checks.guildowner_or_permissions(manage_channels=True)
+    @checks.is_guild_owner()
     async def _draft_shuffle(self, ctx):
         draft = await self.fetch_draft_for_channel(ctx.guild.id, ctx.channel.id)
 
@@ -114,7 +117,7 @@ class DraftManagerCog(Cog):
         await Utilities.message(ctx.channel, f"Current draft order is : {draft.player_draft_order_mentions}")
 
     @_draft.command(aliases=["add-player", "ap"], pass_context=True)
-    @checks.guildowner_or_permissions(manage_channels=True)
+    @checks.is_guild_owner()
     async def _draft_add_player(self, ctx, *player_list: discord.Member):
 
         draft = await self.fetch_draft_for_channel(ctx.guild.id, ctx.channel.id)
@@ -160,7 +163,7 @@ class DraftManagerCog(Cog):
     @commands.has_permissions(manage_guild=True)
     async def _dump_pokeform(self, ctx):
 
-        await Utilities.send_to_hastebin(ctx.channel, json.dumps(PokemonCache.cache()))
+        await Utilities.send_to_hastebin(ctx.channel, json.dumps(PokemonXCache.cache()))
 
 
     @command(aliases=["debug-form"], pass_context=True)
@@ -178,11 +181,11 @@ class DraftManagerCog(Cog):
     @command(aliases=["refresh-cache"], pass_context=True)
     async def _refresh_cache(self, ctx):
         try:
-            results = await PokemonCache.load_cache_from_dbi(self.dbi)
+            results = await Pokemon.load(self.dbi)
 
             await Utilities.send_to_hastebin(ctx.channel, json.dumps(results))
 
-            await Utilities.message(ctx.channel, f"The current cache size for pokemon is **{PokemonCache.cache_size()}**!")
+            await Utilities.message(ctx.channel, f"The current cache size for pokemon is **{len(Pokemon._cache)}**!")
         except Exception as error:
             await Utilities.error(ctx.channel, error)
 
@@ -232,7 +235,7 @@ class DraftManagerCog(Cog):
     async def get_member_and_pokemon(self, ctx, args):
         player = None
         list_of_pokemon = []
-        pokemon_converter = OptionalPokemonConverter()
+        pokemon_converter = OptionalPokemonXConverter()
         for arg in args:
 
             pokemon = await pokemon_converter.convert(ctx, argument=arg)
@@ -271,9 +274,9 @@ class DraftManagerCog(Cog):
 
 
     @_draft_auto.command(aliases=["remove"], pass_context=True)
-    async def _draft_auto_remove(self, ctx, *provided_list_of_pokemon: OptionalPokemonConverter):
+    async def _draft_auto_remove(self, ctx, *provided_list_of_pokemon: OptionalPokemonXConverter):
 
-        list_of_pokemon = OptionalPokemonConverter.remove_empty_members(provided_list_of_pokemon)
+        list_of_pokemon = OptionalPokemonXConverter.remove_empty_members(provided_list_of_pokemon)
         message_content = ctx.message.content
 
         player = ctx.message.author
@@ -289,9 +292,9 @@ class DraftManagerCog(Cog):
 
 
     @_draft_auto.command(aliases=["set"], pass_context=True)
-    async def _draft_auto_set(self, ctx, *provided_list_of_pokemon: OptionalPokemonConverter):
+    async def _draft_auto_set(self, ctx, *provided_list_of_pokemon: OptionalPokemonXConverter):
 
-        list_of_pokemon = OptionalPokemonConverter.remove_empty_members(provided_list_of_pokemon)
+        list_of_pokemon = OptionalPokemonXConverter.remove_empty_members(provided_list_of_pokemon)
         message_content = ctx.message.content
 
         player = ctx.message.author
@@ -327,7 +330,7 @@ class DraftManagerCog(Cog):
 
 
     @_draft.command(aliases=["set"], pass_context=True)
-    @checks.guildowner_or_permissions(manage_channels=True)
+    @checks.is_guild_owner()
     async def _draft_update_attributes(self, ctx, key=None, *argument_list):
 
         available_keys = ['status', 'admin', 'exclude', 'auto']
@@ -393,7 +396,7 @@ class DraftManagerCog(Cog):
         elif key == 'exclude':
 
             for pkmn in argument_list:
-                pokemon = await PokemonConverter.convert(PokemonConverter, ctx, pkmn)
+                pokemon = await Pokemon.convert(ctx, pkmn)
                 if pokemon:
                     draft.add_as_excluded(pokemon)
 
@@ -427,7 +430,7 @@ class DraftManagerCog(Cog):
                 return await Utilities.message(ctx.channel, f"<@{draft.current_player}> has no valid pokemon remaining in auto-draft. Make the next pick!")
 
             player = await get_member(ctx, [current_player_id])
-            pokemon = PokemonCache.to_pokemon(pokemon_id_to_draft)
+            pokemon = Pokemon.to_pokemon(pokemon_id_to_draft)
 
             try:
                 draft.draft_pokemon(player, pokemon)
@@ -445,7 +448,7 @@ class DraftManagerCog(Cog):
 
 
     @_draft.command(aliases=["pick"], pass_context=True)
-    async def _draft_pick(self, ctx, pokemon: PokemonConverter, player: discord.Member = None):
+    async def _draft_pick(self, ctx, pokemon: Pokemon, player: discord.Member = None):
         try:
             draft = await self.fetch_draft_for_channel(ctx.guild.id, ctx.channel.id)
 
@@ -546,13 +549,13 @@ class DraftManagerCog(Cog):
         await ctx.message.channel.send(embed=DraftManagerCog.get_beep_embed(title="Help - Trade Management", description=DraftManagerCog.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 
     @command(aliases=["add-emoji"], pass_context=True)
-    async def _add_emoji(self, ctx, *pokemon_list: PokemonConverter):
+    async def _add_emoji(self, ctx, *pokemon_list: Pokemon):
         try:
             if pokemon_list:
                 for pokemon in pokemon_list:
                     print(pokemon.emoji)
                     if not pokemon.emoji:
-                        emoji = await PokemonCache.create_emoji(ctx, self.dbi, pokemon.pokemon_id)
+                        emoji = await PokemonXCache.create_emoji(ctx, self.dbi, pokemon.pokemon_id)
                         await Utilities.message(ctx.channel, f"[{len(ctx.guild.emojis)}/50]{pokemon.pokemon_id}{emoji} can be accessed by \\{str(emoji)}!")
 
             else:
@@ -560,7 +563,7 @@ class DraftManagerCog(Cog):
                 for pokemon_record in list_of_pokemon:
                     print(pokemon_record['emoji_key'])
                     if not pokemon_record['emoji_key']:
-                        emoji = await PokemonCache.create_emoji(ctx, self.dbi, pokemon_record['pokemon_id'])
+                        emoji = await PokemonXCache.create_emoji(ctx, self.dbi, pokemon_record['pokemon_id'])
                         await Utilities.message(ctx.channel, f"[{len(ctx.guild.emojis)}/50]{pokemon_record['pokemon_id']}{emoji} can be accessed by \\{str(emoji)}!")
 
         except Exception as error:
@@ -582,7 +585,7 @@ async def get_member(ctx, argument_list, error_when_not_found=True):
             return member
         except Exception as error:
             if error_when_not_found:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
                 raise Exception("Member not found!")
             else:
                 return None

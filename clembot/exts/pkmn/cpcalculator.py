@@ -501,7 +501,7 @@ class CachedIVCalculator:
 
                 os.rename(tempname, os.path.join('data', self.filename))
             except Exception as error:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
 
 
         #
@@ -567,7 +567,7 @@ class CachedIVCalculator:
             return max(10, math.floor(0.1 * math.sqrt(attack * attack * defense * stamina)))
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             return None
 
     def pvpIV(self, key: int, level, indAttack, indDefense, indStam):

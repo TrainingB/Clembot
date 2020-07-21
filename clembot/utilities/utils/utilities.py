@@ -8,7 +8,7 @@ import discord
 import hastebin
 
 from clembot.core.bot import command
-from clembot.core.error_handler import wrap_error
+from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
 from clembot.utilities.utils.embeds import Embeds
 
@@ -27,14 +27,14 @@ class TextUtil:
         return ret
 
     @staticmethod
-    def extract_link_from_text(text):
+    def extract_link_from_text(text: str):
         newloc = None
-        mapsindex = text.find_first("/maps")
+        mapsindex = text.find("/maps")
         newlocindex = text.rfind("http", 0, mapsindex)
 
         if newlocindex == -1:
             return newloc
-        newlocend = text.find_first(" ", newlocindex)
+        newlocend = text.find(" ", newlocindex)
         if newlocend == -1:
             newloc = text[newlocindex:]
         else:

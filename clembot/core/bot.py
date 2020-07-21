@@ -2,6 +2,7 @@ import datetime
 import os
 import platform
 import sys
+import traceback
 from enum import Enum
 
 import asyncpg
@@ -14,7 +15,7 @@ from discord.utils import cached_property
 from clembot.config import config_template
 from clembot.core.context import Context
 from clembot.core.data_manager import DatabaseInterface, DataManager
-from clembot.core.error_handler import wrap_error
+from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
 
 from clembot.utilities.utils import pagination
@@ -48,6 +49,7 @@ class Bot(commands.AutoShardedBot):
         super().__init__(**kwargs)
         self.owner_id = config_template.bot_users['owner']
         self.owner = self.get_user(config_template.bot_users['owner'])
+        self.trusted_users = config_template.bot_users['trusted_users']
         self.loop.run_until_complete(self._db_connect())
         self.auto_responses = {}
 
@@ -135,7 +137,7 @@ class Bot(commands.AutoShardedBot):
         try:
             await self.invoke(ctx)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @cached_property
@@ -156,12 +158,16 @@ class Bot(commands.AutoShardedBot):
 
 
     async def on_guild_join(self, guild):
-        guild_metadata_table = self.dbi.table('guild_metadata')
-        guild_metadata_table_insert = guild_metadata_table.insert({
+        guild_metadata_table = self.dbi.table('guild_config')
+        d = {
             'guild_id': guild.id,
             'prefix': '!'
-        })
+        }
+        guild_metadata_table_insert = guild_metadata_table.insert.row(**d)
+
         await guild_metadata_table_insert.commit()
+
+
 
     async def on_message(self, message):
         await self.process_commands(message)
@@ -196,7 +202,7 @@ class Bot(commands.AutoShardedBot):
 
         cog = self.get_cog(cog_name)
 
-        return cog
+        return cog.get_commands()
 
     async def send_cmd_help(self, ctx, **kwargs):
         """Function to invoke help output for a command.

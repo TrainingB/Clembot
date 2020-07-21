@@ -3,13 +3,8 @@ import asyncio
 import discord
 
 from clembot.config import config_template
+from clembot.config.constants import MyEmojis
 from clembot.core.logs import Logger
-
-
-class Emojis:
-
-    info = "<:icon_info:715354001796890687>"
-    error = "<:icon_error:715354002316853268>"
 
 
 def color(*args):
@@ -80,9 +75,9 @@ class Embeds:
         try:
             error_message = "The output contains more than 2000 characters."
 
-            user_mention = "<:icon_info:715354001796890687> "
+            user_mention = f"{MyEmojis.INFO} "
             if user:
-                user_mention = f"<:icon_info:715354001796890687> **{user.display_name}** "
+                user_mention = f"{user_mention}**{user.display_name}** "
 
             if len(description) >= 2000:
                 discord.Embed(description="{0}".format(error_message), colour=discord.Color.red())
@@ -102,7 +97,7 @@ class Embeds:
         user_mention = ""
         if user:
             user_mention = f"**{user.display_name}** "
-        error_embed = discord.Embed(description=f"{Emojis.error} {user_mention}{description}", colour=color)
+        error_embed = discord.Embed(description=f"{MyEmojis.ERROR} {user_mention}{description}", colour=color)
         return await channel.send(embed=error_embed)
 
     @staticmethod
@@ -171,12 +166,13 @@ class Embeds:
             for key, value in fields.items():
                 ilf = inline
                 if not isinstance(value, str):
-                    if value:
+                    if not value:
+                        continue
+                    else:
                         ilf = value[0]
                         value = value[1]
-                    else:
-                        continue
-                embed.add_field(name=f"**{key}**", value=value, inline=ilf)
+                if value:
+                    embed.add_field(name=f"**{key}**", value=value, inline=ilf)
         if footer:
             footer = {'text':footer}
             if footer_icon:

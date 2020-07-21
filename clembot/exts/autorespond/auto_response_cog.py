@@ -1,3 +1,5 @@
+import traceback
+
 from discord.ext import commands
 
 from clembot.core.bot import group
@@ -77,6 +79,6 @@ class AutoResponseCog(commands.Cog):
             await Embeds.message(ctx.channel, f"auto-responses are cleaned up.", user=ctx.message.author)
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 

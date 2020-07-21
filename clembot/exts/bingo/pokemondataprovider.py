@@ -1,7 +1,7 @@
 import math
 import os
 
-from clembot.exts.pkmn.pokemon import PokemonCache
+from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.utilities.utils.dbi_test import async_db_wrapper
 
 
@@ -92,7 +92,7 @@ class PokemonDataProvider:
     @staticmethod
     def cp(key, level, attack_iv, defense_iv, stamina_iv):
 
-        pokemon = PokemonCache.to_pokemon(key.upper())
+        pokemon = Pokemon.to_pokemon(key.upper())
 
         m = PokemonDataProvider.cpM[level]
 
@@ -104,7 +104,7 @@ class PokemonDataProvider:
 
 async def test(dbi):
 
-    await PokemonCache.load_cache_from_dbi(dbi)
+    await Pokemon.cache({dbi: dbi})
     for level in range(1, 31):
         print(f"{level} {PokemonDataProvider.cp('trapinch', level, 0, 0, 0)} - {PokemonDataProvider.cp('trapinch', level, 15, 15, 15)}")
 

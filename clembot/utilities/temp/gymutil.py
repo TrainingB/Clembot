@@ -49,7 +49,7 @@ def _get_gym_info(gym_code, attribute=None, city_state=None):
         return None
 
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
         return None
 
 

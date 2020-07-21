@@ -198,17 +198,17 @@ example:
 
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["purge"])
-    @checks.is_owner()
+    @checks.is_bot_owner()
     async def _reaction_role_purge(self, ctx):
         ctx.bot.guild_dict[ctx.guild.id]['reaction-roles'] = {}
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["status"])
-    @checks.is_owner()
+    @checks.is_bot_owner()
     async def _reaction_role_status(self, ctx, reference_id):
         await self.utilities._send_message(ctx.channel,f"```{json.dumps(ctx.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).get(reference_id), indent=2)}```")
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["reset"])
-    @checks.is_owner()
+    @checks.is_bot_owner()
     async def _reaction_role_reset(self, ctx, reference_id):
         self.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(reference_id, {}).pop('emoji_role_map')
         self.bot.guild_dict[ctx.guild.id].setdefault('reaction-roles', {}).setdefault(reference_id, {}).pop('rsvp')
@@ -297,7 +297,7 @@ example:
 
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             await self.utilities._send_error_message_and_cleanup(ctx.channel, error, ctx.author)
 
 
@@ -344,7 +344,7 @@ example:
                                              self._generate_addtional_fields(reference_id, channel.name, message.id, emoji, None))
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @_mini_event.command(pass_context=True, hidden=True, aliases=["toggle"])
@@ -366,7 +366,7 @@ example:
                 await self.__refresh_embed_fields(ctx.guild.id, ctx.channel, reference_id)
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @_mini_event.command(pass_context=True, hidden=True, aliases=["help"])
@@ -398,7 +398,7 @@ example:
         return message
 
     @_mini_event.command(pass_context=True, hidden=True, aliases=["remove"])
-    @checks.is_owner()
+    @checks.is_bot_owner()
     async def _mini_event_remove(self, ctx, reference_id):
 
         try:
@@ -524,7 +524,7 @@ example:
             message.embeds[0].set_footer(text=f"Managed by ID: [{reference_id}]")
             await message.edit(embed=message.embeds[0])
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     async def __refresh_embed(self, guild_id, original_channel, message_or_reference_id, title=None, body=None, url=None, thumbnail=None ):
@@ -561,11 +561,11 @@ example:
             new_embed.set_footer(text=f"Managed by ID: [{reference_id}]")
             await message.edit(embed=new_embed)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @_reaction_role.command(pass_context=True, hidden=True, aliases=["refresh"])
-    @checks.is_owner()
+    @checks.is_bot_owner()
     async def _reaction_role_refresh(self, ctx, message_or_reference_id):
 
         await self.__refresh_embed_fields(ctx, ctx.guild.id, ctx.channel, message_or_reference_id)

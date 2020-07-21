@@ -94,7 +94,7 @@ class Core(Cog):
         return
 
 
-    @group(pass_context=True, hidden=True, aliases=["about bot"])
+    @group(pass_context=True, hidden=True, aliases=["about"])
     async def cmd_about(self, ctx):
         try:
             # if ctx.invoked_subcommand is not None:
@@ -256,11 +256,11 @@ class Core(Cog):
         text = []
         for role in user.roles:
             text.append(role.name)
-
+        roles_text = ' \ '.join(text)
         raid_embed = discord.Embed(colour=discord.Colour.gold())
-        raid_embed.add_field(name="**Username:**", value=_("{option}").format(option=user.name))
-        raid_embed.add_field(name="**Roles:**", value=_("{roles}").format(roles=" \ ".join(text)))
-        raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=user, format="jpg")))
+        raid_embed.add_field(name="**Username:**", value=f"{user.name}")
+        raid_embed.add_field(name="**Roles:**", value=f"{roles_text}")
+        raid_embed.set_thumbnail(url=f"https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.jpg")
         await target_channel.send(embed=raid_embed)
 
 

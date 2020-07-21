@@ -28,6 +28,21 @@ class Context(commands.Context):
                 page = bold(title)+"\n"+page
             await self.send(page)
 
+
+    async def timezone(self):
+        if hasattr(self, '_timezone'):
+            return self._timezone
+        timezone = await self.guild_metadata('timezone')
+        return timezone
+
+    async def city(self):
+        if hasattr(self, '_city'):
+            return self._city
+        city = await self.channel_setting(self.channel.id, 'city')
+        city = city or await self.guild_metadata('city')
+        return city
+
+
     async def ok(self):
         await self.message.add_reaction('\u2705')
 

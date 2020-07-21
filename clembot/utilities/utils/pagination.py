@@ -5,6 +5,8 @@ import re
 
 import discord
 
+from clembot.core.errors import wrap_error
+from clembot.core.logs import Logger
 from clembot.utilities.utils.embeds import Embeds
 
 
@@ -389,16 +391,15 @@ class Pagination:
         return self
 
     @classmethod
+    @wrap_error
     async def from_cog(cls, ctx, cog):
         cog_name = cog.__class__.__name__
 
         # get the commands
-        entries = sorted(
-            ctx.bot.get_cog_commands(cog_name), key=lambda c: c.name)
+        entries = ctx.bot.get_cog_commands(cog_name)
 
         # remove the ones we can't run
-        entries = [cmd for cmd in entries if (
-            await _can_run(cmd, ctx)) and not cmd.hidden]
+        entries = sorted([cmd for cmd in entries if (await _can_run(cmd, ctx)) and not cmd.hidden], key=lambda c: c.aliases[0] if len(c.aliases) > 0 else c.name)
 
         self = cls(ctx, entries)
         self.title = f'{cog_name} Commands'

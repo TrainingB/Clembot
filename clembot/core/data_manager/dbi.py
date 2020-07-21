@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import traceback
 
 import asyncpg
 from discord.ext.commands import when_mentioned_or
@@ -67,8 +68,7 @@ class DatabaseInterface:
             port = config_template.db_config_details['port']
             debug = config_template.db_config_details['debug']
             self.loop = None
-            self.dsn = "postgres://{}:{}@{}:{}/{}".format(
-                username, password, hostname, port, database)
+            self.dsn = f'postgres://{username}:{password}@{hostname}:{port}/{database}'
             self.cxn = f"postgres://{username}@{hostname}:{port}/{database}"
             Logger.info(f"[dbi.py] Connecting to : {self.cxn}")
             self.pool = None
@@ -191,7 +191,7 @@ class DatabaseInterface:
             # await self.recreate_pool()
             # return await self.execute_query(query, *query_args)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
     async def execute_query(self, query, *query_args):
         result = []
@@ -211,7 +211,7 @@ class DatabaseInterface:
             await self.recreate_pool()
             return await self.execute_query(query, *query_args)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
     async def execute_transaction(self, query, *query_args):
         result = []
@@ -333,7 +333,7 @@ async def test_condition():
 
         print(mydict)
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
 
 async def insert_into(table_name = 'sample_test'):
     print("called select_from()")
@@ -365,7 +365,7 @@ def main():
         loop.run_until_complete(cleanup())
 
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
 
 
 if __name__ == '__main__':

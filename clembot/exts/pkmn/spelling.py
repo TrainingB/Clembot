@@ -1,9 +1,11 @@
 # Sourced from
 # http://norvig.com/spell-correct.html
 # Use set_dictionary to set the dictionary of words
-
+import os
 import re
 from collections import Counter
+
+import pytz
 
 
 class SpellHelper:
@@ -41,7 +43,7 @@ class SpellHelper:
     @classmethod
     def candidates(cls, word):
         "Generate possible spelling corrections for word."
-        return (cls.known([word]) or cls.known(cls.edits1(word)) or cls.known(cls.edits2(word)) or [word])
+        return cls.known([word]) or cls.known(cls.edits1(word)) or cls.known(cls.edits2(word)) or [word]
 
 
     @classmethod
@@ -69,7 +71,15 @@ class SpellHelper:
         "All edits that are two edits away from `word`."
         return (e2 for e1 in cls.edits1(word) for e2 in cls.edits1(e1))
 
-def main():
+
+
+
+
+
+
+
+
+def test_pokemon():
     words = ['BIDOOF', 'CHERRIM-SUNNY', 'TURTWIG', 'MISMAGIUS', 'SHUPPET', 'GLISCOR', 'KRICKETUNE', 'RATTATA', 'SHIELDON', 'SEVIPER', 'ELECTRODE', 'WEEZING', 'DRIFLOON', 'MUK', 'DEOXYS-SPEED',
              'GLALIE', 'ALOLA-DIGLETT', 'ALOLAN-DIGLETT', 'DIGLETT-ALOLA', 'DIGLETT-ALOLAN', 'ABRA', 'ALOLA-RAICHU', 'ALOLAN-RAICHU', 'RAICHU-ALOLA', 'RAICHU-ALOLAN', 'ALOLA-RATICATE',
              'ALOLAN-RATICATE', 'RATICATE-ALOLA', 'RATICATE-ALOLAN', 'ALOLA-MEOWTH', 'ALOLAN-MEOWTH', 'MEOWTH-ALOLA', 'MEOWTH-ALOLAN', 'ALOLA-MUK', 'ALOLAN-MUK', 'MUK-ALOLA', 'MUK-ALOLAN',
@@ -115,8 +125,24 @@ def main():
 
     SpellHelper.set_dictionary(words)
 
-    print(SpellHelper.correction('VENASAUR'))
+    print(SpellHelper.correction('NINJA'))
 
 
 
-#main()
+
+def test_timezone():
+    SpellHelper.set_dictionary(pytz.all_timezones)
+
+    print(SpellHelper.correction('America/Metlakat'))
+
+
+def main():
+
+    test_timezone()
+
+
+if __name__ == '__main__':
+    print(f"[{os.path.basename(__file__)}] main() started.")
+    main()
+    print(f"[{os.path.basename(__file__)}] main() finished.")
+

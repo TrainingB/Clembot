@@ -1,6 +1,7 @@
 from discord.ext import commands
 
-from clembot.core.bot import group
+from clembot.config.constants import Icons
+from clembot.core.bot import group, command
 from clembot.core.commands import Cog
 from clembot.exts.raid import raid_checks
 from clembot.exts.raid.errors import RSVPNotEnabled
@@ -9,6 +10,15 @@ from clembot.utilities.utils.embeds import Embeds
 
 
 class RSVPCog(commands.Cog):
+    """
+    !i - interested
+    !ir - interested remotely
+    !ii - interested in remote invite
+    !h - here at raid
+    !hr - here remotely
+    !c - coming
+    """
+
 
     def __init__(self, bot):
         self.bot = bot
@@ -31,50 +41,83 @@ class RSVPCog(commands.Cog):
         if isinstance(error, RSVPNotEnabled):
             await Embeds.error(ctx.channel, 'RSVP commands are not enabled for this channel.', ctx.message.author)
 
-    @group(pass_context=True, hidden=True, aliases=["c"])
+    @command(pass_context=True, aliases=["rsvp"])
+    @raid_checks.rsvp_enabled()
+    async def cmd_rsvp(self, ctx):
+        commands_help="""
+        You can use following command to indicate your status:
+        **!i**  - interested
+        **!ir** - interested remotely
+        **!h**  - here at raid
+        **!hr** - here at raid remotely
+        **!c**  - coming (on the way)
+        **!c**  - coming (on the way) remotely
+        
+        **!ii** - interested in remote invite (`!list` will show your IGN. If you've told me about your IGN.)
+        """
+
+        await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="RSVP Commands",
+                                                content=f"{commands_help}"))
+
+        pass
+
+
+    @command(pass_context=True, aliases=["c"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_coming(self, ctx):
-        try:
-            rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
-            await rsvp_enabled.handle_rsvp(ctx.message, "omw")
-
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_rsvp(ctx.message, "c")
 
 
-    @group(pass_context=True, hidden=True, aliases=["h"])
+    @command(pass_context=True, aliases=["h"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_here(self, ctx):
-        try:
-            rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
-            await rsvp_enabled.handle_rsvp(ctx.message, "waiting")
-
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_rsvp(ctx.message, "h")
 
 
-    @group(pass_context=True, hidden=True, aliases=["i"])
+    @command(pass_context=True, aliases=["i"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_interested(self, ctx):
-        try:
-            rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
-            await rsvp_enabled.handle_rsvp(ctx.message, "maybe")
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_rsvp(ctx.message, "i")
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
 
-    @group(pass_context=True, hidden=True, aliases=["x"])
+    @command(pass_context=True, aliases=["ir"])
+    @raid_checks.rsvp_enabled()
+    async def cmd_rsvp_interested_remote(self, ctx):
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_rsvp(ctx.message, "ir")
+
+
+    @command(pass_context=True, aliases=["hr"])
+    @raid_checks.rsvp_enabled()
+    async def cmd_rsvp_here_remote(self, ctx):
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_rsvp(ctx.message, "hr")
+
+
+    @command(pass_context=True, aliases=["ii"])
+    @raid_checks.rsvp_enabled()
+    async def cmd_rsvp_interested_invite(self, ctx):
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_rsvp(ctx.message, "ii")
+
+    @command(pass_context=True, aliases=["cr"])
+    @raid_checks.rsvp_enabled()
+    async def cmd_rsvp_coming_remote(self, ctx):
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_rsvp(ctx.message, "cr")
+
+
+    @command(pass_context=True, aliases=["x"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_cancel(self, ctx):
-        try:
-            rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
-            await rsvp_enabled.handle_rsvp(ctx.message, "cancel")
-
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_rsvp(ctx.message, "x")
 
 
-    @group(pass_context=True, hidden=True, aliases=["s"])
+    @command(pass_context=True, aliases=["s"])
     @raid_checks.rsvp_enabled()
     async def cmd_rsvp_started(self, ctx):
         """Signal that a raid is starting.
@@ -83,74 +126,44 @@ class RSVPCog(commands.Cog):
         Works only in raid channels. Sends a message and clears the waiting list. Users who are waiting
         for a second group must re-announce with the :here: emoji or !here."""
 
-        try:
-            rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
-            await rsvp_enabled.handle_group_start()
-
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.handle_group_start()
 
 
-    def convert_command_to_status(self, text):
-        coming_list = ["c", "coming", "o", "omw"]
-        cancel_list = ["x", "cancel"]
-        maybe_list = ["i", "interested", "maybe"]
-        here_list = ["h", "here"]
-        status = None
-        command_text = text.replace('!', '')
-
-        if command_text in coming_list:
-            status = "omw"
-        elif command_text in cancel_list:
-            status = "cancel"
-        elif command_text in maybe_list:
-            status = "maybe"
-        elif command_text in here_list:
-            status = "waiting"
-
-        return status
-
-    @group(pass_context=True, hidden=True, aliases=["mention"])
+    @command(pass_context=True, aliases=["mention"])
     @raid_checks.rsvp_enabled()
     async def cmd_mention(self, ctx, *, status_with_message=None):
-        try:
 
-            allowed_status = ["c", "h", "i"]
-            args = status_with_message.split()
+        allowed_status = ["c", "h", "i", "ir", "ii", "cr", "hr"]
+        args = status_with_message.split()
 
-            # if first word specifies the status, convert to rsvp status
-            status, message = (self.convert_command_to_status(args[0]), args[1:]) if args[0] in allowed_status else ("all", args[0:])
-            rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        # if first word specifies the status, convert to rsvp status
+        status, message = (args[0], args[1:]) if args[0] in RSVPEnabled.status_map.keys() else ("all", args[0:])
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
 
-            if not message:
-                raise ValueError("Beep Beep! **{}**, please use **!mention [status] <message>**.".format(
-                    ctx.message.author.display_name))
+        if not message:
+            raise ValueError("Beep Beep! **{}**, please use **!mention [status] <message>**.".format(
+                ctx.message.author.display_name))
 
-            mention_list = []
+        mention_list = []
 
-            for trainer_id in rsvp_enabled.trainer_dict:
-                if status == "all" or rsvp_enabled.trainer_dict[trainer_id].get('status', None) ==  status:
-                    user = self.bot.get_user(int(trainer_id))
-                    mention_list.append(user.mention)
+        for trainer_id in rsvp_enabled.trainer_dict:
+            if status == "all" or rsvp_enabled.trainer_dict[trainer_id].get('status', None) ==  status:
+                user = self.bot.get_user(int(trainer_id))
+                mention_list.append(user.mention)
 
 
-            if len(mention_list) == 0:
-                raise ValueError(f"Beep Beep! **{ctx.message.author.display_name}**, No trainers found to mention.".format())
+        if len(mention_list) == 0:
+            raise ValueError(f"Beep Beep! **{ctx.message.author.display_name}**, No trainers found to mention.".format())
 
-            mention_message = f"**{ctx.message.author.display_name}**: {' '.join(message)} {', '.join(mention_list)}"
+        mention_message = f"**{ctx.message.author.display_name}**: {' '.join(message)} {', '.join(mention_list)}"
 
-            await ctx.channel.send(mention_message)
+        await ctx.channel.send(mention_message)
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, error)
 
-    @group(pass_context=True, hidden=True, aliases=["list"])
+    @command(pass_context=True, aliases=["list"])
     async def cmd_list(self, ctx):
-        try:
-            rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
-            await rsvp_enabled.send_rsvp_embed(ctx.message, "")
-
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        await rsvp_enabled.send_rsvp_embed(ctx.message, "")
 
 

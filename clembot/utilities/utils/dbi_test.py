@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 
 from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.core.logs import Logger
@@ -30,4 +31,4 @@ def async_db_wrapper(function_to_run):
         loop.run_until_complete(function_to_run(test_dbi))
         loop.run_until_complete(cleanup())
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")

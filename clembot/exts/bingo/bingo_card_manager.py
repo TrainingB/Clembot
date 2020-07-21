@@ -50,7 +50,7 @@ class BingoCardManager:
                 await insert_query.commit()
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
         return
 

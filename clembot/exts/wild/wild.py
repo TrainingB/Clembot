@@ -5,7 +5,7 @@ from clembot.config.constants import Icons
 from clembot.core.logs import Logger
 from clembot.exts.draft.draft import CUIDGenerator
 from clembot.exts.gymmanager.gym import POILocation
-from clembot.exts.pkmn.pokemon import Pokemon, PokemonCache
+from clembot.exts.pkmn.pokemon import Pokemon
 from clembot.exts.raid.raid import ChannelMessage
 from clembot.utilities.timezone import timehandler as TH
 from clembot.utilities.utils.embeds import Embeds
@@ -59,7 +59,7 @@ class Wild:
              'message_id',
              'channel_message_id', 'timezone']]
 
-        pkmn = PokemonCache.to_pokemon(pokemon_id) if pokemon_id else None
+        pkmn = Pokemon.to_pokemon(pokemon_id) if pokemon_id else None
         wild_location = await POILocation.from_dict(bot, json.loads(location))
 
         wild = cls(bot, wild_id=wild_id, guild_id=guild_id, reporter_id=reporter_id,

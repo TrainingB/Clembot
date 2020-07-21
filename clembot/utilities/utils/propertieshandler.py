@@ -29,7 +29,7 @@ class PropertiesHandler(commands.Cog):
 
             return await channel.send(embed=message_embed)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     # !notes
@@ -200,7 +200,7 @@ def setup(bot):
 #         test3()
 #         print("main() finished")
 #     except Exception as error:
-#         print(error)
+#         Logger.error(f"{traceback.format_exc()}")
 #     return
 #
 # main()

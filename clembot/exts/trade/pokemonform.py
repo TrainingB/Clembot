@@ -1,4 +1,7 @@
-from clembot.exts.pkmn.pokemon import PokemonCache
+import traceback
+
+from clembot.core.logs import Logger
+from clembot.exts.pkmn.gm_pokemon import Pokemon
 
 
 class PokemonForm:
@@ -23,7 +26,7 @@ class PokemonForm:
                 pokemon_forms.append(dict(pokemon_form_rcrd)['pokemon_form'])
             cls.available_pokemon_forms = pokemon_forms
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
     @classmethod
     async def add(cls, dbi, poke_form):
@@ -50,7 +53,7 @@ class PokemonForm:
 
     @classmethod
     def is_valid(cls, search_for):
-        return True if search_for.lower() in PokemonForm.available_pokemon_forms or PokemonCache.to_pokemon(
+        return True if search_for.lower() in PokemonForm.available_pokemon_forms or Pokemon.to_pokemon(
             search_for) is not None else False
 
     @classmethod
@@ -73,10 +76,10 @@ def print_hash(text):
     print(hash(text))
 
 
-def hash(text):
-    hash = dict(map(lambda x : (x if text.count(x) != 0 else None ,text.count(x) ), alphabets))
-
-    return hash
+# def hash(text):
+#     hash = dict(map(lambda x : (x if text.count(x) != 0 else None ,text.count(x) ), alphabets))
+#
+#     return hash
 
 def test():
 

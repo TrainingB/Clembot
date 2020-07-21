@@ -1,10 +1,12 @@
 import json
 import random
+import traceback
 
 import discord
 from discord.ext import commands
 
-from clembot.exts.pkmn.pokemon import PokemonCache, Pokemon
+from clembot.core.logs import Logger
+from clembot.exts.pkmn.gm_pokemon import Pokemon
 
 
 def chunks(l, n):
@@ -15,7 +17,7 @@ def chunks(l, n):
 
 def get_emoji(pokemon_id):
 
-    pokemon = PokemonCache.pokemon(pokemon_id)
+    pokemon = Pokemon.to_pokemon(pokemon_id)
 
     if pokemon.emoji:
         return pokemon.emoji
@@ -65,7 +67,7 @@ class CUIDGenerator:
             return value.upper()
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             return id
 
 
@@ -84,7 +86,7 @@ class DraftStatusConverter(commands.Converter):
 
     async def convert(self, ctx, argument) -> DraftStatus:
 
-        pokemon_form = PokemonCache.to_pokemon(argument.upper())
+        pokemon_form = Pokemon.to_pokemon(argument.upper())
         if pokemon_form:
             return pokemon_form
         else:
@@ -267,7 +269,7 @@ class Draft:
 
             pokemon_mention = ""
             for pokemon in self.draft_content['choices']['drafted']:
-                pokemon_mention = f"{pokemon_mention}{PokemonCache.pokemon(pokemon)}, "
+                pokemon_mention = f"{pokemon_mention}{Pokemon.to_pokemon(pokemon)}, "
 
         if DraftStatus.value(self.status) == DraftStatus.value(DraftStatus.DRAFT):
             embed_fields[f"Next to pick:"] = f"<@{self.current_player}>"
@@ -550,7 +552,7 @@ class DraftInterface:
 
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     async def update_draft(self, draft: Draft):
@@ -568,7 +570,7 @@ class DraftInterface:
                 await update_query.commit()
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     async def save_draft(self, draft: Draft):
@@ -595,4 +597,4 @@ class DraftInterface:
 
             print(f"{draft} is saved successfully!")
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")

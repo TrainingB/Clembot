@@ -95,6 +95,6 @@ class BingoCardWriter:
 
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
         return file_name
 

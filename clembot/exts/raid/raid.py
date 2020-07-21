@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import traceback
 from datetime import timedelta
 from enum import Enum
 from typing import Union
@@ -9,12 +10,18 @@ import discord
 from discord.ext import commands
 
 from clembot.config import config_template
-from clembot.config.constants import Icons
+from clembot.config.constants import Icons, MyEmojis
 from clembot.core.logs import Logger
 from clembot.core.time_util import convert_into_time
 from clembot.exts.gymmanager.gym import POILocation, POILocationConverter
-from clembot.exts.pkmn.pokemon import Pokemon, PokemonCache, PokemonConverter
+from clembot.exts.pkmn.gm_pokemon import Pokemon
+from clembot.exts.pkmn.raid_boss import RaidMaster
+from clembot.exts.profile.user_profile import UserProfile
+
 from clembot.utilities.timezone import timehandler as TH
+import pydash as _
+
+from clembot.utilities.utils import parse_emoji
 from clembot.utilities.utils.embeds import Embeds, color
 from clembot.utilities.utils.snowflake import CUIDGenerator, Snowflake
 from clembot.utilities.utils.utilities import TextUtil
@@ -31,10 +38,8 @@ def get_counter():
 
 MyUtilities = Utilities()
 
-STATUS_MESSAGE = {}
-STATUS_MESSAGE['waiting'] = "at the raid"
-STATUS_MESSAGE['maybe'] = "interested"
-STATUS_MESSAGE['omw'] = "on the way"
+
+
 
 class ChannelMessage:
     """Represents a message identifier (channel_id, message_id)"""
@@ -56,7 +61,7 @@ class ChannelMessage:
         try:
             message = await channel.fetch_message(message_id)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             return channel, None
 
         return channel, message
@@ -81,7 +86,7 @@ class RosterLocation:
     async def from_dict(cls, bot, state):
         p_raid_boss, p_eta, p_poi = ([state.get(attr, None) for attr in ['raid_boss', 'eta', 'poi']])
 
-        raid_boss = "egg" if p_raid_boss == "egg" else PokemonCache.to_pokemon(p_raid_boss)
+        raid_boss = "egg" if p_raid_boss == "egg" else Pokemon.to_pokemon(p_raid_boss)
         poi_location = await POILocation.from_dict(bot, p_poi)
 
         return cls(raid_boss=raid_boss, poi_location=poi_location, eta=p_eta)
@@ -94,7 +99,7 @@ class RosterLocation:
         if args[0] == 'egg':
             pkmn_or_egg = 'egg'
         else:
-            pkmn_or_egg = (await PokemonConverter.convert(ctx, args[0]))
+            pkmn_or_egg = (await Pokemon.convert(ctx, args[0]))
         del args[0]
 
         eta = args[-1]
@@ -123,11 +128,37 @@ class RosterLocation:
         return (RosterLocationEmbed.from_roster_location(self)).embed
 
 
+
+
 class RSVPEnabled:
 
     embed_options = ['description', 'timer', 'rsvp']
 
-    def __init__(self, trainer_dict=dict()):
+    status_map = {
+        "i" : "interested",
+        "ir" : "interested remotely",
+        "ii" : "interested in remote invite",
+        "h" : "here",
+        "hr" : "here remotely",
+        "c" : "coming",
+        "cr": "coming",
+        "x" : "cancel"
+    }
+
+    STATUS_MESSAGE = {
+        "i": {"title": "Interested", "message": "interested"},
+        "ir": {"title": f"Interested {MyEmojis.REMOTE}", "message": f"interested remotely"},
+        "ii": {"title": f"Interested {MyEmojis.INVITE}", "message":  f"interested in raid invite.\nIf you've told me your IGN `!list` would display it next to your name so others can invite you."},
+        "h": {"title": "At the raid", "message": "at the raid"},
+        "hr": {"title":f"At the raid {MyEmojis.REMOTE}", "message": "at the raid remotely"},
+        "c": {"title": "On the way", "message": "on the way"},
+        "cr": {"title": "On the way", "message": "on the way remotely"},
+        "x": {"title": "No status", "message": "no status"}
+    }
+
+
+    def __init__(self, bot, trainer_dict=dict()):
+        self.bot = bot
         self.trainer_dict = trainer_dict
 
     async def add_rsvp(self, member_id: str, status, count=None):
@@ -211,7 +242,7 @@ class RSVPEnabled:
         try:
             Logger.info(party_status)
             total_trainer_rsvp = 0
-            if status == 'cancel':
+            if status == 'x':
                 for mention, party_size in party_status.items():
                     removed_user = await self.cancel_rsvp(member_id=Raid.from_mention(mention))
                     if removed_user is None:
@@ -228,7 +259,7 @@ class RSVPEnabled:
 
                 with_trainers = "" if total_trainer_rsvp == 1 else " with a total of {trainer_count} trainers".format(trainer_count=total_trainer_rsvp)
                 is_or_are = "is" if len(party_status) == 1 else "are"
-                embed_msg = f"{', '.join([mention for mention in party_status.keys()])} {is_or_are} {STATUS_MESSAGE[status]}{with_trainers}"
+                embed_msg = f"{', '.join([mention for mention in party_status.keys()])} {is_or_are} {RSVPEnabled.STATUS_MESSAGE[status].get('message', None)}{with_trainers}"
 
             await self.send_rsvp_embed(message, description=embed_msg, options=self.embed_options)
 
@@ -238,72 +269,83 @@ class RSVPEnabled:
         except Exception as error:
             Logger.info(error)
 
-    async def send_rsvp_embed(self, message, description=None, options=['description', 'timer', 'rsvp', 'interested', 'coming', 'here']):
+    async def send_rsvp_embed(self, message, description=None, options=['description', 'timer', 'i', 'c', 'h']):
 
-        return await message.channel.send(embed=self.rsvp_embed_by_options(message, options=options,
+        embed_message = await message.channel.send(embed=await self.rsvp_embed_by_options(message, options=options,
                                                                            description=description))
+        await embed_message.add_reaction('🗑️')
 
-    def rsvp_embed_by_options(self, message, options=None, description=None):
+    async def rsvp_embed_by_options(self, message, options=None, description=None):
         additional_fields = {}
-
+        footer = None
         for option in options:
             if option == 'timer':
                 _type, _action, _at = self.type_action_at()
-                additional_fields[f"{_type} {_action}".capitalize()] = _at
-
-                # TODO: handle suggested start time
-                # TODO: handle ex-raid
-                # raid_time_value = fetch_channel_expire_time(message.channel.id).strftime("%I:%M %p (%H:%M)")
-                # raid_time_label = "Raid Expires At"
-                # if rc_d['type'] == 'egg':
-                #     raid_time_label = "Egg Hatches At"
-                #     if rc_d['egglevel'] == 'EX':
-                #         raid_time_value = fetch_channel_expire_time(message.channel.id).strftime(
-                #             "%B %d %I:%M %p (%H:%M)")
-            #
-            #     start_time = fetch_channel_start_time(message.channel.id)
-            #     start_time_label = "None"
-            #     if start_time:
-            #         raid_time_label = raid_time_label + " / Suggested Start Time"
-            #         raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
-            #
-            #     additional_fields[raid_time_label] = raid_time_value
+                footer = f"{_type.capitalize()} {_action} {_at}"
 
             if option == 'rsvp':
-                aggregated_label = "Interested / On the way / At the raid"
-                aggregated_status = f"{self.size_by_status('maybe')} / {self.size_by_status('omw')} / {self.size_by_status('waiting')}"
 
-                additional_fields[aggregated_label] = aggregated_status
-            elif option == 'interested':
-                trainer_names = self.trainers_by_status(message, "maybe")
+                int_label = f"Interested {MyEmojis.INTERESTED} / {MyEmojis.REMOTE} / {MyEmojis.INVITE}"
+                int_status = f"{self.size_by_status('i')} / {self.size_by_status('ir')} / {self.size_by_status('ii')}"
+                additional_fields[int_label] = int_status
+
+                coming_label = f"On the way {MyEmojis.COMING} / {MyEmojis.REMOTE}"
+                coming_status = f"{self.size_by_status('c')} / {self.size_by_status('cr')}"
+                additional_fields[coming_label] = coming_status
+
+                here_label = f"At the raid {MyEmojis.HERE} / {MyEmojis.REMOTE}"
+                here_status = f"{self.size_by_status('h')} / {self.size_by_status('hr')}"
+                additional_fields[here_label] = here_status
+
+            elif option in ['i','ir','ii']:
+                int_label = f"Interested {MyEmojis.INTERESTED} {self.size_by_status('i')} / {MyEmojis.REMOTE} {self.size_by_status('ir')} / {MyEmojis.INVITE} {self.size_by_status('ii')}"
+                int_status = ""
+
+                trainer_names = await self.trainers_by_status(message, 'i')
                 if trainer_names:
-                    additional_fields['Interested'] = trainer_names
-            elif option == 'coming':
-                trainer_names = self.trainers_by_status(message, "omw")
+                    int_status += f"{MyEmojis.INTERESTED} {trainer_names}\n"
+
+                trainer_names = await self.trainers_by_status(message, 'ir')
                 if trainer_names:
-                    additional_fields['On the way'] = trainer_names
-            elif option == 'here':
-                trainer_names = self.trainers_by_status(message, "waiting")
+                    int_status += f"{MyEmojis.REMOTE} {trainer_names}\n"
+
+                trainer_names = await self.trainers_by_status(message, 'ii')
                 if trainer_names:
-                    additional_fields['At the raid'] = trainer_names
+                    int_status += f"{MyEmojis.INVITE} {trainer_names}\n"
 
-        footer = None
+                additional_fields[int_label] = int_status
 
-        return self.create_embed(description, additional_fields, footer)
+            elif option in ['c','cr']:
+                int_label = f"On the way {MyEmojis.COMING} {self.size_by_status('c')} / {MyEmojis.REMOTE} {self.size_by_status('cr')}"
+                int_status = ""
 
-    def create_embed(self, description=None, additional_fields={}, footer=None):
+                trainer_names = await self.trainers_by_status(message, 'c')
+                if trainer_names:
+                    int_status += f"{MyEmojis.COMING} {trainer_names}\n"
 
-        embed = discord.Embed(description=description, colour=discord.Colour.gold())
+                trainer_names = await self.trainers_by_status(message, 'cr')
+                if trainer_names:
+                    int_status += f"{MyEmojis.REMOTE} {trainer_names}\n"
+                additional_fields[int_label] = int_status
 
-        for label, value in additional_fields.items():
-            embed.add_field(name="**{0}**".format(label), value=value, inline=True)
+            elif option in ['h','hr']:
+                int_label = f"At the raid {MyEmojis.HERE} {self.size_by_status('h')} / {MyEmojis.REMOTE} {self.size_by_status('hr')}"
+                int_status = ""
 
-        if footer:
-            embed.set_footer(text=footer)
+                trainer_names = await self.trainers_by_status(message, 'h')
+                if trainer_names:
+                    int_status += f"{MyEmojis.HERE} {trainer_names}\n"
 
-        return embed
+                trainer_names = await self.trainers_by_status(message, 'hr')
+                if trainer_names:
+                    int_status += f"{MyEmojis.REMOTE} {trainer_names}\n"
+                additional_fields[int_label] = int_status
 
-    def trainers_by_status(self, message, status, mentions=False):
+
+
+        return Embeds.make_embed(header="RSVP Status", msg_color=discord.Color.gold(), fields=additional_fields, footer=footer, content=description)
+
+    async def trainers_by_status(self, message, status, mentions=False, delimiter=', '):
 
         name_list = []
         for trainer in self.trainer_dict.keys():
@@ -313,6 +355,12 @@ class RSVPEnabled:
                     name_list.append(user.mention)
                 else:
                     user_name = user.nick if user.nick else user.name
+
+                    if status == 'ii':
+                        ign = await UserProfile.find_ign(self.bot, user.id)
+                        if ign:
+                            user_name = f"{user_name} ({ign})"
+
                     count = self.trainer_dict[trainer]['count']
                     if count > 1:
                         name_list.append("**{trainer} ({count})**".format(trainer=user_name, count=count))
@@ -320,7 +368,7 @@ class RSVPEnabled:
                         name_list.append("**{trainer}**".format(trainer=user_name))
 
         if len(name_list) > 0:
-            return MyUtilities.trim_to(', '.join(name_list), 950, ', ')
+            return MyUtilities.trim_to(delimiter.join(name_list), 950, delimiter)
 
         return None
 
@@ -346,7 +394,7 @@ class RaidParty(RSVPEnabled):
 
     def __init__(self, raid_party_id=None, bot=None, guild_id=None, channel_id=None, author_id = None,
                  city=None, timezone=None, roster= [] , roster_begins_at = 0, trainer_dict=dict()):
-        super().__init__(trainer_dict=trainer_dict)
+        super().__init__(bot=bot, trainer_dict=trainer_dict)
         self.id = raid_party_id
         self.bot = bot
         self.guild_id = guild_id
@@ -654,7 +702,7 @@ class RaidParty(RSVPEnabled):
 
                 with_trainers = "" if total_trainer_rsvp == 1 else " with a total of {trainer_count} trainers".format(trainer_count=total_trainer_rsvp)
                 is_or_are = "is" if len(party_status) == 1 else "are"
-                embed_msg = f"{', '.join([mention for mention in party_status.keys()])} {is_or_are} {STATUS_MESSAGE[status]}{with_trainers}"
+                embed_msg = f"{', '.join([mention for mention in party_status.keys()])} {is_or_are} {_.get(RSVPEnabled.STATUS_MESSAGE, f'{status}.message')}{with_trainers}"
 
             await self.send_rsvp_embed(message, description=embed_msg, options=self.embed_options)
 
@@ -665,7 +713,7 @@ class RaidParty(RSVPEnabled):
             Logger.info(error)
 
 
-    async def send_rsvp_embed(self, message, description=None, options=['rsvp', 'interested', 'coming', 'here']):
+    async def send_rsvp_embed(self, message, description=None, options=['rsvp', 'interested', 'coming', 'here', 'remote']):
 
         return await message.channel.send(embed=self.rsvp_embed_by_options(message, options=options,
                                                                            description=description))
@@ -713,6 +761,11 @@ class RaidParty(RSVPEnabled):
                 trainer_names = self.trainers_by_status(message, "waiting")
                 if trainer_names:
                     additional_fields['At the raid'] = trainer_names
+            elif option == 'remote':
+                trainer_names = self.trainers_by_status(message, "remote")
+                if trainer_names:
+                    additional_fields['Remote'] = trainer_names
+
 
         footer = None
 
@@ -780,7 +833,7 @@ class RaidParty(RSVPEnabled):
         users_starting = {}
 
         for trainer_id in self.trainer_dict:
-            if self.trainer_dict[trainer_id]['status'] == "waiting":
+            if self.trainer_dict[trainer_id]['status'] in ["h", "hr", "ir"]:
                 trainer = self.bot.get_user(int(trainer_id))
                 users_starting[trainer_id] = trainer.mention
 
@@ -801,9 +854,6 @@ class Raid (RSVPEnabled):
     """
     by_channel = dict()
     by_id = dict()
-
-    RAID_TIMER = 5
-    EGG_TIMER = 5
 
     def __init__(self, raid_id=None, bot=None, guild_id=None, channel_id=None, author_id = None,
                  report_message: str = None,
@@ -830,7 +880,7 @@ class Raid (RSVPEnabled):
         :param response_message: [A raid has been reported, co-ordinate in #channel] - MessageMetadata
         :param channel_message: [A raid has been reported, co-ordinate here] - MessageMetadata
         """
-        super().__init__(trainer_dict=trainer_dict)
+        super().__init__(bot=bot, trainer_dict=trainer_dict)
         self.id = raid_id
         self.bot = bot
         self.guild_id = guild_id
@@ -857,15 +907,18 @@ class Raid (RSVPEnabled):
         self.start_time = start_time
 
         self.reported_time = TH.current_epoch(second_precision=False) if reported_time is None else reported_time
+
+        self.raid_level_info = RaidMaster.from_cache(self.level)
+
         if timer is not None:
             if self.raid_type == "egg":
                 self.hatch_time = self.reported_time + timedelta(minutes=timer).seconds
-                self.expiry_time = self.hatch_time + self.RAID_TIMER * 60
+                self.expiry_time = self.hatch_time + self.raid_level_info.egg_timer * 60
             elif self.raid_type == "raid":
                 self.expiry_time = self.reported_time + timedelta(minutes=timer).seconds
         else:
-            self.hatch_time = self.reported_time + timedelta(minutes=self.EGG_TIMER).seconds
-            self.expiry_time = self.reported_time + timedelta(minutes=self.EGG_TIMER).seconds + timedelta(minutes=self.RAID_TIMER).seconds
+            self.hatch_time = self.reported_time + timedelta(minutes=self.raid_level_info.egg_timer).seconds
+            self.expiry_time = self.reported_time + timedelta(minutes=self.raid_level_info.egg_timer).seconds + timedelta(minutes=self.raid_level_info.raid_timer).seconds
         print(f"{self.reported_at} {self.hatches_at} {self.expires_at}")
 
         self.monitor_task_tuple = None
@@ -943,6 +996,14 @@ class Raid (RSVPEnabled):
         return self.guild.get_channel(self.channel_id)
 
 
+    @property
+    def max_timer(self):
+        if self.is_egg:
+            return self.raid_level_info.egg_timer
+        else:
+            return self.raid_level_info.raid_timer
+
+
     def get_raid_dict(self):
         """Returns the raid_dict column value for the raid"""
         state_dict = {
@@ -961,7 +1022,7 @@ class Raid (RSVPEnabled):
             'channel_message': self.channel_message,
         }
         if self.pkmn:
-            state_dict['pkmn'] = self.pkmn.pokemon_id
+            state_dict['pkmn'] = self.pkmn.id
 
         if len(self.trainer_dict) > 0:
             state_dict['trainer_dict'] = self.trainer_dict
@@ -1042,7 +1103,7 @@ class Raid (RSVPEnabled):
         reported_time, expiry_time, hatch_time, timezone \
             = [raid_dict.get(attr, None) for attr in ['reported_time', 'expiry_time', 'hatch_time', 'timezone']]
 
-        pkmn = PokemonCache.to_pokemon(p_pkmn) if p_pkmn else None
+        pkmn = Pokemon.to_pokemon(p_pkmn) if p_pkmn else None
 
         raid_location = await POILocation.from_dict(bot, rl_dict)
 
@@ -1105,7 +1166,7 @@ class Raid (RSVPEnabled):
     def update_time(self, new_utc_timestamp):
         if self.raid_type == "egg":
             self.hatch_time = new_utc_timestamp
-            self.expiry_time = self.hatch_time + self.RAID_TIMER * 60
+            self.expiry_time = self.hatch_time + self.raid_level_info.raid_timer * 60
         elif self.raid_type == "raid":
             self.expiry_time = new_utc_timestamp
 
@@ -1291,13 +1352,6 @@ class Raid (RSVPEnabled):
 
     async def update_messages(self, content=''):
         Logger.info(f"[{self.cuid}] {self.channel_name}")
-        if self.is_egg and TH.is_in_future(self.hatch_time):
-            embed = await self.egg_embed()
-        elif TH.is_in_future(self.expiry_time):
-            embed = await self.raid_embed()
-        else:
-            embed = await self.expired_embed()
-
 
         try:
             chm_channel, chm_message = await ChannelMessage.from_text(self.bot, self.channel_message)
@@ -1308,7 +1362,15 @@ class Raid (RSVPEnabled):
                     Logger.info("updated channel name")
                 except Exception as error:
                     Logger.error(error)
-                # Logger.info(f"Updated channel name!")
+            Logger.info(f"Channel name is okay! {chm_channel.name}")
+
+            if self.is_egg and TH.is_in_future(self.hatch_time):
+                embed = await self.egg_embed()
+            elif TH.is_in_future(self.expiry_time):
+                embed = await self.raid_embed()
+            else:
+                embed = await self.expired_embed()
+
 
             if chm_message:
                 # Logger.info(f"Updated channel message!")
@@ -1340,13 +1402,13 @@ class Raid (RSVPEnabled):
         try:
             channel, message = await ChannelMessage.from_text(self.bot, self.channel_message)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
         self.raid_type = "raid"
 
         if self.pkmn is None:
             if self.level == 5:
-                LATIOS = PokemonCache.to_pokemon('LATIOS')
+                LATIOS = Pokemon.to_pokemon('LATIOS')
                 return await self.report_hatch(LATIOS)
             else:
                 await Embeds.message(channel, "This raid egg has hatched! Update raid-boss using `!boss`.")
@@ -1464,7 +1526,7 @@ class Raid (RSVPEnabled):
         for trainer_id in self.trainer_dict:
             print(trainer_id)
 
-            if self.trainer_dict[trainer_id]['status'] == "waiting":
+            if self.trainer_dict[trainer_id]['status'] in ["h", "hr", "ir"]:
                 trainer = self.bot.get_user(int(trainer_id))
                 users_starting[trainer_id] = trainer.mention
 
@@ -1472,7 +1534,7 @@ class Raid (RSVPEnabled):
             del self.trainer_dict[trainer_id]
 
         if len(users_starting) > 0:
-            embed_message = f"The group of trainers waiting are starting the raid. Trainers {', '.join(users_starting.values())}, please respond using `!h` if you waiting for another group."
+            embed_message = f"The group of trainers waiting are starting the raid. Trainers {', '.join(users_starting.values())}, please respond using `!h` or `!hr` if you waiting for another group."
             await Embeds.message(self.channel, description=embed_message)
         else:
             embed_message = f"How can you start when there is nobody waiting at the raid?"
@@ -1485,7 +1547,6 @@ def get_emoji(pokemon_type):
     if pokemon_type:
         key = pokemon_type.replace("POKEMON_TYPE_","").lower()
         return config_template.type_emoji[key]
-
 
 
 class RaidEmbed:
@@ -1521,8 +1582,8 @@ class RaidEmbed:
             # Logger.info(f"Weaknesses: {boss.weaknesses}")
         else:
             field_title = "Possible Bosses:"
-            name = "List of possible bosses"
-            img_url = None
+            name = '\n'.join([Pokemon.to_pokemon(raid_boss).extended_label for raid_boss in RaidMaster.get_boss_list(raid.level)])
+            img_url = get_egg_image_url(raid.level)
             weakness = None
             cp_range = None
 
@@ -1532,7 +1593,7 @@ class RaidEmbed:
 
         author = raid.guild.get_member(raid.author_id)
         if author:
-            footer_icon = get_user_icon_url(author)
+            footer_icon = Icons.avatar(author)
 
         start = None
         if raid.start_time:
@@ -1582,14 +1643,16 @@ class EggEmbed:
         img_url = get_egg_image_url(level)
         author = raid.guild.get_member(raid.author_id)
         if author:
-            footer_icon = get_user_icon_url(author)
+            footer_icon = Icons.avatar(author)
 
         footer = f"{raid.cuid} | Reported by {author.display_name} | {raid.timer_info()}"
+
+        raid_boss_list = '\n'.join([Pokemon.to_pokemon(raid_boss).extended_label for raid_boss in RaidMaster.get_boss_list(level)])
 
         fields = {
             "**Level**" : f"{level}",
             "**Where**" : f"{raid_location.gym_embed_label}",
-            "**Possible Bosses**" : f"Bosses based on level"
+            "**Possible Bosses**" : f"{raid_boss_list}"
         }
 
         embed = Embeds.make_embed(header="Raid Report", header_icon=Icons.raid_report, thumbnail=img_url, fields=fields,
@@ -1609,7 +1672,7 @@ class RosterLocationEmbed:
         if rl.raid_boss == "egg":
             img_url = get_egg_image_url(5)
         else:
-            pkmn = PokemonCache.to_pokemon(rl.raid_boss)
+            pkmn = Pokemon.to_pokemon(rl.raid_boss)
             img_url = pkmn.preview_url
 
         fields = {
@@ -1733,9 +1796,7 @@ class DiscordOperations:
     def __init__(self, bot: discord.Client):
         self.bot = bot
 
-    def get_user_icon_url(self, user: discord.Member):
-        icon_url = f"https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.jpg?size=32"
-        return icon_url
+
 
     async def create_channel(self, ctx, raid: Raid):
         try:
@@ -1755,7 +1816,7 @@ class DiscordOperations:
         author = message.author
 
         raid_response_message = await channel.send(
-            content=f"<:icon_info:715354001796890687> Coordinate the raid in {ref_channel.mention}", embed=raid_embed)
+            content=f"{MyEmojis.INFO} Coordinate the raid in {ref_channel.mention}", embed=raid_embed)
 
         return raid_response_message
 
@@ -1765,7 +1826,7 @@ class DiscordOperations:
         city_channel = channel
 
         raid_channel_message = await raid_channel.send(
-            content=f"<:icon_info:715354001796890687> Raid reported in {city_channel.mention}! Coordinate here!",
+            content=f"{MyEmojis.INFO} Raid reported in {city_channel.mention}! Coordinate here!",
             embed=raid_embed)
 
         return raid_channel_message
@@ -1781,3 +1842,22 @@ class InvalidDiscordIdException(ValueError):
 
 class InvalidRaidLevelError(ValueError):
     pass
+
+    # TODO: handle suggested start time
+    # TODO: handle ex-raid
+    # raid_time_value = fetch_channel_expire_time(message.channel.id).strftime("%I:%M %p (%H:%M)")
+    # raid_time_label = "Raid Expires At"
+    # if rc_d['type'] == 'egg':
+    #     raid_time_label = "Egg Hatches At"
+    #     if rc_d['egglevel'] == 'EX':
+    #         raid_time_value = fetch_channel_expire_time(message.channel.id).strftime(
+    #             "%B %d %I:%M %p (%H:%M)")
+#
+#     start_time = fetch_channel_start_time(message.channel.id)
+#     start_time_label = "None"
+#     if start_time:
+#         raid_time_label = raid_time_label + " / Suggested Start Time"
+#         raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
+#
+#     additional_fields[raid_time_label] = raid_time_value
+

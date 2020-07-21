@@ -113,7 +113,7 @@ class CUIDGenerator:
             return value.upper()
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             return id
 
 def main():

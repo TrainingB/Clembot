@@ -27,7 +27,7 @@ class CityManager(commands.Cog):
         await self._get_city(ctx)
 
     @command(pass_context=True, hidden=True, aliases=["set-guild-city"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    @checks.is_guild_owner()
     async def _set_guild_city(self, ctx, city_state):
 
         city_state = city_state.upper()
@@ -36,7 +36,7 @@ class CityManager(commands.Cog):
         await self._get_guild_city(ctx.message)
 
     @command(pass_context=True, hidden=True, aliases=["get-guild-city"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    @checks.is_guild_owner()
     async def get_guild_city(self, ctx):
         await self._get_guild_city(ctx.message)
 
@@ -86,7 +86,7 @@ class CityManager(commands.Cog):
             return city_for_channel
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             Logger.info(error)
             return None
 
@@ -97,7 +97,7 @@ class CityManager(commands.Cog):
     #         new_channel_city =  await self.MyChannelConfigCache.get_channel_config('city', guild_id=guild_id, channel_id=channel_id)
     #         return new_channel_city
     #     except Exception as error:
-    #         print(error)
+    #         Logger.error(f"{traceback.format_exc()}")
     #         return None
 
 

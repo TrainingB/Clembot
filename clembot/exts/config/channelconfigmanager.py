@@ -124,7 +124,7 @@ class ChannelConfigCache(commands.Cog):
             await self.load_channel_config()
         except Exception as error:
 
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
     async def _get_config_by(self, config_name, **kwargs):
 
@@ -158,7 +158,7 @@ class ChannelConfigCache(commands.Cog):
             return city_for_channel
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             Logger.info(error)
             return None
 
@@ -171,7 +171,7 @@ class ChannelConfigCache(commands.Cog):
             return city_for_channel
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             Logger.info(error)
             return None
 
@@ -183,7 +183,7 @@ class ChannelConfigCache(commands.Cog):
             new_channel_city =  await self.get_city_for_channel(guild_id=guild_id, channel_id=channel_id)
             return new_channel_city
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             return None
 
 

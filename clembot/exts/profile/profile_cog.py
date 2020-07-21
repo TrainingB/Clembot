@@ -1,7 +1,10 @@
+import traceback
+
 import discord
 from discord.ext import commands
 
 from clembot.core.bot import group, command
+from clembot.core.logs import Logger
 from clembot.exts.profile.user_profile import UserProfile
 from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.utilities import Utilities
@@ -25,7 +28,7 @@ class ProfileCog(commands.Cog):
         user_profile = await UserProfile.find(self.bot, user.id, ctx.message.guild.id)
         return user_profile
 
-    @group(pass_context=True, hidden=True, aliases=["profile"])
+    @group(pass_context=True, aliases=["profile"])
     async def cmd_profile(self, ctx):
         try:
 
@@ -34,10 +37,10 @@ class ProfileCog(commands.Cog):
                 await ctx.send(embed=user_profile.embed(ctx))
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
-    @cmd_profile.command(pass_context=True, hidden=True, aliases=["tc", "trainer-code"])
+    @cmd_profile.command(pass_context=True, aliases=["tc", "trainer-code"])
     async def cmd_profile_trainer_code(self, ctx, trainer_code=None, member: discord.Member=None):
         try:
             user_profile = await self.find_user_profile(ctx, member)
@@ -47,10 +50,10 @@ class ProfileCog(commands.Cog):
             await ctx.send(embed=user_profile.embed(ctx))
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
-    @cmd_profile.command(pass_context=True, hidden=True, aliases=["ign"])
+    @cmd_profile.command(pass_context=True, aliases=["ign"])
     async def cmd_profile_ign(self, ctx, ign=None, member: discord.Member=None):
         try:
             user_profile = await self.find_user_profile(ctx, member)
@@ -62,10 +65,10 @@ class ProfileCog(commands.Cog):
             await ctx.send(embed=user_profile.embed(ctx))
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
-    @cmd_profile.command(pass_context=True, hidden=True, aliases=["pokebattler", "pb"])
+    @cmd_profile.command(pass_context=True, aliases=["pokebattler", "pb"])
     async def cmd_profile_pokebattler(self, ctx, pokebattler_id=None, member: discord.Member=None):
         try:
             user_profile = await self.find_user_profile(ctx, member)
@@ -76,11 +79,10 @@ class ProfileCog(commands.Cog):
             await ctx.send(embed=user_profile.embed(ctx))
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
-    # @command(pass_context=True, hidden=True, aliases=["silph"])
-    @cmd_profile.command(pass_context=True, hidden=True, aliases=["silph"])
+    @cmd_profile.command(pass_context=True, aliases=["silph"])
     async def cmd_profile_silph(self, ctx, silph_user: str = None, member: discord.Member=None):
         """Links a server member to a Silph Road Travelers Card."""
         try:
@@ -110,10 +112,10 @@ class ProfileCog(commands.Cog):
 
             await ctx.send(embed=card.embed(0))
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
-    @group(pass_context=True, hicdden=True, aliases=["tc","trainer-code"])
+    @group(pass_context=True, aliases=["tc","trainer-code"])
     async def cmd_trainer_code(self, ctx, member: discord.Member=None):
         if ctx.invoked_subcommand is None:
             try:
@@ -128,7 +130,7 @@ class ProfileCog(commands.Cog):
                     return await Embeds.error(ctx.channel, f"I don't have a trainer-code for <@{user_profile.user_id}> on the record.")
 
             except Exception as error:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
 
     @command(aliases=["whois", "who-is"])
     async def cmd_who_is(self, ctx, ign=None):

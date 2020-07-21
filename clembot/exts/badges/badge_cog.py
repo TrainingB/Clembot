@@ -1,4 +1,5 @@
 import re
+import traceback
 from datetime import datetime
 
 import discord
@@ -6,6 +7,7 @@ from discord.ext import commands
 
 from clembot.core import checks
 from clembot.core.bot import group
+from clembot.core.logs import Logger
 from clembot.exts.badges.badge import Badge
 from clembot.exts.profile.user_guild_profile import UserGuildProfile
 from clembot.exts.profile.user_profile import UserProfile
@@ -111,7 +113,7 @@ class BadgeCog(commands.Cog):
                                 description=self.beep_badge.format(member=ctx.message.author.display_name),
                                 footer=footer)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["info"])
@@ -120,7 +122,7 @@ class BadgeCog(commands.Cog):
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["grant"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    @checks.is_guild_owner()
     async def cmd_badge_grant(self, ctx, badge_id:int, user_or_role):
 
         current_badge = await Badge.find_first(self.bot, badge_id)
@@ -144,7 +146,7 @@ class BadgeCog(commands.Cog):
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["revoke"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    @checks.is_guild_owner()
     async def cmd_badge_revoke(self, ctx, badge_id:int, user_or_role):
         try:
             current_badge = await Badge.find_first(self.bot, badge_id)
@@ -168,7 +170,7 @@ class BadgeCog(commands.Cog):
 
             return
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["profile"])
@@ -191,7 +193,7 @@ class BadgeCog(commands.Cog):
                                    fields=fields)
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["help"])
@@ -223,7 +225,7 @@ class BadgeCog(commands.Cog):
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["test"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    @checks.is_guild_owner()
     async def cmd_badge_test(self, ctx, emoji):
         try:
             emoji = self._get_emoji(emoji)
@@ -238,7 +240,7 @@ class BadgeCog(commands.Cog):
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["create"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    @checks.is_guild_owner()
     async def cmd_badge_create(self, ctx, emoji, name, description=None, badge_type=None):
 
         try:
@@ -271,11 +273,11 @@ class BadgeCog(commands.Cog):
                             )
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["update"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    @checks.is_guild_owner()
     async def cmd_badge_update(self, ctx, badge_id:int, emoji, name, description=None, badge_type=None):
 
         try:
@@ -310,11 +312,11 @@ class BadgeCog(commands.Cog):
                             )
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @cmd_badge.command(pass_context=True, hidden=True, aliases=["delete"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    @checks.is_guild_owner()
     async def cmd_badge_delete(self, ctx, badge_id:int ):
 
         try:
@@ -334,7 +336,7 @@ class BadgeCog(commands.Cog):
                 )
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     async def _badge_info(self, ctx, badge_id):
@@ -345,7 +347,7 @@ class BadgeCog(commands.Cog):
             else:
                 return await Embeds.error(ctx.channel, f"no badge found with id {badge_id}.", user=ctx.author)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     async def _remove_badge_id_from_all_user_profiles(self, badge_id):
@@ -414,7 +416,7 @@ class BadgeCog(commands.Cog):
                 )
 
             except Exception as error:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
 
 
     async def _add_badge_to_trainer_profile(self, user:discord.Member, badge: Badge, guild_id=None):
@@ -461,7 +463,7 @@ class BadgeCog(commands.Cog):
                 )
 
             except Exception as error:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
 
 
     async def _remove_badge_from_trainer_profile(self, user: discord.Member, badge_to_remove: Badge, guild_id=None):

@@ -1,12 +1,12 @@
 from discord.ext import commands
 
-from clembot.config.constants import ClembotReactions
+from clembot.config.constants import MyEmojis
 from clembot.core.bot import group
 from clembot.core.commands import Cog
-from clembot.core.error_handler import wrap_error
 from clembot.core.logs import Logger
 from clembot.exts.gymmanager.gym import POILocationConverter
-from clembot.exts.pkmn.pokemon import PokemonConverter, PokemonCache
+from clembot.exts.pkmn.gm_pokemon import Pokemon
+# from clembot.exts.pkmn.pokemon import PokemonConverter, PokemonCache
 from clembot.exts.wild.wild import Wild
 from clembot.utilities.utils import snowflake
 
@@ -22,7 +22,7 @@ class WildCog(commands.Cog):
 
 
     async def pickup_wilddata(self):
-        await PokemonCache.load_cache_from_dbi(self.bot.dbi)
+        await Pokemon.load(self.bot)
         for rcrd in await Wild.find_all(self.bot):
             self.bot.loop.create_task(self.pickup_wild(rcrd))
 
@@ -34,7 +34,7 @@ class WildCog(commands.Cog):
 
 
     @group(pass_context=True, hidden=True, aliases=["wild"])
-    async def cmd_wild(self, ctx, pokemon: PokemonConverter, *loc):
+    async def cmd_wild(self, ctx, pokemon: Pokemon, *loc):
         """Reports a wild spawn
         **Arguments**
         *pokemon* The name of the wild pokemon
@@ -71,7 +71,7 @@ class WildCog(commands.Cog):
         if wild:
             emoji = str(payload.emoji)
 
-            if ClembotReactions.DESPAWNED == emoji:
+            if MyEmojis.DESPAWNED == emoji:
                 await wild.despawn()
-            elif ClembotReactions.ON_MY_WAY == emoji:
+            elif MyEmojis.ON_MY_WAY == emoji:
                 pass

@@ -28,10 +28,6 @@ create table guild_config (
 class GuildMetadata:
 
 
-    GUILD_METADATA_KEY = ['prefix', 'city', 'timezone', 'welcome', 'teams', 'config']
-
-    GUILD_CONFIG_KEY = ["hide-nest-preview", "bingo-card-repo", "bingo-event-title", "bingo-event-pokemon"]
-
     def __init__(self, bot, guild):
         self.bot = bot
         self.guild = guild

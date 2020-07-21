@@ -131,6 +131,14 @@ class UserProfile:
         return user_list
 
 
+    @classmethod
+    async def find_ign(cls, bot, user_id):
+        user_profile = await cls.find(bot, user_id)
+        if user_profile:
+            return f"{' '.join(user_profile['ign'])}"
+
+        return None
+
 
     @property
     def user_id(self):

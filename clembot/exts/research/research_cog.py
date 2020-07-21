@@ -412,7 +412,7 @@ select * from research_report
 #         return listmsg
 #     except Exception as error:
 #         Logger.error(error)
-#         print(error)
+#         Logger.error(f"{traceback.format_exc()}")
 #
 # @Clembot.command(pass_context=True, hidden=True, aliases=["remove-research"])
 # async def _remove_research(ctx, research_id=None):

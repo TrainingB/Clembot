@@ -1,14 +1,16 @@
 import asyncio
 import os
 import re
+import traceback
 
 import discord
 
 from clembot.core import time_util
 from clembot.core.data_manager.dbi import DatabaseInterface
+from clembot.core.logs import Logger
 from clembot.exts.config.channel_metadata import ChannelMetadata
 from clembot.exts.gymmanager.gym import Gym, GymRepository
-from clembot.exts.pkmn.pokemon import PokemonConverter, PokemonCache
+from clembot.exts.pkmn.gm_pokemon import Pokemon
 
 
 class GymLookupExtension:
@@ -201,7 +203,7 @@ class ArgParser:
                                 args.remove(arg)
 
                     except Exception as error:
-                        print(error)
+                        Logger.error(f"{traceback.format_exc()}")
                         raise ValueError(error)
 
             # identify discord username
@@ -214,7 +216,7 @@ class ArgParser:
                             response['mentions'] = mention_list
                             args.remove(arg)
                     except Exception as error:
-                        print(error)
+                        Logger.error(f"{traceback.format_exc()}")
                         pass
             # identify partysize or index
             elif option == 'partysize' or option == 'index':
@@ -251,12 +253,12 @@ class ArgParser:
         if 'pkmn' in list_of_options:
             for arg in list(args):
                 try:
-                    pkmn = await PokemonConverter.convert(ctx, arg)
+                    pkmn = await Pokemon.convert(ctx, arg)
                     if pkmn:
                         response['pkmn'] = pkmn
                         args.remove(arg)
                 except Exception as error:
-                    print(error)
+                    Logger.error(f"{traceback.format_exc()}")
                     pass
 
         for arg in list(args):
@@ -411,7 +413,7 @@ async def cleanup():
 async def test_suite():
     try:
         await initialize()
-        await PokemonCache.load_cache_from_dbi(dbi)
+        await Pokemon.load({dbi: dbi})
         # await test()
         # await test1()
         # await test2()
@@ -435,7 +437,7 @@ def main():
 
         print("main() finished")
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
     return
 
 

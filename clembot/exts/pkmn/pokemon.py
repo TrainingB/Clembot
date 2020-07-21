@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 import os
+import traceback
 
 from discord.ext import commands
 from discord.ext.commands import BadArgument
@@ -10,11 +11,12 @@ from clembot.config import config_template
 from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.core.logs import Logger
 from clembot.exts.pkmn.cpcalculator import CPCalculator
+from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.exts.pkmn.spelling import SpellHelper
 from clembot.utilities.utils.utilities import Utilities
 
 
-class Pokemon:
+class PokemonX:
 
     def __init__(self, pokemon_id, pokeform_display_text=None, pokedex_id=None, pokedex_num=None, base_attack=None, base_defense=None, base_stamina=None, alias=None, tags=None, type1=None, type2=None, emoji_key=None):
         self.pokemon_id = pokemon_id
@@ -205,17 +207,17 @@ class Pokemon:
             return cp
 
 
-class OptionalPokemonConverter(commands.Converter):
+class OptionalPokemonXConverter(commands.Converter):
 
-    async def convert(self, ctx, argument) -> Pokemon:
+    async def convert(self, ctx, argument) -> PokemonX:
 
-        pokemon_form = PokemonCache.to_pokemon(argument.upper())
+        pokemon_form = Pokemon.to_pokemon(argument.upper())
         if pokemon_form:
             return pokemon_form
         else:
-            possible_pokemon_form = await PokemonConverter.auto_correct(ctx, argument.upper())
+            possible_pokemon_form = await PokemonXConverter.auto_correct(ctx, argument.upper())
             if possible_pokemon_form:
-                pokemon_form = PokemonCache.to_pokemon(possible_pokemon_form)
+                pokemon_form = Pokemon.to_pokemon(possible_pokemon_form)
                 return pokemon_form
 
         return None
@@ -227,18 +229,18 @@ class OptionalPokemonConverter(commands.Converter):
         return new_list
 
 
-class PokemonConverter(commands.Converter):
+class PokemonXConverter(commands.Converter):
 
     @staticmethod
-    async def convert(ctx, argument) -> Pokemon:
+    async def convert(ctx, argument) -> PokemonX:
 
-        pokemon_form = PokemonCache.to_pokemon(argument.upper())
+        pokemon_form = Pokemon.to_pokemon(argument.upper())
         if pokemon_form:
             return pokemon_form
         else:
-            possible_pokemon_form = await PokemonConverter.auto_correct(ctx, argument.upper())
+            possible_pokemon_form = await PokemonXConverter.auto_correct(ctx, argument.upper())
             if possible_pokemon_form:
-                pokemon_form = PokemonCache.to_pokemon(possible_pokemon_form)
+                pokemon_form = Pokemon.to_pokemon(possible_pokemon_form)
                 return pokemon_form
 
         raise BadArgument(f"{argument} could not be resolved to a pokemon.")
@@ -260,7 +262,7 @@ class PokemonConverter(commands.Converter):
         return None
 
 
-class PokemonCache:
+class PokemonXCache:
 
     _cache = {}
     _pkmn_map = {}
@@ -280,7 +282,7 @@ class PokemonCache:
 
     @classmethod
     def pokemon(cls, pokemon_id):
-        return Pokemon.from_dict(cls._pkmn_map.get(pokemon_id, None))
+        return PokemonX.from_dict(cls._pkmn_map.get(pokemon_id, None))
 
 
     @classmethod
@@ -309,13 +311,13 @@ class PokemonCache:
         SpellHelper.set_dictionary(list(pokemon_form_master.keys()))
 
     @classmethod
-    def to_pokemon(cls, text) -> Pokemon:
+    def to_pokemon(cls, text) -> PokemonX:
         if cls._cache.__len__() < 1:
             raise Exception("Error : Pokemon forms are not loaded.")
 
         if cls._cache.keys().__contains__(text.upper()):
             my_object = cls._cache.get(text.upper())
-            return Pokemon.from_dict(my_object)
+            return PokemonX.from_dict(my_object)
 
         return None
 
@@ -334,7 +336,7 @@ class PokemonCache:
             Logger.info(f'{len(result_record)} Pokemon Form(s) Loaded from tbl_pokemon_master.')
             return result_record
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             raise Exception("Couldn't load pokemon forms from DB due to error " + str(error))
 
     @classmethod
@@ -386,7 +388,7 @@ class PokemonCache:
             PokemonCache.update_cache(pokemon)
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             raise Exception(error)
 
 
@@ -451,7 +453,7 @@ class GameMasterParser:
                     await GameMasterInterface.update_game_master(local_dbi, pokemonId, data)
 
             except Exception as error:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
                 print(json.dumps(pmr))
 
         print("load_pokedex() finished.")
@@ -507,11 +509,11 @@ async def test_condition():
         # something = await GameMasterInterface.get_game_master(dbi)
         # print(something)
         # await GameMasterParser.load_pokedex(dbi)
-        await PokemonCache.load_cache_from_dbi(dbi)
+        await Pokemon.load(dbi)
 
 
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
 
 
 
@@ -528,7 +530,7 @@ def main():
         print(f"[pokemon.py] main() finished.")
 
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
 
 
 #main()

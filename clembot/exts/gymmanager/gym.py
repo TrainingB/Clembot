@@ -1,4 +1,5 @@
 from discord.ext import commands
+from discord.ext.commands import BadArgument
 
 from clembot.core.logs import Logger
 from clembot.exts.config.channel_metadata import ChannelMetadata
@@ -32,7 +33,7 @@ from clembot.utilities.utils.utilities import TextUtil
 #             return city_for_channel
 #
 #         except Exception as error:
-#             print(error)
+#             Logger.error(f"{traceback.format_exc()}")
 #             CityConfigAdapter.logger.info(error)
 #             return None
 #
@@ -53,6 +54,7 @@ from clembot.utilities.utils.utilities import TextUtil
 #         except Exception as error:
 #             Logger.error(error)
 #         return None
+
 
 
 class Gym:
@@ -241,6 +243,18 @@ class Gym:
     }
 
 
+    @classmethod
+    async def find_first_by(cls, bot, gym_code, city):
+
+        gym_table = bot.dbi.table('gym')
+        gym_table_query = gym_table.query().select().where(gym_code=gym_code.upper(), city_state=city.upper())
+        list_of_gym = await gym_table_query.getjson()
+        gym = Gym.from_dict(list_of_gym[0]) if len(list_of_gym) > 0 else None
+        return gym
+
+
+
+
 class GymRepository:
 
     def __init__(self, dbi):
@@ -313,7 +327,7 @@ class GymRepository:
 
     async def to_gym_by_code_city(self, gym_code, city) -> Gym:
         list_of_gym = await self.search_by_gym_code_city(gym_code, city)
-        gym = Gym.from_dict(list_of_gym[0]) if len(list_of_gym) > 0 else None
+        gym = Gym.from_dict(list_of_gym[0]) if list_of_gym and len(list_of_gym) > 0 else None
         return gym
 
 
@@ -469,10 +483,10 @@ class POILocationConverter(commands.Converter):
 
     @staticmethod
     async def convert_from_text(ctx, *argument) -> POILocation:
-        try:
 
+        try:
             if len(argument) == 1:
-                city = await ctx.channel_setting(ctx.channel.id, 'city')
+                city = await ctx.city()
                 gym = await GymRepository(ctx.bot.dbi).to_gym_by_code_city(argument[0], city)
                 if gym:
                     return POILocation.from_gym(gym)
@@ -486,7 +500,8 @@ class POILocationConverter(commands.Converter):
             return POILocation.from_location_city(text, "")
 
         except Exception as error:
-            Logger.error(f"Error while processing {argument} : {error}")
+            raise BadArgument(error)
+
 
     @staticmethod
     async def convert(ctx, argument) -> POILocation:
@@ -501,7 +516,7 @@ class POILocationConverter(commands.Converter):
             else:
                 return POILocation.from_location_city(argument, city)
         except Exception as error:
-            Logger.error(f"Error while processing {argument} : {error}")
+            raise BadArgument(error)
 
     @staticmethod
     def combine(location_list):

@@ -5,7 +5,6 @@ import dateparser
 import discord
 from discord.ext import commands
 
-
 # from clembot import utils
 from clembot.core.bot import command
 
@@ -271,7 +270,7 @@ class SilphCard:
                 async with sess.get(url) as resp:
                     data = await resp.json()
         except TimeoutError as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
         if data.get('error', None):
             return None
         return cls(silph_user, data)

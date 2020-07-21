@@ -4,7 +4,7 @@ import json
 import discord
 from discord.ext import commands
 
-from clembot.core import checks
+
 from clembot.core.bot import group
 from clembot.core.logs import Logger
 from clembot.exts.config.channelconfigmanager import ChannelConfigCache
@@ -47,7 +47,7 @@ class GymManagerCog(commands.Cog):
 
 
     @_command_gym.group(pass_context=True, hidden=True, aliases=["update"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    # @checks.is_guild_owner()
     async def _command_gym_update(self, ctx, gym_id: int, attribute, value):
 
         gym = await self.gymRepository.to_gym_by_id(gym_id)
@@ -68,7 +68,7 @@ class GymManagerCog(commands.Cog):
 
 
     @_command_gym.command(pass_context=True, hidden=True, aliases=["add"])
-    @checks.guildowner_or_permissions(manage_guild=True)
+    # @checks.is_guild_owner()
     async def _command_gym_add(self, ctx, *, raw_gym_list=None):
         Logger.info("_gym_add()")
         try:

@@ -1,11 +1,14 @@
 import asyncio
 import json
 import os
+import traceback
 from random import *
 
 from clembot.core.data_manager.dbi import DatabaseInterface
+from clembot.core.logs import Logger
 from clembot.exts.bingo.pokemondataprovider import PokemonDataProvider
-from clembot.exts.pkmn.pokemon import PokemonCache
+from clembot.exts.pkmn.gm_pokemon import Pokemon
+
 
 # https://json-csv.com/
 
@@ -58,7 +61,7 @@ def test_cp_extractor(cp_values):
 
         return cp_master
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
         return {}
 
 
@@ -341,11 +344,11 @@ async def cleanup():
 async def load_pokemon_cache():
     global dbi
     try:
-        await PokemonCache.load_cache_from_dbi(dbi)
+        await Pokemon.load({dbi:dbi})
 
 
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
 
 def init():
     try:
@@ -360,7 +363,7 @@ def init():
         print(f"[bingogenerator.py] main() finished.")
 
     except Exception as error:
-        print(error)
+        Logger.error(f"{traceback.format_exc()}")
 
 
 

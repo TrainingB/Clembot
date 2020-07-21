@@ -1,30 +1,51 @@
 ''' Configuration for Clembot '''
 
-# Rename to config_template.py
 
-bot_token = 'place your bot token here'
-
+bot_token = 'pLaCEyOur.bOTtoKeN.HerE'
 default_prefix = '!'
+environment = "dev"
+preload_extensions = [
+	'exts.config',
+	'exts.pkmn',
+	'exts.gymmanager',
+	'exts.gyms',
+	'exts.raid',
+	# 'exts.autorespond',
+	# 'exts.bingo',
+	# 'exts.badges',
+	# 'exts.draft',
+	# 'exts.profile',
+	# 'exts.rolebyreaction',
+	# 'exts.silph',
+	# 'exts.trade',
+	# 'exts.spawns',
+	# 'exts.leaderboard',
+	# 'exts.wild',
+	# 'exts.research'
+]
 bot_users = {
-	"owner" : 0, # discord user id
-	"trusted_users" : [0], # other trusted users
+	"owner" : 289657500167438336,
+	"trusted_users" : [289657500167438336, 339586795136090114, 310619324958244876],
 }
 
-sqlite_db = "path to clembot-db",
+# minimum required permissions for bot user 268822608
+bot_permissions = 268823632
 
 db_config_details = {
-    "password" : 'password',
-    "hostname" : 'hostname',
-    "username" : 'postgres',
-    "database" : "database",
-	"port" : 5432,
-	"debug" : False
+    "password" : 'pAssWord',
+    "hostname" : 'your.database.host.ip',
+	"username" : 'useRNaMe',
+ 	"database" : "name-of-the-database",
+	"schema" : "public",
+	"port" : 5433,
+	"debug" : True
 }
 
 api_keys = {
-	"google-api-key" : "google-api-key",
-	"google-shortner-key" : "google-shortner-key",
+	"google-api-key" : "gOOGle-aPI-KeY"
 }
+
+
 
 
 type_emoji = {
@@ -60,6 +81,17 @@ weather_emoji = {
 	"none"         : "<:weather_none:419944231289880577>"
 }
 
+
+misc_emoji = {
+	"add_friend": "<:add_friend:733944456696430662>",
+	"remote_raid": "<:remote_raid:733940725129019413>",
+	"interested": "<:sign_i:734129673197584494>",
+	"here": "<:sign_h:734129727937445948>",
+	"coming": "<:sign_c:734128533349072988>",
+	"info": "<:icon_info:734670376755527710>",
+	"error": "<:icon_error:734670377011249192>",
+}
+
 bot_language= "en"
 pokemon_language= "en"
 egg_timer=10
@@ -69,3 +101,4 @@ allow_assume = {"EX": "True", "5": "True", "4": "False", "3": "False", "2": "Fal
 team_dict= {"mystic": ":mystic:", "valor": "valor", "instinct": ":instinct:"}
 omw_id= ":omw:"
 here_id= ":here:"
+

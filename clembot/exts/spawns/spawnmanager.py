@@ -70,7 +70,7 @@ class SpawnManagerCog(commands.Cog):
                                 )
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
             error_message = await self.utilities._send_error_message(ctx.channel, f"The correct usage is `!spawn pokemon 0.0000,0.0000 0000CP 100IV`")
             await asyncio.sleep(30)
             await error_message.delete()

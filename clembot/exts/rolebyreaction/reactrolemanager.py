@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from clembot.core.bot import group, command
+from clembot.core.utils import emojify
 from clembot.utilities.utils.utilities import Utilities
 
 
@@ -21,81 +22,6 @@ class ReactRoleManager(commands.Cog):
             "emoji1" : "role three"
         }
     }
-
-    numbers_text = ["zero","one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
-
-    one_to_ten = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '🔟']
-
-    def _new_serialize(self, emoji):
-        if isinstance(emoji, discord.Reaction):
-             emoji = emoji.emoji
-        if isinstance(emoji, discord.Emoji):
-            emoji = '%s:%s' % (emoji.name, emoji.id)
-        elif isinstance(emoji, discord.PartialEmoji):
-            emoji = emoji._as_reaction()
-        elif isinstance(emoji, str):
-            pass
-
-        if emoji.__contains__(">") and emoji.__contains__("<"):
-            emoji = emoji.replace('<','').replace('>','')
-        return emoji
-
-
-    def serialize(self, guild, emoji):
-        emoji_array = [guild_emoji.name for guild_emoji in guild.emojis if guild_emoji.name == emoji or str(guild_emoji) == emoji]
-
-        if len(emoji_array) > 0:
-            return emoji_array[0]
-
-        if emoji in self.numbers_text:
-            emoji = self.numbers_text.index(emoji)
-            emoji = f'{emoji}\u20e3'
-
-        if emoji.isdigit():
-            emoji = f'{emoji}\u20e3'
-
-        if emoji in self.one_to_ten:
-            return emoji
-
-        return None
-
-    def demojify(self, guild, emoji_string):
-
-        if emoji_string in self.one_to_ten:
-            return emoji_string
-
-        emoji = emoji_string.replace('<','').replace('>','').split(":")[1]
-
-        return emoji
-
-    # convert input to standard emoji format
-    def emojify(self, guild, normalized_emoji):
-
-        emoji_array = [':%s:%s' %(guild_emoji.name,guild_emoji.id) for guild_emoji in guild.emojis if guild_emoji.name == normalized_emoji or str(guild_emoji) == normalized_emoji]
-
-        if len(emoji_array) > 0:
-            return emoji_array[0]
-
-        if normalized_emoji in self.numbers_text:
-            normalized_emoji = self.numbers_text.index(normalized_emoji)
-            normalized_emoji = f'{emoji}\u20e3'
-
-        if normalized_emoji.isdigit():
-            normalized_emoji = f'{emoji}\u20e3'
-
-        if normalized_emoji in self.one_to_ten:
-            return normalized_emoji
-
-        return None
-
-    def printable(self, guild, emoji_text):
-        if emoji_text in self.one_to_ten:
-            return emoji_text
-
-        emoji_array = ['<:%s:%s>' % (guild_emoji.name, guild_emoji.id) for guild_emoji in guild.emojis if guild_emoji.name == emoji_text or str(guild_emoji) == emoji_text]
-
-        if len(emoji_array) > 0:
-            return emoji_array[0]
 
 
     @group(pass_context=True, hidden=True, aliases=["react-role", "rr"])
@@ -150,7 +76,7 @@ class ReactRoleManager(commands.Cog):
                 await this_message.add_reaction(new_emoji)
 
             except Exception as error:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
                 continue
 
 
@@ -179,7 +105,7 @@ class ReactRoleManager(commands.Cog):
 
         except Exception as error:
             return await self.utilities._send_error_message(ctx.channel, f", Some error has occured!", ctx.message.author)
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     async def _assign_exclusive_role_via_reaction(self, ctx, message, original_user, emoji_role_dict=None):
@@ -200,9 +126,9 @@ class ReactRoleManager(commands.Cog):
 
         for emoji in emoji_role_dict.keys():
             try:
-                await message.add_reaction(self.emojify(ctx.guild, emoji))
+                await message.add_reaction(emojify(self.numbers_text, self.one_to_ten, ctx.guild, emoji))
             except Exception as error:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
 
         await message.add_reaction('\u23f9')
         try:
@@ -235,7 +161,7 @@ class ReactRoleManager(commands.Cog):
             await timeout_message.delete()
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
         return
 
 
@@ -256,9 +182,9 @@ class ReactRoleManager(commands.Cog):
 
         for emoji in emoji_role_dict.keys():
             try:
-                await message.add_reaction(self.emojify(ctx.guild, emoji))
+                await message.add_reaction(emojify(self.numbers_text, self.one_to_ten, ctx.guild, emoji))
             except Exception as error:
-                print(error)
+                Logger.error(f"{traceback.format_exc()}")
 
 
         await message.add_reaction('\u23f9')
@@ -298,7 +224,7 @@ class ReactRoleManager(commands.Cog):
                 timeout_message = await self.utilities._send_error_message(ctx.channel, f", No changes were made!", original_user)
 
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
         await asyncio.sleep(3)
         await message.delete()

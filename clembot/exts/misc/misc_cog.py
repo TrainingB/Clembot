@@ -4,9 +4,9 @@ import re
 import time
 
 import discord
-from discord.ext.commands import command
 
 from clembot.core import checks
+from clembot.core.bot import command
 from clembot.core.logs import Logger
 from clembot.utilities.utils import parse_emoji
 
@@ -80,7 +80,9 @@ async def template(ctx, *, sample_message):
         await ctx.channel.send(msg.format(user=ctx.author.mention))
 
 
-@command.command(pass_context=True, hidden=True)
+
+
+@command(pass_context=True, hidden=True)
 async def timestamp(ctx):
     await ctx.channel.send(ctx.channel, str(time.time()))
 

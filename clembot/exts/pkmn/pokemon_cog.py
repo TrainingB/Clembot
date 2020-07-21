@@ -12,7 +12,7 @@ class PokemonCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        # self.bot.loop.create_task(PokemonCache.load_cache_from_dbi(bot.dbi))
+        # self.bot.loop.create_task(Pokemon.load(bot.dbi))
 
 
 def main():

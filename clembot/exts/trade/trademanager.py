@@ -247,7 +247,7 @@ class TradeManager(commands.Cog):
                     await user_profile.update()
                     # print(user_profile.db_dict)
         except Exception as error:
-            print(error)
+            Logger.error(f"{traceback.format_exc()}")
 
 
     @cmd_trade.command(aliases=["search"])
