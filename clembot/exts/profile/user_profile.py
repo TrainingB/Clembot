@@ -198,7 +198,7 @@ class ProfileEmbed:
 
             ign = f"{', '.join(user_profile['ign'])}" if user_profile['ign'] else None
 
-            embed = Embeds.make_embed(header=f"Member Found - {ign}", footer=footer)
+            embed = Embeds.make_embed(header=f"Member Found - {ign}", footer=footer, msg_color=user.colour)
             embed.add_field(name="Discord user", value=f"<@{user_profile.user_id}>", inline=True)
             if ign:
                 embed.add_field(name="**IGN**", value=f"**{ign}**", inline=True)
@@ -207,6 +207,7 @@ class ProfileEmbed:
 
 
         show_help = show_help if show_help is not None else user.id == ctx.message.author.id
+
 
 
         silph, trainer_code, ign, pokebattler_id = (user_profile['silph_id'], user_profile['trainer_code'], user_profile['ign'], user_profile['pokebattler_id'])
@@ -219,20 +220,20 @@ class ProfileEmbed:
         if not show_help:
             embed.add_field(name="Discord user", value=f"<@{user.id}>", inline=True)
 
-        ign = f"**{', '.join(ign)}**" if ign else "set using \n`!profile ign`" if show_help else None
+        ign = f"**{', '.join(ign)}**" if ign else "set using `!profile ign`" if show_help else None
         if ign:
-            embed.add_field(name="**IGN**", value=f"{ign}", inline=True)
+            embed.add_field(name="**IGN**", value=f"{ign}", inline=False)
 
-        trainer_code = f"**{', '.join(trainer_code)}**" if trainer_code else "set using \n`!profile trainer-code`" if show_help else None
+        trainer_code = f"**{', '.join(trainer_code)}**" if trainer_code else "set using `!profile trainer-code`" if show_help else None
         if trainer_code:
-            embed.add_field(name="**Trainer Code**", value=f"{trainer_code}", inline=True)
+            embed.add_field(name="**Trainer Code**", value=f"{trainer_code}", inline=False)
 
-        silph = silph if silph else "set using \n`!profile silph`" if show_help else None
+        silph = silph if silph else "set using `!profile silph`" if show_help else None
         if silph:
             embed.add_field(name="**Silph Road**", value=f"{silph}", inline=True)
 
 
-        pokebattler_id = pokebattler_id if pokebattler_id else 'set using \n`!profile pokebattler`' if show_help else None
+        pokebattler_id = pokebattler_id if pokebattler_id else 'set using `!profile pokebattler`' if show_help else None
         if pokebattler_id:
             embed.add_field(name="**Pokebattler Id**", value=f"{pokebattler_id}", inline=True)
 

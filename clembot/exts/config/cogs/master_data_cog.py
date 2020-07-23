@@ -245,7 +245,7 @@ class MasterDataCog(commands.Cog):
 
     @cmd_raid_boss.command(pass_context=True, hidden=True, aliases=["list"])
     async def cmd_raid_boss_list(self, ctx, level=None):
-        fields = {}
+        fields = { }
         raid_levels = [boss_level for boss_level in RaidMaster.by_level.keys() if boss_level == (level or boss_level)]
         title = f"(Level - {level})" if level else ""
         for raid_level in sorted(raid_levels):
