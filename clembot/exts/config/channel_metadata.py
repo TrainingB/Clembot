@@ -120,12 +120,12 @@ class ChannelConfigEmbed:
     def from_channel_metadata(cls, ctx, metadata = dict, title=None, icon_url=None):
 
         labels = {
-            'raid' : 'Raid Reports',
-            'wild' : 'Wild Reports',
-            'nest' : 'Nest Reports',
-            'research': 'Research Reports',
-            'rocket' : 'Grunt Reports',
-            'trade' : 'Trade'
+            'raid' : 'Raid Reports (raid)',
+            'wild' : 'Wild Reports (wild)',
+            'nest' : 'Nest Reports (nest)',
+            'research': 'Research Reports(research)',
+            'rocket' : 'Grunt Reports (rocket)',
+            'trade' : 'Trade (trade)'
         }
 
         enabled_features = "\n".join([labels.get(feature) for feature in ChannelConfigEmbed.FEATURES if metadata.get(feature, False) and feature in labels.keys()])
@@ -136,7 +136,7 @@ class ChannelConfigEmbed:
         if categories:
             category_name = ', '.join([ctx.get.category(int(category_id)).name for category_id in categories.values()])
         else:
-            category = metadata['category']
+            category = metadata.get('category', None)
             if category:
                 category_name = ctx.get.category(int(category)).name if category.isdigit() else None
             else:
@@ -157,6 +157,8 @@ class ChannelConfigEmbed:
 
         embed.add_field(name="**:white_check_mark: Enabled Features**", value=enabled_features if len(enabled_features) > 0 else '-', inline=True)
         embed.add_field(name="**:negative_squared_cross_mark: Disabled Features**", value=disabled_features if len(disabled_features) > 0 else '-', inline=True)
+
+        embed.set_footer(text=f"Use `!feature enable` or `!feature disable` to enable/disable features.")
 
         return cls(embed)
 

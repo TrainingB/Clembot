@@ -50,7 +50,7 @@ class FeatureManagementCog(commands.Cog):
     @wrap_error
     async def cmd_feature_status(self, ctx):
         channel_id = ctx.channel.id
-        report_channel_dict = await ChannelMetadata.find(ctx.bot, channel_id)
+        report_channel_dict = await ChannelMetadata.find(ctx.bot, channel_id, ctx.guild.id)
         return await ctx.send(embed=ChannelMetadata.embed(ctx, report_channel_dict))
 
 
@@ -71,7 +71,7 @@ class FeatureManagementCog(commands.Cog):
                 raise BadArgument(f"valid features are: `{', '.join(FeatureManagementCog.FEATURES)}`.")
 
             ChannelMetadata.begin_configuration(channel_id)
-            report_channel_dict = await ChannelMetadata.find(ctx.bot, channel_id)
+            report_channel_dict = await ChannelMetadata.find(ctx.bot, channel_id, ctx.guild.id)
 
             for feature in requested_features:
                 report_channel_dict[feature] = False
@@ -158,7 +158,7 @@ class FeatureManagementCog(commands.Cog):
         response = await self.ask_for_input(ctx, prompt_embed, is_text)
         if response == "cancel":
             ChannelMetadata.end_configuration(channel_id)
-            return channel_dict
+            raise BadArgument("Configuration cancelled.")
 
         channel_dict['city'] = response.replace(" ", "").upper()
 
