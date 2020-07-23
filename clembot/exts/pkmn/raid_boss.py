@@ -135,7 +135,7 @@ class RaidMaster:
     def get_level(cls, pokeform):
         """get_level(pokemon) - return None if the boss is listed."""
         for raid_master in RaidMaster.by_level.values():
-            if pokeform.label in raid_master.raid_boss_list:
+            if pokeform.id in raid_master.raid_boss_list:
                 return raid_master.level
 
         return None

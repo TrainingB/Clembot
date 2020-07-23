@@ -106,9 +106,11 @@ def custom_error_handling(bot, logger):
 
             prefix, parent, command, missing_args, sig = missing_arg_msg(ctx)
 
+            header = missing_arguments_header[int(str(TH.current_epoch()).split(".")[-1]) % len(missing_arguments_header)]
+
             error_message = await ctx.send(embed=Embeds.make_embed(
                 header_icon=Icons.BOT_ERROR, msg_color=discord.Color.dark_red(),
-                header=f"Wait, that's not enough!",
+                header=f"{header}",
                 content=f'I\'m missing some details such as `{" ".join(missing_args)}`\n\n**Correct Usage:** `{prefix}{parent}{command} {" ".join(sig)}`\n\n||You can tap 🗑️ to delete this message.||'))
 
             await error_message.add_reaction('🗑️')
@@ -321,6 +323,12 @@ bad_arguments_header = ["Uh-huh, bad arguments!",
     "There is always next time!"
 ]
 
+
+missing_arguments_header = [
+    "Wait, that's not enough!",
+    "I need some more information",
+    "Are you sure you are missing something?"
+]
 
 check_failure_header = ["Can I see your ID please.",
     "Well, this is it!",

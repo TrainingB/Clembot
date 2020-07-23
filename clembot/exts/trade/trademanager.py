@@ -1,6 +1,7 @@
 import os
 import pickle
 import re
+import traceback
 
 import discord
 from discord.ext import commands
@@ -208,46 +209,6 @@ class TradeManager(commands.Cog):
         additional_fields['only_arguments'] = only_arguments
 
         await Utilities._send_embed(ctx.channel, additional_fields=additional_fields)
-
-
-    @cmd_trade.command(aliases=["migrate"])
-    async def cmd_trade_migrate(self, ctx):
-        try:
-            with open(os.path.join(os.path.abspath('.'), 'data', 'guilddict_clembot'), "rb") as fd:
-                server_dict_old = pickle.load(fd)
-
-            for guild_id in server_dict_old.keys():
-                print(f"Processing {guild_id}")
-                guild_dict = server_dict_old.get(guild_id)
-
-                trainers_dict = guild_dict.get('trainers')
-                print(f"Found {len(trainers_dict.keys())} trainers.")
-                for trainer_id in trainers_dict.keys():
-
-                    trainer_dict = trainers_dict.get(trainer_id)
-                    trainer_dict.pop('leaderboard-stats', None)
-                    trainer_dict.pop('lifetime', None)
-                    trainer_dict.pop('badges', None)
-
-                    if not bool(trainer_dict):
-                        continue
-
-                    print(trainer_dict)
-                    user_profile = await UserProfile.find(self.bot, trainer_id)
-                    if user_profile['status'] == 'migrated':
-                        continue
-
-                    user_profile['trade_requests'] = trainer_dict.get('trade_requests')
-                    user_profile['trade_offers'] = trainer_dict.get('trade_offers')
-                    user_profile['trainer_code'] = trainer_dict.get('profile',{}).get('trainer-code')
-                    user_profile['ign'] = trainer_dict.get('profile', {}).get('ign')
-                    user_profile['silph_id'] = trainer_dict.get('profile', {}).get('silph-id')
-                    user_profile['pokebattler_id'] = trainer_dict.get('profile', {}).get('pokebattler_id')
-                    user_profile['status'] = 'migrated'
-                    await user_profile.update()
-                    # print(user_profile.db_dict)
-        except Exception as error:
-            Logger.error(f"{traceback.format_exc()}")
 
 
     @cmd_trade.command(aliases=["search"])

@@ -1407,9 +1407,10 @@ class Raid (RSVPEnabled):
         self.raid_type = "raid"
 
         if self.pkmn is None:
-            if self.level == 5:
-                LATIOS = Pokemon.to_pokemon('LATIOS')
-                return await self.report_hatch(LATIOS)
+            if len(self.raid_level_info.raid_boss_list) == 1:
+                raid_boss_id=next(iter(self.raid_level_info.raid_boss_list))
+                raid_boss = Pokemon.to_pokemon(raid_boss_id)
+                return await self.report_hatch(raid_boss)
             else:
                 await Embeds.message(channel, "This raid egg has hatched! Update raid-boss using `!boss`.")
         else:

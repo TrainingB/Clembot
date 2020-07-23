@@ -48,7 +48,7 @@ class Bot(commands.AutoShardedBot):
                       status=discord.Status.online, **kwargs)
         super().__init__(**kwargs)
         self.owner_id = config_template.bot_users['owner']
-        self.owner = self.get_user(config_template.bot_users['owner'])
+        self.owner = self.get_user(self.owner_id)
         self.trusted_users = config_template.bot_users['trusted_users']
         self.loop.run_until_complete(self._db_connect())
         self.auto_responses = {}
@@ -232,7 +232,9 @@ class Bot(commands.AutoShardedBot):
 def command(*args, **kwargs):
     def decorator(func):
         category = kwargs.get("category")
+        examples = kwargs.get("examples")
         func.command_category = category
+        func.examples = examples
         error_wrapped_func = wrap_error(func)
         result = commands.command(*args, **kwargs)(error_wrapped_func)
         return result
@@ -242,6 +244,8 @@ def group(*args, **kwargs):
     def decorator(func):
         category = kwargs.get("category")
         func.command_category = category
+        examples = kwargs.get("examples")
+        func.examples = examples
         error_wrapped_func = wrap_error(func)
         result = commands.group(*args, **kwargs)(error_wrapped_func)
         return result

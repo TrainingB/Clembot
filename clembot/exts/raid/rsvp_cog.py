@@ -1,6 +1,7 @@
 from discord.ext import commands
 
 from clembot.config.constants import Icons
+from clembot.core import checks
 from clembot.core.bot import group, command
 from clembot.core.commands import Cog
 from clembot.exts.raid import raid_checks
@@ -42,22 +43,15 @@ class RSVPCog(commands.Cog):
             await Embeds.error(ctx.channel, 'RSVP commands are not enabled for this channel.', ctx.message.author)
 
     @command(pass_context=True, aliases=["rsvp"])
-    @raid_checks.rsvp_enabled()
     async def cmd_rsvp(self, ctx):
-        commands_help="""
-        You can use following command to indicate your status:
-        **!i**  - interested
-        **!ir** - interested remotely
-        **!h**  - here at raid
-        **!hr** - here at raid remotely
-        **!c**  - coming (on the way)
-        **!c**  - coming (on the way) remotely
-        
-        **!ii** - interested in remote invite (`!list` will show your IGN. If you've told me about your IGN.)
-        """
 
-        await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="RSVP Commands",
-                                                content=f"{commands_help}"))
+        status = {
+            'Indicate your status using:' : [False, f'!i  - interested\n!c  - coming (on the way)\n!h  - here at raid'],
+            ':new: status commands' : [False, "!ir - interested *remotely*\n!cr - coming or on the way *remotely*\n!hr - here at raid *remotely*\n!ii - interested in raid *invite*. ***!list** will show your IGN, if set using **!profile**.*"]
+        }
+
+        await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="RSVP Commands", fields=status
+                                                ))
 
         pass
 
@@ -162,8 +156,10 @@ class RSVPCog(commands.Cog):
 
 
     @command(pass_context=True, aliases=["list"])
+    @raid_checks.rsvp_enabled()
     async def cmd_list(self, ctx):
         rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
-        await rsvp_enabled.send_rsvp_embed(ctx.message, "")
+        if rsvp_enabled:
+            return await rsvp_enabled.send_rsvp_embed(ctx.message, "")
 
 

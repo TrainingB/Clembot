@@ -2,8 +2,10 @@ import traceback
 
 import discord
 from discord.ext import commands
+from discord.ext.commands import BadArgument
 
 from clembot.core.bot import group, command
+from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
 from clembot.exts.profile.user_profile import UserProfile
 from clembot.utilities.utils.embeds import Embeds
@@ -16,7 +18,7 @@ class ProfileCog(commands.Cog):
         self.bot = bot
         self.utilities = Utilities()
 
-    async def find_user_profile(self, ctx, member):
+    async def find_user_profile(self, ctx, member=None):
 
         if member:
             user = member
@@ -25,72 +27,74 @@ class ProfileCog(commands.Cog):
         else:
             user = ctx.get.member(ctx.subcommand_passed) or ctx.message.author
 
-        user_profile = await UserProfile.find(self.bot, user.id, ctx.message.guild.id)
+        user_profile = await UserProfile.find(self.bot, user.id)
         return user_profile
+
+
 
     @group(pass_context=True, aliases=["profile"])
     async def cmd_profile(self, ctx):
-        try:
-
-            if ctx.invoked_subcommand is None:
-                user_profile = await self.find_user_profile(ctx, None)
-                await ctx.send(embed=user_profile.embed(ctx))
-
-        except Exception as error:
-            Logger.error(f"{traceback.format_exc()}")
+        if ctx.invoked_subcommand is None:
+            if ctx.subcommand_passed is None:
+                user_profile = await self.find_user_profile(ctx)
+                return await ctx.send(embed=user_profile.embed(ctx))
+            raise BadArgument(f"Valid options are: `trainer-code, ign, pokebattler, silph`")
 
 
-    @cmd_profile.command(pass_context=True, aliases=["tc", "trainer-code"])
-    async def cmd_profile_trainer_code(self, ctx, trainer_code=None, member: discord.Member=None):
-        try:
-            user_profile = await self.find_user_profile(ctx, member)
+    @cmd_profile.command(pass_context=True, aliases=["tc", "trainer-code"],
+                         examples=["!profile trainer-code *0000-0000-0000*","!profile trainer-code clear"])
+    @wrap_error
+    async def cmd_profile_trainer_code(self, ctx, code):
+        user_profile = await self.find_user_profile(ctx)
 
-            user_profile['trainer_code'] = trainer_code or []
-            await user_profile.update()
-            await ctx.send(embed=user_profile.embed(ctx))
 
-        except Exception as error:
-            Logger.error(f"{traceback.format_exc()}")
+        if code == 'clear':
+            user_profile['trainer_code'] = []
+        else:
+            user_profile['trainer_code'] = code
+
+        await user_profile.update()
+        await ctx.send(embed=user_profile.embed(ctx))
+
 
 
     @cmd_profile.command(pass_context=True, aliases=["ign"])
-    async def cmd_profile_ign(self, ctx, ign=None, member: discord.Member=None):
-        try:
-            user_profile = await self.find_user_profile(ctx, member)
+    @wrap_error
+    async def cmd_profile_ign(self, ctx, ign):
+        user_profile = await self.find_user_profile(ctx)
 
-            if ign:
-                user_profile['ign'] = ign
+        if ign == 'clear':
+            user_profile['ign'] = []
+        else:
+            user_profile['ign'] = ign
+        await user_profile.update()
 
-            await user_profile.update()
-            await ctx.send(embed=user_profile.embed(ctx))
-
-        except Exception as error:
-            Logger.error(f"{traceback.format_exc()}")
+        await ctx.send(embed=user_profile.embed(ctx))
 
 
     @cmd_profile.command(pass_context=True, aliases=["pokebattler", "pb"])
-    async def cmd_profile_pokebattler(self, ctx, pokebattler_id=None, member: discord.Member=None):
-        try:
-            user_profile = await self.find_user_profile(ctx, member)
+    async def cmd_profile_pokebattler(self, ctx, pokebattler_id):
+        user_profile = await self.find_user_profile(ctx)
 
+        if pokebattler_id == 'clear':
             user_profile['pokebattler_id'] = pokebattler_id
+        else:
+            user_profile['pokebattler_id'] = None
+        await user_profile.update()
 
-            await user_profile.update()
-            await ctx.send(embed=user_profile.embed(ctx))
-
-        except Exception as error:
-            Logger.error(f"{traceback.format_exc()}")
+        await ctx.send(embed=user_profile.embed(ctx))
 
 
     @cmd_profile.command(pass_context=True, aliases=["silph"])
-    async def cmd_profile_silph(self, ctx, silph_user: str = None, member: discord.Member=None):
+    @wrap_error
+    async def cmd_profile_silph(self, ctx, silph_user: str):
         """Links a server member to a Silph Road Travelers Card."""
-        try:
-            user_profile = await self.find_user_profile(ctx, member)
+        user_profile = await self.find_user_profile(ctx)
 
-            if not silph_user:
+        if silph_user:
+            if silph_user == 'clear':
+                user_profile['silph_id'] = None
                 await Embeds.message(ctx.channel, f'Silph Road Travelers Card cleared!')
-
             else:
                 silph_cog = ctx.bot.cogs.get('Silph')
                 if not silph_cog:
@@ -106,31 +110,23 @@ class ProfileCog(commands.Cog):
 
                 if card.discord_name != str(ctx.author):
                     return await Embeds.error(ctx.channel, f'This Travelers Card is linked to another Discord account!')
-
-            user_profile['silph_id'] = silph_user
             await user_profile.update()
 
-            await ctx.send(embed=card.embed(0))
-        except Exception as error:
-            Logger.error(f"{traceback.format_exc()}")
+        await ctx.send(embed=card.embed(0))
 
 
-    @group(pass_context=True, aliases=["tc","trainer-code"])
+
+    @command(pass_context=True, aliases=["tc","trainer-code"])
     async def cmd_trainer_code(self, ctx, member: discord.Member=None):
-        if ctx.invoked_subcommand is None:
-            try:
+        user_profile = await self.find_user_profile(ctx, member)
 
-                user_profile = await self.find_user_profile(ctx, member)
+        if user_profile['trainer_code']:
+            for code in user_profile.trainer_code:
+                await ctx.send(f"`{code}`")
+            return
+        else:
+            return await Embeds.error(ctx.channel, f"I don't have a trainer-code for <@{user_profile.user_id}> on the record.")
 
-                if user_profile['trainer_code']:
-                    for code in user_profile.trainer_code:
-                        await ctx.send(f"`{code}`")
-                    return
-                else:
-                    return await Embeds.error(ctx.channel, f"I don't have a trainer-code for <@{user_profile.user_id}> on the record.")
-
-            except Exception as error:
-                Logger.error(f"{traceback.format_exc()}")
 
     @command(aliases=["whois", "who-is"])
     async def cmd_who_is(self, ctx, ign=None):

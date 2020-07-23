@@ -1,5 +1,7 @@
 import json
 import os
+import pickle
+import traceback
 import urllib
 
 import discord
@@ -14,6 +16,7 @@ from clembot.core.logs import Logger
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
 from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.exts.pkmn.raid_boss import RaidMaster
+from clembot.exts.profile.user_profile import UserProfile
 from clembot.utilities.utils.embeds import Embeds
 
 
@@ -56,13 +59,8 @@ class MasterDataCog(commands.Cog):
     @group(pass_context=True, hidden=True, aliases=["migrate"])
     @checks.is_bot_owner()
     async def cmd_migrate(self, ctx):
-        try:
-            if ctx.invoked_subcommand is None:
-                return await Embeds.error(ctx.channel,
-                                          f"**{ctx.invoked_with}** can be only used with options **guild, channel**.",
-                                          user=ctx.message.author)
-        except Exception as error:
-            Logger.error(error)
+        if ctx.invoked_subcommand is None:
+            raise BadArgument("`!migrate` can be used with `game-master, user-profile, raid-boss`")
 
 
     @cmd_migrate.command(pass_context=True, hidden=True, aliases=["game-master"])
@@ -150,6 +148,71 @@ class MasterDataCog(commands.Cog):
             Logger.info(error)
 
             raise BadArgument(error)
+
+
+    @cmd_migrate.command(aliases=["user-profile"])
+    @wrap_error
+    async def cmd_migrate_user_profile(self, ctx, guild_id=None, batch='migrated'):
+        try:
+            with open(os.path.join(os.path.abspath('.'), 'data', 'guilddict_clembot'), "rb") as fd:
+                server_dict_old = pickle.load(fd)
+
+            message = await ctx.send(content=f"Migrating user profiles...")
+
+
+            guild_id = int(guild_id) if guild_id else ctx.guild.id
+
+            async with ctx.typing():
+
+                # for guild_id in server_dict_old.keys():
+                await message.edit(content=f"Processing {guild_id}")
+                guild_dict = server_dict_old.get(guild_id)
+
+                trainers_dict = guild_dict.get('trainers')
+                total_trainers = len(trainers_dict.keys())
+                processed_trainers = 0
+                await message.edit(content=f"Processed {processed_trainers}/{total_trainers} trainers.")
+
+                for trainer_id in trainers_dict.keys():
+                    processed_trainers+=1
+                    trainer_dict = trainers_dict.get(trainer_id)
+                    trainer_dict.pop('leaderboard-stats', None)
+                    trainer_dict.pop('lifetime', None)
+                    trainer_dict.pop('badges', None)
+
+                    if processed_trainers % 20 == 0:
+                        await message.edit(content=f"Processed {processed_trainers}/{total_trainers} trainers.")
+                    if not bool(trainer_dict):
+                        continue
+
+
+                    user_profile = await UserProfile.find(self.bot, trainer_id)
+                    if user_profile['status'] == batch:
+                        continue
+
+                    user_profile['trade_requests'] = trainer_dict.get('trade_requests')
+                    user_profile['trade_offers'] = trainer_dict.get('trade_offers')
+                    user_profile['trainer_code'] = trainer_dict.get('profile',{}).get('trainer-code')
+                    user_profile['ign'] = trainer_dict.get('profile', {}).get('ign')
+                    user_profile['silph_id'] = trainer_dict.get('profile', {}).get('silph-id')
+                    user_profile['pokebattler_id'] = trainer_dict.get('profile', {}).get('pokebattler_id')
+                    user_profile['status'] = 'migrated'
+                    await user_profile.update()
+
+                    # break
+        except Exception as error:
+            Logger.error(f"{traceback.format_exc()}")
+
+
+
+
+
+
+
+
+
+
+
 
 
     @cmd_migrate.command(pass_context=True, hidden=True, aliases=["raid-boss"])

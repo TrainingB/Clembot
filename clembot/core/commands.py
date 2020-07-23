@@ -6,8 +6,10 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Cog
 
+from clembot.config import config_template
 from clembot.config.constants import Icons
 from clembot.core.bot import command, group
+from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
 from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.pagination import Pagination
@@ -95,6 +97,7 @@ class Core(Cog):
 
 
     @group(pass_context=True, hidden=True, aliases=["about"])
+    @wrap_error
     async def cmd_about(self, ctx):
         try:
             # if ctx.invoked_subcommand is not None:
@@ -107,26 +110,22 @@ class Core(Cog):
             #         return
 
             """Shows info about Clembot"""
-            INVITE_CODE = "AUzEXRU"
+            INVITE_CODE = config_template.invite_code
             original_author_repo = "https://github.com/FoglyOgly"
             original_author_name = "FoglyOgly"
+
+            INVITE_BOT_LINK = f"https://discord.com/oauth2/authorize?client_id={config_template.bot_client_id}&scope=bot&permissions=268822608"
 
             author_repo = "https://github.com/TrainingB"
             author_name = "TrainingB"
             bot_repo = author_repo + "/Clembot"
             guild_url = "https://discord.gg/{invite}".format(invite=INVITE_CODE)
-            owner = self.bot.owner
+            owner = self.bot.get_user(self.bot.owner_id)
             channel = ctx.message.channel
             uptime_str = self.bot.uptime_str
             yourguild = ctx.message.guild.name
             yourmembers = len(ctx.message.guild.members)
             embed_colour = ctx.message.guild.me.colour or discord.Colour.lighter_grey()
-
-            about = ("I'm Clembot! A Discord bot for various things PoGo!\n\n"
-                     "[{author_name}]({author_repo}) forked me from [{original_author_name}]({original_author_repo})'s famous bot Meowth!\n\n"
-                     "[Join our guild]({guild_invite}) if you have any questions or feedback.\n\n"
-                     "".format(original_author_name=original_author_name, original_author_repo=original_author_repo,
-                               author_name=author_name, author_repo=author_repo, guild_invite=guild_url))
 
             member_count = 0
             guild_count = 0
@@ -134,30 +133,39 @@ class Core(Cog):
                 guild_count += 1
                 member_count += len(guild.members)
 
-            embed = discord.Embed(title="For support, Click here to contact Clembot's discord guild.",
-                                  url="https://discord.gg/" + INVITE_CODE, colour=embed_colour,
-                                  icon_url=self.bot.user.avatar_url)
-            embed.add_field(name="**About Clembot**", value=about, inline=False)
-            embed.add_field(name="**Bingo Cards designed by**", value="RogueBeatz, CptShuckle, NPlumb", inline=False)
+            embed = Embeds.make_embed(msg_color=discord.Color.blue(),
+                                      header_icon=Icons.avatar(self.bot.user),
+                                      header="About Clembot")
+            embed.add_field(name="**Bot Information**", value="--------------------------------------", inline=False)
+
             embed.add_field(name="**Owner**", value=owner)
-            if guild_count > 1:
-                embed.add_field(name="**Servers**", value=guild_count)
-                embed.add_field(name="**Members**", value=member_count)
+            embed.add_field(name="**Servers**", value=guild_count)
+            embed.add_field(name="**Members**", value=member_count)
             embed.add_field(name="**Current Server**", value=yourguild)
             embed.add_field(name="**Your Members**", value=yourmembers)
             embed.add_field(name="**Uptime**", value=uptime_str)
 
+            embed.add_field(name="**Credits**", value="--------------------------------------", inline=False)
 
-            embed.set_footer(text="This message will be auto-deleted after 40 seconds".format(invite=INVITE_CODE))
+
+            embed.add_field(name="**Inspired (and Forked) from:**", value="Meowth, That's right! - [Meowth by FoglyOgly](https://github.com/FoglyOgly/Meowth)", inline=False)
+            embed.add_field(name="**Bingo Cards designed by**", value="@Rogue Beatz#3940, @NPlumb#8841, @CptShuckle#4419", inline=False)
+            embed.add_field(name="**(Most) Icons designed using**", value="https://icons8.com/", inline=False)
+
+            embed.add_field(name="**Links**", value="--------------------------------------", inline=False)
+
+            embed.add_field(name="**Contact us**", value=f"[Join out guild](https://discord.gg/{INVITE_CODE})", inline=True)
+            embed.add_field(name="**Want Clembot on your server?**", value=f"[Invite Clembot]({INVITE_BOT_LINK})", inline=True)
+            embed.add_field(name="**:heart: Clembot**", value=f"[Help Clembot](https://paypal.me/directtob)", inline=True)
+            embed.set_footer(text="You can tap 🗑️ to delete this message.")
 
             try:
                 about_msg = await channel.send(embed=embed)
             except discord.HTTPException:
                 about_msg = await channel.send("I need the `Embed links` permission to send this")
 
-            await asyncio.sleep(40)
-            await about_msg.delete()
             await ctx.message.delete()
+            await about_msg.add_reaction('🗑️')
         except Exception as error:
             Logger.info(error)
 
