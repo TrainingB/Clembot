@@ -37,7 +37,7 @@ class ConfigCog(commands.Cog):
     async def cmd_configure(self, ctx):
 
         not_emoji = ":white_large_square:"
-        is_emoji = ":white_check_mark: "
+        is_emoji = ":white_check_mark:"
         guild_config = await ctx.guild_metadata()
 
 

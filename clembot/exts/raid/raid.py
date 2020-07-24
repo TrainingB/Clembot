@@ -715,61 +715,61 @@ class RaidParty(RSVPEnabled):
 
     async def send_rsvp_embed(self, message, description=None, options=['rsvp', 'interested', 'coming', 'here', 'remote']):
 
-        return await message.channel.send(embed=self.rsvp_embed_by_options(message, options=options,
+        return await message.channel.send(embed=await self.rsvp_embed_by_options(message, options=options,
                                                                            description=description))
-
-    def rsvp_embed_by_options(self, message, options=None, description=None):
-        additional_fields = {}
-
-        for option in options:
-            if option == 'timer':
-                _type, _action, _at = self.type_action_at()
-                additional_fields[f"{_type} {_action}".capitalize()] = _at
-
-                # TODO: handle suggested start time
-                # TODO: handle ex-raid
-                # raid_time_value = fetch_channel_expire_time(message.channel.id).strftime("%I:%M %p (%H:%M)")
-                # raid_time_label = "Raid Expires At"
-                # if rc_d['type'] == 'egg':
-                #     raid_time_label = "Egg Hatches At"
-                #     if rc_d['egglevel'] == 'EX':
-                #         raid_time_value = fetch_channel_expire_time(message.channel.id).strftime(
-                #             "%B %d %I:%M %p (%H:%M)")
-            #
-            #     start_time = fetch_channel_start_time(message.channel.id)
-            #     start_time_label = "None"
-            #     if start_time:
-            #         raid_time_label = raid_time_label + " / Suggested Start Time"
-            #         raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
-            #
-            #     additional_fields[raid_time_label] = raid_time_value
-
-            if option == 'rsvp':
-                aggregated_label = "Interested / On the way / At the raid"
-                aggregated_status = f"{self.size_by_status('maybe')} / {self.size_by_status('omw')} / {self.size_by_status('waiting')}"
-
-                additional_fields[aggregated_label] = aggregated_status
-            elif option == 'interested':
-                trainer_names = self.trainers_by_status(message, "maybe")
-                if trainer_names:
-                    additional_fields['Interested'] = trainer_names
-            elif option == 'coming':
-                trainer_names = self.trainers_by_status(message, "omw")
-                if trainer_names:
-                    additional_fields['On the way'] = trainer_names
-            elif option == 'here':
-                trainer_names = self.trainers_by_status(message, "waiting")
-                if trainer_names:
-                    additional_fields['At the raid'] = trainer_names
-            elif option == 'remote':
-                trainer_names = self.trainers_by_status(message, "remote")
-                if trainer_names:
-                    additional_fields['Remote'] = trainer_names
-
-
-        footer = None
-
-        return self.create_embed(description, additional_fields, footer)
+    #
+    # def rsvp_embed_by_options(self, message, options=None, description=None):
+    #     additional_fields = {}
+    #
+    #     for option in options:
+    #         if option == 'timer':
+    #             _type, _action, _at = self.type_action_at()
+    #             additional_fields[f"{_type} {_action}".capitalize()] = _at
+    #
+    #             # TODO: handle suggested start time
+    #             # TODO: handle ex-raid
+    #             # raid_time_value = fetch_channel_expire_time(message.channel.id).strftime("%I:%M %p (%H:%M)")
+    #             # raid_time_label = "Raid Expires At"
+    #             # if rc_d['type'] == 'egg':
+    #             #     raid_time_label = "Egg Hatches At"
+    #             #     if rc_d['egglevel'] == 'EX':
+    #             #         raid_time_value = fetch_channel_expire_time(message.channel.id).strftime(
+    #             #             "%B %d %I:%M %p (%H:%M)")
+    #         #
+    #         #     start_time = fetch_channel_start_time(message.channel.id)
+    #         #     start_time_label = "None"
+    #         #     if start_time:
+    #         #         raid_time_label = raid_time_label + " / Suggested Start Time"
+    #         #         raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
+    #         #
+    #         #     additional_fields[raid_time_label] = raid_time_value
+    #
+    #         if option == 'rsvp':
+    #             aggregated_label = "Interested / On the way / At the raid"
+    #             aggregated_status = f"{self.size_by_status('maybe')} / {self.size_by_status('omw')} / {self.size_by_status('waiting')}"
+    #
+    #             additional_fields[aggregated_label] = aggregated_status
+    #         elif option == 'interested':
+    #             trainer_names = self.trainers_by_status(message, "maybe")
+    #             if trainer_names:
+    #                 additional_fields['Interested'] = trainer_names
+    #         elif option == 'coming':
+    #             trainer_names = self.trainers_by_status(message, "omw")
+    #             if trainer_names:
+    #                 additional_fields['On the way'] = trainer_names
+    #         elif option == 'here':
+    #             trainer_names = self.trainers_by_status(message, "waiting")
+    #             if trainer_names:
+    #                 additional_fields['At the raid'] = trainer_names
+    #         elif option == 'remote':
+    #             trainer_names = self.trainers_by_status(message, "remote")
+    #             if trainer_names:
+    #                 additional_fields['Remote'] = trainer_names
+    #
+    #
+    #     footer = None
+    #
+    #     return Embeds.make_embed(content=description, fields=additional_fields, footer=footer)
 
     # def _generate_rsvp_embed(self, message):
     #     embed_msg = ""

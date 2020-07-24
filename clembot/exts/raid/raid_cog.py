@@ -204,7 +204,7 @@ class RaidCog(commands.Cog):
             p_pkmn = await Pokemon.convert(ctx, pokemon_or_level)
             p_pokeform = await Pokemon.convert(ctx, pokemon_or_level)
             Logger.info(f"{p_pkmn} <=> {p_pokeform}")
-            p_level = int(RaidMaster.get_level(p_pokeform))
+            p_level = RaidMaster.get_level(p_pokeform)
 
         if not p_level and not p_pkmn:
             raise BadArgument("Invalid raid level or Pokemon.")

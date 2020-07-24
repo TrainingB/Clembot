@@ -9,7 +9,7 @@ def _is_raid_channel(ctx):
     if raid:
         return True
 
-    raise
+    raise NotARaidChannel
 
 
 def _is_raid_party_channel(ctx):
@@ -21,11 +21,15 @@ def _is_raid_party_channel(ctx):
 
 def _is_rsvp_enabled(ctx):
 
-    rsvp_enabled = _is_raid_channel(ctx) or _is_raid_party_channel(ctx)
-    if rsvp_enabled:
-        return True
+    is_raid = Raid.by_channel.get(ctx.channel.id, None)
+    is_raid_party = RaidParty.by_channel.get(ctx.channel.id, None)
 
-    raise RSVPNotEnabled
+    if is_raid is None and is_raid_party is None:
+        raise RSVPNotEnabled
+    return True
+
+
+
 
 
 def _is_raid_channel(ctx):

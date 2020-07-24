@@ -26,15 +26,18 @@ class RSVPCog(commands.Cog):
         self._dbi = bot.dbi
 
     @staticmethod
-    def get_rsvp_source(ctx) -> RSVPEnabled:
+    def get_rsvp_source(ctx):
 
         raid = Raid.by_channel.get(ctx.channel.id)
-        if raid:
+        if raid is not None:
             return raid
 
         raid_party = RaidParty.by_channel.get(ctx.channel.id)
-        if raid_party:
+        if raid_party is not None:
+            print(raid_party)
             return raid_party
+
+        return None
 
     @Cog.listener()
     async def on_command_error(self, ctx, error):
