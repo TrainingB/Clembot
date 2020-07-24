@@ -60,14 +60,17 @@ class ChannelMetadata:
             ChannelMetadata.cache(channel_metadata)
             return channel_metadata
 
-        await ChannelMetadata.insert(bot, {'channel_id': channel_id, 'guild_id': guild_id})
+        if guild_id:
+            await ChannelMetadata.insert(bot, {'channel_id': channel_id, 'guild_id': guild_id})
         return ChannelMetadata.by_channel.get(channel_id)
 
 
     @classmethod
     async def city(cls, bot, channel_id):
         channel_dict = await ChannelMetadata.find(bot, channel_id)
-        return channel_dict.get('city')
+        if channel_dict:
+            return channel_dict.get('city')
+        raise Exception("City has not been set for this channel.")
 
     @staticmethod
     def serialize(data_dict):

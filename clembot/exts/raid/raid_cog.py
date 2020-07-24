@@ -13,8 +13,7 @@ from clembot.config.constants import MyEmojis, Icons
 from clembot.core.bot import command, group
 from clembot.core.commands import Cog
 from clembot.core.logs import Logger
-from clembot.exts.config.channel_metadata import ChannelMetadata
-from clembot.exts.gymmanager.gym import Gym, GymRepository, POILocationConverter
+from clembot.exts.gymmanager.gym import GymRepository, POILocationConverter
 from clembot.exts.pkmn.raid_boss import RaidMaster, Pokemon
 from clembot.exts.profile.user_guild_profile import UserGuildProfile
 from clembot.exts.raid import raid_checks
@@ -24,6 +23,7 @@ from clembot.utilities.utils import snowflake
 from clembot.utilities.utils.argparser import ArgParser
 from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.utilities import Utilities
+
 
 class RaidTimerTooLongError(ValueError):
     pass

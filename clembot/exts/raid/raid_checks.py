@@ -38,8 +38,8 @@ def _is_raid_channel(ctx):
 
 
 async def _is_raid_report_channel(ctx):
-    channel_data = await ChannelMetadata.find(ctx.bot, ctx.channel.id)
-    if channel_data and channel_data['raid']:
+    channel_data = await ChannelMetadata.find(ctx.bot, ctx.channel.id, ctx.guild.id)
+    if channel_data and channel_data.get('raid', None):
         return True
     raise NotARaidReportChannel
 

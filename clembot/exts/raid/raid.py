@@ -917,8 +917,8 @@ class Raid (RSVPEnabled):
             elif self.raid_type == "raid":
                 self.expiry_time = self.reported_time + timedelta(minutes=timer).seconds
         else:
-            self.hatch_time = self.reported_time + timedelta(minutes=self.raid_level_info.egg_timer).seconds
-            self.expiry_time = self.reported_time + timedelta(minutes=self.raid_level_info.egg_timer).seconds + timedelta(minutes=self.raid_level_info.raid_timer).seconds
+            self.hatch_time = self.hatch_time or self.reported_time + timedelta(minutes=self.raid_level_info.egg_timer).seconds
+            self.expiry_time = self.expiry_time or self.reported_time + timedelta(minutes=self.raid_level_info.egg_timer).seconds + timedelta(minutes=self.raid_level_info.raid_timer).seconds
         print(f"{self.reported_at} {self.hatches_at} {self.expires_at}")
 
         self.monitor_task_tuple = None
