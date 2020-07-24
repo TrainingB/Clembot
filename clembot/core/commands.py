@@ -154,9 +154,9 @@ class Core(Cog):
 
             embed.add_field(name="**Links**", value="--------------------------------------", inline=False)
 
-            embed.add_field(name="**Contact us**", value=f"[Join out guild](https://discord.gg/{INVITE_CODE})", inline=True)
-            embed.add_field(name="**Want Clembot on your server?**", value=f"[Invite Clembot]({INVITE_BOT_LINK})", inline=True)
-            embed.add_field(name="**:heart: Clembot**", value=f"[Help Clembot](https://paypal.me/directtob)", inline=True)
+            embed.add_field(name="**Contact us**", value=f"[Join guild](https://discord.gg/{INVITE_CODE})", inline=True)
+            embed.add_field(name="**Want Clembot?**", value=f"[Invite Clembot]({INVITE_BOT_LINK})", inline=True)
+            embed.add_field(name="**:heart: Clembot**", value=f"[Buy me a :coffee:](https://paypal.me/directtob)", inline=True)
             embed.set_footer(text="You can tap 🗑️ to delete this message.")
 
             try:
