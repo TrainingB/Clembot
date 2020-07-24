@@ -205,6 +205,8 @@ class RaidCog(commands.Cog):
             p_pokeform = await Pokemon.convert(ctx, pokemon_or_level)
             Logger.info(f"{p_pkmn} <=> {p_pokeform}")
             p_level = RaidMaster.get_level(p_pokeform)
+            if not p_level:
+                raise BadArgument(f"Last time I checked, {p_pokeform} didn't appear as a raid boss. If the information I have is outdated, contact an admin to add {p_pokeform} as a raid-boss.")
 
         if not p_level and not p_pkmn:
             raise BadArgument("Invalid raid level or Pokemon.")
