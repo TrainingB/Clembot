@@ -101,6 +101,7 @@ class ConfigCog(commands.Cog):
 
 
     @group(pass_context=True, hidden=True, aliases=["config"])
+    @is_guild_admin()
     async def cmd_config(self, ctx):
 
         if ctx.invoked_subcommand is None:
@@ -111,6 +112,8 @@ class ConfigCog(commands.Cog):
 
 
     @cmd_config.command(pass_context=True, hidden=True, aliases=["timezone"])
+    @wrap_error
+    @is_guild_admin()
     async def cmd_config_timezone(self, ctx, timezone):
 
         if timezone in pytz.all_timezones:
@@ -122,6 +125,8 @@ class ConfigCog(commands.Cog):
 
 
     @cmd_config.command(pass_context=True, hidden=True, aliases=["city"])
+    @wrap_error
+    @is_guild_admin()
     async def cmd_config_city(self, ctx, *city):
         if city:
             city_state = ''.join(city).upper()
@@ -134,6 +139,7 @@ class ConfigCog(commands.Cog):
 
     @cmd_config.command(pass_context=True, hidden=True, aliases=["guild"])
     @wrap_error
+    @is_guild_admin()
     async def cmd_config_guild(self, ctx, config_name=None, config_value=None):
 
         if config_name and config_name not in GUILD_CONFIG_KEY and config_name not in GUILD_METADATA_KEY:
@@ -172,6 +178,7 @@ class ConfigCog(commands.Cog):
 
 
     @cmd_config.command(pass_context=True, hidden=True, aliases=["global"])
+    @wrap_error
     @checks.is_bot_owner()
     async def cmd_config_global(self, ctx, config_name=None, config_value=None):
         await self.global_config_cache.load_config()
