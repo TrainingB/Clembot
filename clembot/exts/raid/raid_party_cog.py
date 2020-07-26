@@ -138,23 +138,21 @@ class RaidPartyCog(commands.Cog):
 
     @command(pass_context=True, hidden=True, aliases=["add"])
     async def cmd_raidparty_add(self, ctx):
-        try:
-            raid_party = RaidPartyCog._get_raid_for_channel(ctx)
 
-            city = await ctx.channel_setting(ctx.channel.id, 'city')
-            if city is None:
-                city = raid_party.city
-                await Embeds.message(ctx.channel, f"The city for this channel is set to {city}")
-                await ctx.channel_setting(ctx.channel.id, 'city', city)
+        raid_party = RaidPartyCog._get_raid_for_channel(ctx)
 
-            roster_location = await RosterLocation.from_command_text(ctx, ctx.message.content)
-            await raid_party.append(roster_location)
+        city = ctx.city #await ctx.channel_setting(ctx.channel.id, 'city')
+        if city is None:
+            city = raid_party.city
+            await Embeds.message(ctx.channel, f"The city for this channel is set to {city}")
+            await ctx.channel_setting(ctx.channel.id, 'city', city)
 
-            success_message = f"{MyEmojis.INFO} Location {raid_party.current_location_index} has been added to the roster."
-            await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
+        roster_location = await RosterLocation.from_command_text(ctx, ctx.message.content)
+        await raid_party.append(roster_location)
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
+        success_message = f"{MyEmojis.INFO} Location {raid_party.current_location_index} has been added to the roster."
+        await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
+
 
 
     @staticmethod

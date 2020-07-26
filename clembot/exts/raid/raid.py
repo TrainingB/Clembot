@@ -76,7 +76,7 @@ class RosterLocation:
 
     def to_dict(self):
         state_dict = {
-            'raid_boss': self.raid_boss if isinstance(self.raid_boss, str) else self.raid_boss.pokemon_id,
+            'raid_boss': self.raid_boss if isinstance(self.raid_boss, str) else self.raid_boss.id,
             'poi' : self.poi_location.to_dict(),
             'eta' : self.eta,
         }
@@ -1712,7 +1712,7 @@ class RaidPartyEmbed:
         index = raid_party.current_location_index
         for rloc in raid_party.roster:
 
-            emoji = "egg" if rloc.raid_boss == "egg" else rloc.raid_boss.emoji
+            # emoji = "egg" if rloc.raid_boss == "egg" else rloc.raid_boss.emoji
 
             roster_message += f"{emojify_numbers(index)} {rloc.poi_location} - {rloc.raid_boss} - {rloc.eta}\n"
             index = index + 1

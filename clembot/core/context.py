@@ -6,6 +6,7 @@ from discord.ext import commands
 from clembot.core.utils import make_embed, bold
 
 
+
 class Context(commands.Context):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -38,8 +39,8 @@ class Context(commands.Context):
     async def city(self):
         if hasattr(self, '_city'):
             return self._city
-        city = await self.channel_setting(self.channel.id, 'city')
-        city = city or await self.guild_metadata('city')
+        # city = await ChannelMetadata.city(bot=self.bot, city=self.message.channel.id)
+        city = await self.guild_metadata('city')
         return city
 
 

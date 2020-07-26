@@ -103,7 +103,8 @@ class GuildManager:
                     return await self.dbi.channel_settings_stmt.fetchval(self.guild_id, channel_id, str(key))
             else:
                 return await channel_config_table.query().select().where(guild_id=self.guild_id, channel_id=channel_id).getjson()
-        except:
+        except Exception as error:
+            print(error)
             raise Exception("Operation Failed!")
 
 

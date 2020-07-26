@@ -49,8 +49,8 @@ def init_loggers():
     fhandler.setFormatter(clembot_format)
 
 
-    _instance.addHandler(fhandler)
-    #_instance.addHandler(stdout_handler)
+    #_instance.addHandler(fhandler)
+    _instance.addHandler(stdout_handler)
     logger.info("logger initialized.")
     return logger
 
