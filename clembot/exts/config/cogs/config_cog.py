@@ -5,10 +5,11 @@ import pytz
 from discord.ext import commands
 from discord.ext.commands import BadArgument
 
-from clembot.config.constants import Icons, MyEmojis, GUILD_METADATA_KEY, GUILD_CONFIG_KEY, GLOBAL_CONFIG_KEY
+from clembot.config.constants import Icons, MyEmojis, GUILD_METADATA_KEY, GUILD_CONFIG_KEY, GLOBAL_CONFIG_KEY, \
+    CHANNEL_METADATA_KEY
 from clembot.core import checks
 from clembot.core.bot import group
-from clembot.core.checks import is_guild_admin
+from clembot.core.checks import is_guild_admin, is_guild_mod
 from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
@@ -154,6 +155,25 @@ class ConfigCog(commands.Cog):
             await Embeds.message(ctx.message.channel, f"**{config_name}** is set to **{config}**")
         else:
             await ConfigCog.send_guild_config_embed(ctx, config)
+
+
+    @cmd_config.command(pass_context=True, hidden=True, aliases=["channel"])
+    @wrap_error
+    @is_guild_mod()
+    async def cmd_config_channel(self, ctx, config_name=None, config_value=None):
+
+        if config_name and config_name not in CHANNEL_METADATA_KEY:
+            return await Embeds.error(ctx.message.channel, "No such configuration exists.")
+
+        config = await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name, value=config_value)
+        if config_name:
+            if config_value:
+                config = await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name)
+            else:
+                config = await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name, delete=True)
+
+        await Embeds.message(ctx.message.channel, f"**{config_name}** is set to **{config}**")
+
 
 
     @staticmethod

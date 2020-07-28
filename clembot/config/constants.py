@@ -10,7 +10,7 @@ GUILD_METADATA_KEY = ["hide-nest-preview", "bingo-card-repo", "bingo-event-title
 
 GUILD_CONFIG_KEY = ['prefix', 'city', 'timezone', 'welcome', 'teams', 'config']
 
-CHANNEL_CONFIG_KEY = ["city"]
+CHANNEL_METADATA_KEY = ["city"]
 
 def parse_emoji(guild, emoji_string):
     """Given a string, if it fits the pattern :emoji name:,
