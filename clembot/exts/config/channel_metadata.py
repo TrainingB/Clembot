@@ -111,6 +111,10 @@ class ChannelMetadata:
         embed = (ChannelConfigEmbed.from_channel_metadata(ctx, channel_dict, "No configuration changes done.", Icons.configure_failure)).embed
         return embed
 
+    @staticmethod
+    def profile_embed(ctx, channel_dict, title=None):
+        return (ChannelConfigEmbed.from_channel_profile(ctx, channel_dict, title)).embed
+
 
 class ChannelConfigEmbed:
 
@@ -118,6 +122,30 @@ class ChannelConfigEmbed:
         self.embed = embed
 
     FEATURES = ['raid', 'wild', 'nest', 'research', 'trade', 'rocket']
+
+    @classmethod
+    def from_channel_profile(cls, ctx, metadata = dict, title = None, icon_url = None):
+
+        embed = discord.Embed(title=title, colour=discord.Color.blue())
+
+        if not icon_url:
+            icon_url = Icons.configure
+        embed.set_author(name="Channel Configuration", icon_url=icon_url)
+
+        embed.add_field(name=f"**City**", value=f"{metadata['city']}", inline=False)
+        # for key in ChannelConfigEmbed.FEATURES:
+        #     embed.add_field(name=f"**{key.capitalize()}**", value=f"{metadata[key]}", inline=True)
+
+        # embed.add_field(name="**:white_check_mark: Enabled Features**", value=enabled_features if len(enabled_features) > 0 else '-', inline=True)
+        # embed.add_field(name="**:negative_squared_cross_mark: Disabled Features**", value=disabled_features if len(disabled_features) > 0 else '-', inline=True)
+        #
+        # embed.set_footer(text=f"Use `!feature enable` or `!feature disable` to enable/disable features.")
+
+        return cls(embed)
+
+
+        pass
+
 
     @classmethod
     def from_channel_metadata(cls, ctx, metadata = dict, title=None, icon_url=None):

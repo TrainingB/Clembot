@@ -100,7 +100,8 @@ class GuildManager:
                         return channel_profile[key]
                     return None
             else:
-                return await channel_config_table.query().select().where(guild_id=self.guild_id, channel_id=channel_id).getjson()
+                return await channel_config_table.query().select().where(guild_id=self.guild_id, channel_id=channel_id).get_first_json()
+
         except Exception as error:
             raise Exception(error)
 

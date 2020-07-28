@@ -45,7 +45,7 @@ class Icons:
     error = "https://i.imgur.com/dfyevnZ.png"
 
     INVALID_INPUT = "https://i.imgur.com/Sl9Nr3g.png"
-    bot_error_2 = "https://i.imgur.com/P8UEhkD.png"
+    BOT_ERROR_2 = "https://i.imgur.com/P8UEhkD.png"
     CONFIGURATION = "https://i.imgur.com/Brzu64u.png"
     INVALID_ACCESS = "https://i.imgur.com/8LOsBQS.png"
     TIMEZONE="https://i.imgur.com/j5L85oY.png"

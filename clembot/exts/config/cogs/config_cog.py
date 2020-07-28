@@ -12,6 +12,7 @@ from clembot.core.bot import group
 from clembot.core.checks import is_guild_admin, is_guild_mod
 from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
+from clembot.exts.config.channel_metadata import ChannelMetadata
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
 from clembot.exts.pkmn.spelling import SpellHelper
 from clembot.utilities.utils.embeds import Embeds
@@ -36,6 +37,11 @@ class ConfigCog(commands.Cog):
     @group(pass_context=True, aliases=["configure"])
     @is_guild_admin()
     async def cmd_configure(self, ctx):
+        """
+        Begins the configuration for a guild. If needed, will prompt to set timezone and city for the guild.
+
+        *Note: City is saved as ALL CAPS, NO SPACES ending with 2 CHAR STATE CODE.*
+        """
 
         not_emoji = ":white_large_square:"
         is_emoji = ":white_check_mark:"
@@ -70,7 +76,7 @@ class ConfigCog(commands.Cog):
         }
 
         if guild_config_complete:
-            response_config.update({f'{is_emoji} Guild configuration' : 'For enabling features in channels, use `!feature` in respective channels.'})
+            response_config.update({f'To enable bot features' : 'Use `!feature` in respective channels.'})
 
         await ConfigCog.send_guild_config_embed(ctx, response_config)
 
@@ -104,12 +110,18 @@ class ConfigCog(commands.Cog):
     @group(pass_context=True, hidden=True, aliases=["config"])
     @is_guild_admin()
     async def cmd_config(self, ctx):
-
+        """
+        Command to read / update the configuration for global, guild or channel. A few shortcuts are provided for city & timezone as well.
+        `!config guild`
+        `!config channel`
+        `!config timezone America/Los_Angeles` - set timezone for guild
+        `!config city  BURBANKCA` - set city for guild
+        """
         if ctx.invoked_subcommand is None:
             if ctx.subcommand_passed is None:
                 return await self.cmd_config_guild(ctx)
 
-            raise BadArgument("`!config` can be used with `guild, timezone, city`")
+            raise BadArgument("`!config` can be used with `guild, channel, timezone, city`")
 
 
     @cmd_config.command(pass_context=True, hidden=True, aliases=["timezone"])
@@ -142,7 +154,11 @@ class ConfigCog(commands.Cog):
     @wrap_error
     @is_guild_admin()
     async def cmd_config_guild(self, ctx, config_name=None, config_value=None):
-
+        """
+        View/Change guild configuration.
+        **Example**
+        `!config guild city BURBANKCA`
+        """
         if config_name and config_name not in GUILD_CONFIG_KEY and config_name not in GUILD_METADATA_KEY:
             return await Embeds.error(ctx.message.channel, "No such configuration exists.")
 
@@ -161,7 +177,11 @@ class ConfigCog(commands.Cog):
     @wrap_error
     @is_guild_mod()
     async def cmd_config_channel(self, ctx, config_name=None, config_value=None):
-
+        """
+        View/Change channel configuration.
+        **Example**
+        `!config channel city BURBANKCA`
+        """
         if config_name and config_name not in CHANNEL_METADATA_KEY:
             return await Embeds.error(ctx.message.channel, "No such configuration exists.")
 
@@ -172,23 +192,23 @@ class ConfigCog(commands.Cog):
             else:
                 config = await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name, delete=True)
 
-        await Embeds.message(ctx.message.channel, f"**{config_name}** is set to **{config}**")
-
+        await ctx.send(embed = ChannelMetadata.profile_embed(ctx, config))
 
 
     @staticmethod
     async def send_guild_config_embed(ctx, config):
 
-        embed = Embeds.make_embed(header="Guild Configuration",
-                        fields=config, msg_color=discord.Color.blue(),
+        embed = Embeds.make_embed(header="Guild Configuration", header_icon=Icons.CONFIGURATION,
+                        fields={ key.capitalize():value for key, value in config.items()}, msg_color=discord.Color.blue(),
                         inline=True)
 
         return await ctx.send(embed=embed)
 
+
     @staticmethod
     async def send_global_config_embed(ctx, config):
 
-        embed = Embeds.make_embed(header="Clembot Global Configuration",
+        embed = Embeds.make_embed(header="Clembot Configuration", header_icon=Icons.CONFIGURATION,
                         fields={k[0]:k[1] for k in config.items() if k[0] in GLOBAL_CONFIG_KEY and k[1] is not None or ''},
                         msg_color=discord.Color.blue(),
                         inline=True)

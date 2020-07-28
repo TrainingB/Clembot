@@ -8,7 +8,7 @@ from discord.ext.commands import BadArgument
 from clembot.config.constants import Icons
 from clembot.core import checks
 from clembot.core.bot import group
-from clembot.core.errors import wrap_error
+from clembot.core.errors import wrap_error, ShowErrorMessage
 from clembot.core.logs import Logger
 from clembot.exts.config.channel_metadata import ChannelMetadata
 from clembot.utilities.utils.embeds import Embeds
@@ -26,6 +26,11 @@ class FeatureManagementCog(commands.Cog):
     @group(pass_context=True, aliases=["feature"])
     @checks.is_guild_admin()
     async def cmd_feature(self, ctx):
+        """
+        Enables / Disable bot features for the current channel.
+        **Supported Features: **
+        raid, wild, nest, research, trade, rocket
+        """
         if ctx.invoked_subcommand is None:
             if ctx.subcommand_passed is None:
                 return await self.cmd_feature_status(ctx)
@@ -42,7 +47,7 @@ class FeatureManagementCog(commands.Cog):
             ChannelMetadata.end_configuration(channel_id)
             return await Embeds.message(ctx.channel, "Aborting current configuration!")
 
-        raise Exception("No configuration found in progress.")
+        raise ShowErrorMessage("No configuration found in progress.")
 
 
     @cmd_feature.command(pass_context=True, aliases=["status"])
@@ -64,7 +69,7 @@ class FeatureManagementCog(commands.Cog):
         try:
             channel_id = ctx.channel.id
             if ChannelMetadata.config_in_progress(channel_id):
-                raise BadArgument("It seems like another configuration is already in progress. \nType `cancel` or `!abort` to abort the current configuration and re-start.")
+                raise ShowErrorMessage("It seems like another configuration is already in progress. \nType `cancel` or `!abort` to abort the current configuration and re-start.")
 
             requested_features = [feature for feature in features if feature in FeatureManagementCog.FEATURES]
             if not requested_features:
@@ -98,7 +103,7 @@ class FeatureManagementCog(commands.Cog):
         try:
             channel_id = ctx.channel.id
             if ChannelMetadata.config_in_progress(channel_id):
-                raise BadArgument("It seems like another configuration is already in progress. \nType `cancel` or `!feature abort` to abort the current configuration and re-start.")
+                raise ShowErrorMessage("It seems like another configuration is already in progress. \nType `cancel` or `!feature abort` to abort the current configuration and re-start.")
 
             requested_features = [feature for feature in features if feature in FeatureManagementCog.FEATURES]
             if not requested_features:

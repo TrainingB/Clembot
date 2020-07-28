@@ -17,6 +17,12 @@ from clembot.utilities.timezone import timehandler as TH
 from clembot.utilities.utils.snowflake import CUIDGenerator
 
 
+class ShowErrorMessage(CommandError):
+    pass
+
+
+
+
 class TeamSetCheckFail(CommandError):
     'Exception raised checks.teamset fails'
     pass
@@ -138,6 +144,21 @@ def custom_error_handling(bot, logger):
             await error_message.add_reaction('🗑️')
 
             pass
+
+        elif isinstance(error, ShowErrorMessage):
+
+            header = user_info_header[int(str(TH.current_epoch()).split(".")[-1]) % len(user_info_header)]
+
+            error_message = await ctx.send(embed=Embeds.make_embed(
+                header_icon=Icons.BOT_ERROR_2, msg_color=discord.Color.dark_red(),
+                header=f"{header}",
+                content=f'{error}\n\n ||You can tap 🗑️ to delete this message.||'))
+
+            await error_message.add_reaction('🗑️')
+
+            pass
+
+
             #
             # await ctx.bot.send_cmd_help(
             #     ctx, title=f'Bad Argument - {error}', msg_type='error')
@@ -311,7 +332,7 @@ error_message_description = ["I would love to say \"Hey, It's not you, its me!\"
     "It's admin'o clock.",
     "Interesting, not expected. This probably wouldn't work without intervention.",
     "You expect the error message to be meaningful?!?",
-    "All our customer service associates are busy. I thought that trick works!",
+    "All our customer service associates are busy.",
     "Time out! I am overwhelmed, where is my dev?"
 ]
 
@@ -327,7 +348,7 @@ bad_arguments_header = ["Uh-huh, bad arguments!",
 missing_arguments_header = [
     "Wait, that's not enough!",
     "I need some more information",
-    "Are you sure you are missing something?"
+    "Are you sure you aren't missing something?"
 ]
 
 check_failure_header = ["Can I see your ID please.",
@@ -337,6 +358,12 @@ check_failure_header = ["Can I see your ID please.",
     "Can't let you do this!",
     "Caught ya!"
 ]
+
+user_info_header = ["Are you sure?",
+    "Hmmm, that didn't go as planned.",
+    "That's not how I was told this will work.",
+]
+
 
 
 
@@ -363,6 +390,19 @@ def wrap_error(func):
             await error_message.add_reaction('🗑️')
             return
 
+        except ShowErrorMessage as sErr:
+            ctx = next(filter(lambda arg: isinstance(arg, Context), args))
+
+            header = user_info_header[int(str(TH.current_epoch()).split(".")[-1]) % len(user_info_header)]
+
+            error_message = await ctx.send(embed=Embeds.make_embed(
+                header_icon=Icons.BOT_ERROR_2, msg_color=discord.Color.dark_red(),
+                header=f"{header}",
+                content=f'{sErr}\n\n ||You can tap 🗑️ to delete this message.||'))
+
+            await error_message.add_reaction('🗑️')
+
+            pass
         except Exception as error:
             print("--------------------")
             import traceback

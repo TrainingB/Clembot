@@ -83,7 +83,13 @@ class Pagination:
         return prefix
 
     def _command_signature(self, cmd):
-        result = [cmd.qualified_name]
+
+        if cmd.parent:
+            result = [next(iter(cmd.parent.aliases)), next(iter(cmd.aliases))]
+        else:
+            result = [next(iter(cmd.aliases))]
+
+        # result = [cmd_name.replace('cmd_','') for cmd_name in cmd.qualified_name.split(' ')]
         if cmd.usage:
             result.append(cmd.usage)
             return ' '.join(result)
@@ -122,7 +128,7 @@ class Pagination:
         self.embed.title = self.title
         self.embed.description = self.description
         if self.maximum_pages:
-            if self.maximum_pages > 1:
+            if self.maximum_pages > 10:
                 self.embed.set_footer(text=(
                     'Page {0}/{1} ({2} commands) | '
                     'Use {3}help <command> for more details.'
@@ -411,14 +417,14 @@ class Pagination:
     @classmethod
     async def from_command(cls, ctx, command, **kwargs):
         try:
-            entries = sorted(command.commands, key=lambda c: c.name)
+            entries = sorted(command.commands, key=lambda c: c.aliases[0] if len(c.aliases) > 0 else c.name)
         except AttributeError:
             entries = []
         else:
             entries = [cmd for cmd in entries if (
                 await _can_run(cmd, ctx)) and not cmd.hidden]
 
-        self = cls(ctx, entries, per_page=1, **kwargs)
+        self = cls(ctx, entries, per_page=12, **kwargs)
         self.title = kwargs.get('title', None) or f"{next(iter(command.aliases))} {command.signature}"
 
         if command.description:

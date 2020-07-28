@@ -53,8 +53,21 @@ class RSVPCog(commands.Cog):
             ':new: status commands' : [False, "!ir - interested *remotely*\n!cr - coming or on the way *remotely*\n!hr - here at raid *remotely*\n!ii - interested in raid *invite*. ***!list** will show your IGN, if set using **!profile**.*"]
         }
 
-        await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="RSVP Commands", fields=status
-                                                ))
+        await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="RSVP Commands", fields=status))
+
+        pass
+
+    @command(pass_context=True, aliases=["changes"])
+    async def cmd_changes(self, ctx):
+
+        status = {
+            "Set raid boss (post-hatch)": [False, f"~~!raid pokemon~~ is now \n**!boss pokemon**"],
+            "Set raid boss (pre-hatch)" : [False, "~~!r assume pokemon~~ is now \n**!assume pokemon**"],
+            "Report an egg" : [False, "\n~~!raidegg 4 somewhere~~ is now \n**!raid 4 somewhere**"],
+            ":new: RSVP Status" : [False, "**!ir** - interested *remotely*\n**!cr** - coming or on the way *remotely*\n**!hr** - here at raid *remotely*\n**!ii** - interested in raid *invite*. ***!list** will show your IGN, if set using **!profile**.*"]
+        }
+
+        await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="What changed?", fields=status))
 
         pass
 

@@ -711,6 +711,13 @@ class Query:
         query, args = self.sql()
         return await self._dbi.execute_query_json(query, *args)
 
+    async def get_first_json(self):
+        json_list = await self.getjson()
+        if len(json_list) > 0 :
+            return json_list[0]
+
+        return json_list
+
     async def get(self):
         query, args = self.sql()
         return await self._dbi.execute_query(query, *args)
