@@ -152,7 +152,7 @@ class Embeds:
             if not isinstance(msg_color, discord.Colour):
                 msg_color = color(msg_color)
 
-        embed = discord.Embed(title=title or discord.Embed.Empty, title_url=title_url or discord.Embed.Empty,
+        embed = discord.Embed(title=title or discord.Embed.Empty, url=title_url or discord.Embed.Empty,
             description=content, colour=msg_color)
 
         if header:

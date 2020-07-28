@@ -51,6 +51,9 @@ async def _is_raid_report_channel(ctx):
 def raid_channel():
     return commands.check(_is_raid_channel)
 
+def raid_party_channel():
+    return commands.check(_is_raid_party_channel)
+
 def rsvp_enabled():
     return commands.check(_is_rsvp_enabled)
 

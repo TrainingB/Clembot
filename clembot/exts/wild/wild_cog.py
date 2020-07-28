@@ -44,7 +44,7 @@ class WildCog(commands.Cog):
         just provide a link for **location** + city of the channel.
         """
 
-        timezone = await ctx.guild_metadata(key='timezone')
+        timezone = await ctx.guild_profile(key='timezone')
         wild_id = next(snowflake.create())
         location = await POILocationConverter.convert(ctx, ' '.join(loc))
 

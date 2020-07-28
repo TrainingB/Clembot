@@ -15,14 +15,14 @@ class GuildManager:
             self.guild_id = int(guild)
 
     async def timezone(self, ctx):
-        timezone = await self.metadata('timezone')
+        timezone = await self.guild_profile('timezone')
         if timezone:
             return timezone
 
         await Embeds.error_notification(ctx, "Missing Guild Configuration", "Contact an admin and ask them to setup timezone using `!config timezone`.")
 
 
-    async def metadata(self, key=None, value=None, *, delete=False):
+    async def guild_profile(self, key=None, value=None, *, delete=False):
 
         config_value = await self.dbi.guild_config_stmt.fetchrow(self.guild_id)
 
@@ -76,39 +76,33 @@ class GuildManager:
             return guild_metadata
 
 
-    async def channel_settings(self, channel_id, key=None, value=None, *, delete=False):
+    async def channel_profile(self, channel_id, key=None, value=None, *, delete=False):
         try:
             channel_config_table = self.dbi.table('channel_metadata')
             if channel_id is None:
                 raise ValueError("missing channel_id")
             if delete:
                 if key:
-                    return await channel_config_table.delete(guild_id=self.guild_id, channel_id=channel_id, config_name=str(key))
+                    d = {f'{key}' : None}
+                    update_query = channel_config_table.update(**d).where(guild_id=self.guild_id, channel_id=channel_id)
+                    await update_query.commit()
                 else:
                     return None
 
             if key is not None:
                 if value is not None:
-
-                    existing_configs = await self.channel_settings(channel_id)
-                    config_id_list = list(map(lambda cid: cid['id'] , filter(lambda cn : cn['config_name'] == key, existing_configs)))
-                    if config_id_list and len(config_id_list) > 0:
-                        update_query = channel_config_table.update(config_name=str(key), config_value=str(value), guild_id=self.guild_id, channel_id=channel_id).where(id=config_id_list[0])
-                        return await update_query.commit()
-                    else:
-                        insert_query = channel_config_table.insert(config_name=str(key), config_value=str(value), guild_id=self.guild_id, channel_id=channel_id)
-                        return await insert_query.commit()
-
+                    d = {f'{key}': value}
+                    update_query = channel_config_table.update(**d).where(guild_id=self.guild_id, channel_id=channel_id)
+                    await update_query.commit()
                 else:
-                    return await self.dbi.channel_settings_stmt.fetchval(self.guild_id, channel_id, str(key))
+                    channel_profile = await self.dbi.channel_profile_select_stmt.fetchrow(self.guild_id, channel_id)
+                    if channel_profile:
+                        return channel_profile[key]
+                    return None
             else:
                 return await channel_config_table.query().select().where(guild_id=self.guild_id, channel_id=channel_id).getjson()
         except Exception as error:
-            print(error)
-            raise Exception("Operation Failed!")
-
-
-
+            raise Exception(error)
 
 
     async def prefix(self, new_prefix: str = None):

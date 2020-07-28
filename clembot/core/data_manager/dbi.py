@@ -79,7 +79,7 @@ class DatabaseInterface:
             self.guild_metadata_conn = None
             self.guild_metadata_stmt = None
             self.guild_config_stmt = None
-            self.channel_settings_stmt = None
+            self.channel_profile_select_stmt = None
 
             # self.types = sqltypes
             self.listeners = []
@@ -118,8 +118,8 @@ class DatabaseInterface:
         guild_config_sql = 'SELECT * from guild_config where guild_id=$1;'
         self.guild_config_stmt = await self.guild_metadata_conn.prepare(guild_config_sql)
 
-        channel_settings_sql = 'SELECT config_value FROM guild_channel_config WHERE guild_id=$1 AND channel_id=$2 AND config_name=$3;'
-        self.channel_settings_stmt = await self.guild_metadata_conn.prepare(channel_settings_sql)
+        channel_profile_select_sql = 'SELECT * FROM channel_metadata WHERE guild_id=$1 AND channel_id=$2;'
+        self.channel_profile_select_stmt = await self.guild_metadata_conn.prepare(channel_profile_select_sql)
 
 
 

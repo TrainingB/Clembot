@@ -308,11 +308,11 @@ error_header = ["Alright, something happened.",
                 ]
 
 error_message_description = ["I would love to say \"Hey, It's not you, its me!\" but that wouldn't change anything.",
-    'You can try again or get on of the admins involved.',
-    "Someone will spot the problem in due time.",
-    "Don't read too much into this message and ask for help!",
-    "You can try again but probably it wouldn't work unless someone takes a look at it.",
-    "What else do you expect from a free bot!"
+    "It's admin'o clock.",
+    "Interesting, not expected. This probably wouldn't work without intervention.",
+    "You expect the error message to be meaningful?!?",
+    "All our customer service associates are busy. I thought that trick works!",
+    "Time out! I am overwhelmed, where is my dev?"
 ]
 
 bad_arguments_header = ["Uh-huh, bad arguments!",

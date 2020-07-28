@@ -5,6 +5,7 @@ import traceback
 
 import discord
 from discord.ext import commands
+from discord.ext.commands import BadArgument
 
 from clembot.config.constants import MyEmojis
 from clembot.core import checks
@@ -62,8 +63,8 @@ class RaidPartyCog(commands.Cog):
         :return:
         """
 
-        city = await ctx.guild_metadata(key='city')
-        timezone = await ctx.guild_metadata(key='timezone')
+        city = await ctx.guild_profile(key='city')
+        timezone = await ctx.guild_profile(key='timezone')
         raid_party_id = next(snowflake.create())
 
         try:
@@ -137,21 +138,48 @@ class RaidPartyCog(commands.Cog):
 
 
     @command(pass_context=True, hidden=True, aliases=["add"])
-    async def cmd_raidparty_add(self, ctx):
+    @raid_checks.raid_party_channel()
+    async def cmd_raidparty_add(self, ctx, *pkmn_location_eta):
 
         raid_party = RaidPartyCog._get_raid_for_channel(ctx)
 
-        city = ctx.city #await ctx.channel_setting(ctx.channel.id, 'city')
-        if city is None:
-            city = raid_party.city
-            await Embeds.message(ctx.channel, f"The city for this channel is set to {city}")
-            await ctx.channel_setting(ctx.channel.id, 'city', city)
-
-        roster_location = await RosterLocation.from_command_text(ctx, ctx.message.content)
+        roster_location = await RosterLocation.from_command_text(ctx, ''.join(pkmn_location_eta))
         await raid_party.append(roster_location)
 
         success_message = f"{MyEmojis.INFO} Location {raid_party.current_location_index} has been added to the roster."
         await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
+
+
+    @command(pass_context=True, hidden=True, aliases=["update"])
+    @raid_checks.raid_party_channel()
+    async def cmd_raidparty_update(self, ctx, location_number:int, *pkmn_gym_or_eta):
+
+        raid_party = RaidPartyCog._get_raid_for_channel(ctx)
+
+        if len(raid_party.roster) <=0 :
+            raise BadArgument("Raid party doesn't have any location on the roster.")
+
+        roster_location = await RosterLocation.from_command_text(ctx, ' '.join(pkmn_gym_or_eta), True)
+
+        if location_number == 0:
+            raise BadArgument ("I couldn't understand the location #.")
+
+        if roster_location is None:
+            raise BadArgument("I am not sure what to update;... use `!update <location#> <pokemon-name | gym-code | google map link | eta>`")
+
+        if not raid_party[location_number]:
+            raise BadArgument(f"Location {Utilities.emojify_numbers(location_number)} doesn't exist on the roster!")
+
+
+        raid_party[location_number].raid_boss = roster_location.raid_boss or raid_party[location_number].raid_boss
+        raid_party[location_number].poi_location = roster_location.poi_location or raid_party[location_number].poi_location
+        raid_party[location_number].eta = roster_location.eta or raid_party[location_number].eta
+        await raid_party.update()
+
+        success_message = f"{MyEmojis.INFO} Location {location_number} has been updated."
+        await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
+
+
 
 
 
@@ -382,81 +410,7 @@ class RaidPartyCog(commands.Cog):
 #         Logger.info(error)
 #
 #
-# @Clembot.command(pass_context=True, hidden=True)
-# @checks.raidpartychannel()
-# async def update(ctx):
-#     try:
-#         roster = guild_dict[ctx.message.guild.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
-#         if len(roster) <= 0:
-#             await ctx.message.channel.send( content=_("Beep Beep! The roster doesn't have any location(s)! Type `!beep raidparty` to see how you can manage raid party!"))
-#             return
-#
-#         args = ctx.message.clean_content[len("!update"):]
-#         args_split = args.lower().split()
-#
-#         location_number = 0
-#         if len(args_split) > 0:
-#             if args_split[0].isdigit():
-#                 location_number = int(args_split[0])
-#
-#         if location_number == 0:
-#             await ctx.message.channel.send( content=_("Beep Beep! I couldn't understand the location #."))
-#             return
-#
-#         del args_split[0]
-#
-#         roster_loc = None
-#         for roster_loc_at in roster:
-#             if roster_loc_at['index'] == location_number:
-#                 roster_loc = roster_loc_at
-#                 break
-#
-#         if roster_loc is None:
-#             await ctx.message.channel.send( content=_("Beep Beep! Location {location} doesn't exist on the roster!".format(location=emojify_numbers(location_number))))
-#             return
-#
-#         # if len(args_split) > 1:
-#         #     await ctx.message.channel.send( content=_("Beep Beep! That's too much to update... use `!update <location#> <pokemon-name or gymmanager-code or google map link>`"))
-#         #     return
-#
-#         arg = args_split[0].lower()
-#         # gym_info = gymutil.get_gym_info(arg, city_state=get_city_list(ctx.message))
-#         gym = await get_gym_info_wrapper(ctx.message, gym_code=arg)
-#
-#         if gym:
-#             roster_loc['gym_name'] = gym.gym_name
-#             roster_loc['gym_code'] = gym.gym_code
-#             roster_loc['lat_long'] = f"{gym.latitude},{gym.longitude}"
-#             roster_loc['gmap_link'] = gym.gym_url
-#             roster_loc['eta'] = None
-#             args_split.remove(arg.lower())
-#
-#         elif arg in pkmn_info['pokemon_list']:
-#             roster_loc['pokemon'] = arg
-#             args_split.remove(arg.lower())
-#         else:
-#             gmap_link = extract_link_from_text("".join(args_split))
-#             if gmap_link:
-#                 roster_loc['gmap_link'] = gmap_link
-#                 roster_loc['gym_name'] = "location " + str(roster_loc['index'])
-#                 roster_loc['gym_code'] = "location " + str(roster_loc['index'])
-#                 roster_loc['lat_long'] = extract_lat_long_from(gmap_link)
-#             else:
-#                 time_as_text = " ".join(args_split)
-#                 eta = convert_into_time(time_as_text, False)
-#                 if eta:
-#                     roster_loc['eta'] = time_as_text
-#                 else:
-#                     await ctx.message.channel.send( content=_("Beep Beep! I am not sure what to update;... use `!update <location#> <pokemon-name | gym-code | google map link | eta>` "))
-#                     return
-#
-#         await print_roster_with_highlight(ctx.message, location_number, "Beep Beep! Location {location} has been updated.".format(location=emojify_numbers(location_number)))
-#         return
-#
-#     except Exception as error:
-#         await ctx.message.channel.send( content=_("Beep Beep! Error : {error} {error_details}").format(error=error, error_details=str(error)))
-#
-#
+
 # @Clembot.command(pass_context=True, hidden=True)
 # @checks.raidpartychannel()
 # async def pathshare(ctx):

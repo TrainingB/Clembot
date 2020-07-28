@@ -38,7 +38,7 @@ class ConfigCog(commands.Cog):
 
         not_emoji = ":white_large_square:"
         is_emoji = ":white_check_mark:"
-        guild_config = await ctx.guild_metadata()
+        guild_config = await ctx.guild_profile()
 
 
         guild_config_complete = False
@@ -117,8 +117,8 @@ class ConfigCog(commands.Cog):
     async def cmd_config_timezone(self, ctx, timezone):
 
         if timezone in pytz.all_timezones:
-            await ctx.guild_metadata(key='timezone', value=timezone)
-            config = await ctx.guild_metadata(key='timezone')
+            await ctx.guild_profile(key='timezone', value=timezone)
+            config = await ctx.guild_profile(key='timezone')
             return await Embeds.message(ctx.message.channel, f"**timezone** is set to **{config}**")
 
         raise BadArgument(f"**{timezone}** didn't resolve to a valid timezone. \nYou can see a list for a valid timezone for a country ISO 3166 country code using `!timezone country_code`")
@@ -130,8 +130,8 @@ class ConfigCog(commands.Cog):
     async def cmd_config_city(self, ctx, *city):
         if city:
             city_state = ''.join(city).upper()
-            await ctx.guild_metadata(key='city', value=city_state)
-            config = await ctx.guild_metadata(key='city')
+            await ctx.guild_profile(key='city', value=city_state)
+            config = await ctx.guild_profile(key='city')
             return await Embeds.message(ctx.message.channel, f"**city** is set to **{config}**")
         else:
             raise BadArgument("Please specify city and state, in all caps, without spaces.")
@@ -145,12 +145,12 @@ class ConfigCog(commands.Cog):
         if config_name and config_name not in GUILD_CONFIG_KEY and config_name not in GUILD_METADATA_KEY:
             return await Embeds.error(ctx.message.channel, "No such configuration exists.")
 
-        config = await ctx.guild_metadata(key=config_name, value=config_value)
+        config = await ctx.guild_profile(key=config_name, value=config_value)
         if config_name:
             if config_value:
-                config = await ctx.guild_metadata(key=config_name)
+                config = await ctx.guild_profile(key=config_name)
             else:
-                config = await ctx.guild_metadata(key=config_name, delete=True)
+                config = await ctx.guild_profile(key=config_name, delete=True)
             await Embeds.message(ctx.message.channel, f"**{config_name}** is set to **{config}**")
         else:
             await ConfigCog.send_guild_config_embed(ctx, config)

@@ -56,9 +56,9 @@ class BingoCog(commands.Cog):
         if len(ctx.message.mentions) > 0:
             card_for = ctx.message.mentions[0]
 
-        event_title = (await ctx.guild_metadata("bingo-event-title")) or (
+        event_title = (await ctx.guild_profile("bingo-event-title")) or (
             await self.MyGlobalConfigCache.get_clembot_config("bingo-event-title"))
-        event_pokemon = (await ctx.guild_metadata("bingo-event-pokemon")) or (
+        event_pokemon = (await ctx.guild_profile("bingo-event-pokemon")) or (
             await self.MyGlobalConfigCache.get_clembot_config("bingo-event-pokemon"))
 
         if event_pokemon is None:
@@ -76,7 +76,7 @@ class BingoCog(commands.Cog):
             file_url = existing_bingo_card_record['bingo_card_url']
         else:
             bingo_card = BingoDataGenerator.generate_card(event_pokemon)
-            timezone = await ctx.guild_metadata('timezone')
+            timezone = await ctx.guild_profile('timezone')
             timestamp = TH.as_local_time(TH.epoch(message.created_at, 'UTC'), timezone)
             file_path = BingoCardWriter.generate_board(user_name=card_for.id, bingo_card=bingo_card,
                                                        template_file="{0}.png".format(event_pokemon))
@@ -121,7 +121,7 @@ class BingoCog(commands.Cog):
             bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(
                 message.channel.overwrites), category=bingo_card_repo_category)
 
-            await ctx.guild_metadata(key='bingo-card-repo', value=bingo_card_repo_channel.id)
+            await ctx.guild_profile(key='bingo-card-repo', value=bingo_card_repo_channel.id)
 
         return bingo_card_repo_channel
 
@@ -129,11 +129,11 @@ class BingoCog(commands.Cog):
     async def _bingo_win(self, ctx):
         message = ctx.message
 
-        event_title = (await ctx.guild_metadata("bingo-event-title")) or (
+        event_title = (await ctx.guild_profile("bingo-event-title")) or (
             await self.MyGlobalConfigCache.get_clembot_config("bingo-event-title"))
-        event_pokemon = (await ctx.guild_metadata("bingo-event-pokemon")) or (
+        event_pokemon = (await ctx.guild_profile("bingo-event-pokemon")) or (
             await self.MyGlobalConfigCache.get_clembot_config("bingo-event-pokemon"))
-        timezone = await ctx.guild_metadata('timezone')
+        timezone = await ctx.guild_profile('timezone')
         timestamp = TH.as_local_time(TH.epoch(message.created_at, 'UTC'),timezone)
         existing_bingo_card_record = await self.MyBingoCardManager.find_bingo_card(ctx.message.guild.id,
                                                                                    ctx.message.author.id,

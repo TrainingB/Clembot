@@ -334,7 +334,7 @@ class RaidCog(commands.Cog):
     async def cmd_start(self, ctx, *time_as_text):
 
         raid = RaidCog._get_raid_for_channel(ctx)
-        timezone = await ctx.guild_metadata('timezone')
+        timezone = await ctx.guild_profile('timezone')
         start_time = TH.convert_to_timestamp(" ".join(time_as_text), timezone)
 
         if not start_time:
@@ -509,7 +509,7 @@ class RaidCog(commands.Cog):
         nest_embed.add_field(name="**Pokemon**", value=pokemon.label, inline=True)
         nest_embed.add_field(name="**Where**", value=nest_location.gym_embed_label, inline=True)
         nest_embed.set_thumbnail(url=raid_img_url)
-        hide_preview = not nest_location.is_gym or await ctx.guild_metadata('nest.preview.hide') == 'true'
+        hide_preview = not nest_location.is_gym or await ctx.guild_profile('nest.preview.hide') == 'true'
         if not hide_preview:
             nest_embed.set_image(url=nest_location.google_preview_url)
         nest_embed.set_footer(text=f"Reported by {message.author.display_name}", icon_url=Icons.avatar(message.author))

@@ -13,8 +13,8 @@ class Context(commands.Context):
         self.get = GetTools(self)
         if self.guild:
             self.guild_mgr = self.bot.data_manager.guild(self.guild.id)
-            self.guild_metadata = self.guild_mgr.metadata
-            self.channel_setting = self.guild_mgr.channel_settings
+            self.guild_profile = self.guild_mgr.guild_profile
+            self.channel_profile = self.guild_mgr.channel_profile
             self.guild_timezone = self.guild_mgr.timezone
 
     async def codeblock(self, contents, syntax="py", send=True, title=None):
@@ -33,14 +33,14 @@ class Context(commands.Context):
     async def timezone(self):
         if hasattr(self, '_timezone'):
             return self._timezone
-        timezone = await self.guild_metadata('timezone')
+        timezone = await self.guild_profile('timezone')
         return timezone
 
     async def city(self):
         if hasattr(self, '_city'):
             return self._city
-        # city = await ChannelMetadata.city(bot=self.bot, city=self.message.channel.id)
-        city = await self.guild_metadata('city')
+        city = await self.channel_profile(self.channel.id, 'city')
+        city = city or await self.guild_profile('city')
         return city
 
 

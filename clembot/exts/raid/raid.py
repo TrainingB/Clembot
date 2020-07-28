@@ -8,6 +8,7 @@ from typing import Union
 
 import discord
 from discord.ext import commands
+from discord.ext.commands import BadArgument
 
 from clembot.config import config_template
 from clembot.config.constants import Icons, MyEmojis
@@ -92,24 +93,36 @@ class RosterLocation:
         return cls(raid_boss=raid_boss, poi_location=poi_location, eta=p_eta)
 
     @classmethod
-    async def from_command_text(cls, ctx, text):
-        timezone = await ctx.guild_metadata(key='timezone')
-        args = text.split()[1:]
+    async def from_command_text(cls, ctx, text, update_mode=False):
+        args = text.split()
+
+        if len(args) == 0:
+            raise BadArgument("No information found about egg/boss location and/or eta.")
 
         if args[0] == 'egg':
             pkmn_or_egg = 'egg'
         else:
-            pkmn_or_egg = (await Pokemon.convert(ctx, args[0]))
-        del args[0]
+            try:
+                pkmn_or_egg = (await Pokemon.convert(ctx, args[0]))
+            except BadArgument as error:
+                if not update_mode:
+                    raise error
+                else:
+                    pkmn_or_egg = None
+            if pkmn_or_egg:
+                del args[0]
 
-        eta = args[-1]
-        if convert_into_time(eta, require_am_pm=False) is None:
-            eta = None
-        else:
-            del args[-1]
+        eta=None
+        if len(args) > 0:
+            eta = args[-1]
+            if convert_into_time(eta, require_am_pm=False) is None:
+                eta = None
+            else:
+                del args[-1]
 
-
-        poi_location = await POILocationConverter.convert(ctx, ' '.join(args))
+        poi_location = None
+        if len(args) > 0:
+            poi_location = await POILocationConverter.convert(ctx, ' '.join(args))
 
         return cls(raid_boss=pkmn_or_egg, poi_location=poi_location, eta=eta)
 
