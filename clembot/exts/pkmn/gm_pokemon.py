@@ -198,10 +198,6 @@ class Pokemon:
                 cp = 10
             return cp
 
-
-
-
-
     @classmethod
     def cache(cls, form):
         Pokemon._cache[form.aliases[0]] = form
@@ -209,7 +205,7 @@ class Pokemon:
     @classmethod
     def to_pokemon(cls, search_for):
         if len(cls._cache) < 1:
-            raise Exception("Error : Pokemon forms are not loaded.")
+            raise Exception("Error : Pokemon forms are not loaded yet.")
 
         if search_for:
             form = cls._cache.get(search_for.upper(), None)
