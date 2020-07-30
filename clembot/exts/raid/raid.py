@@ -170,9 +170,9 @@ class RSVPEnabled:
     }
 
 
-    def __init__(self, bot, trainer_dict=dict()):
+    def __init__(self, bot, trainer_dict=None):
         self.bot = bot
-        self.trainer_dict = trainer_dict
+        self.trainer_dict = trainer_dict or dict()
 
     async def add_rsvp(self, member_id: str, status, count=None):
 
@@ -218,7 +218,7 @@ class RSVPEnabled:
 
     async def handle_rsvp(self, message, status):
         """
-        '!xc <@!415421645214449664> <@!159985870458322944> <@!289657500167438336> 5'
+        '!x <@!415421645214449664> <@!159985870458322944> <@!289657500167438336> 5'
         """
 
         arguments = message.content.split()[1:]
@@ -661,7 +661,7 @@ class RaidParty(RSVPEnabled):
 
     async def handle_rsvp(self, message, status):
         """
-        '!xc <@!415421645214449664> <@!159985870458322944> <@!289657500167438336> 5'
+        '!x <@!415421645214449664> <@!159985870458322944> <@!289657500167438336> 5'
         """
 
         arguments = message.content.split()[1:]
@@ -698,7 +698,7 @@ class RaidParty(RSVPEnabled):
         try:
             Logger.info(party_status)
             total_trainer_rsvp = 0
-            if status == 'cancel':
+            if status == 'x':
                 for mention, party_size in party_status.items():
                     removed_user = await self.cancel_rsvp(member_id=Raid.from_mention(mention))
                     if removed_user is None:
@@ -726,7 +726,7 @@ class RaidParty(RSVPEnabled):
             Logger.info(error)
 
 
-    async def send_rsvp_embed(self, message, description=None, options=['rsvp', 'interested', 'coming', 'here', 'remote']):
+    async def send_rsvp_embed(self, message, description=None, options=['rsvp', 'i', 'c', 'h']):
 
         return await message.channel.send(embed=await self.rsvp_embed_by_options(message, options=options,
                                                                            description=description))
@@ -874,7 +874,7 @@ class Raid (RSVPEnabled):
                  raid_location: POILocation=None, pkmn :Pokemon=None, timer=None,
                  reported_time=None, hatch_time=None, expiry_time=None, start_time=None,
                  response_message: str = None, channel_message: str = None, timezone=None,
-                 trainer_dict=dict()):
+                 trainer_dict=None):
         """
         From command:
             Raid(bot, report_message, raid_type, level, raid_location, timer, pokemon )
@@ -893,7 +893,7 @@ class Raid (RSVPEnabled):
         :param response_message: [A raid has been reported, co-ordinate in #channel] - MessageMetadata
         :param channel_message: [A raid has been reported, co-ordinate here] - MessageMetadata
         """
-        super().__init__(bot=bot, trainer_dict=trainer_dict)
+        super().__init__(bot=bot, trainer_dict=trainer_dict or dict())
         self.id = raid_id
         self.bot = bot
         self.guild_id = guild_id
@@ -1037,7 +1037,7 @@ class Raid (RSVPEnabled):
         if self.pkmn:
             state_dict['pkmn'] = self.pkmn.id
 
-        if len(self.trainer_dict) > 0:
+        if self.trainer_dict and len(self.trainer_dict) > 0:
             state_dict['trainer_dict'] = self.trainer_dict
 
         return state_dict
