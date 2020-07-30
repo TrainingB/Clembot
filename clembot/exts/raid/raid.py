@@ -62,7 +62,7 @@ class ChannelMessage:
         try:
             message = await channel.fetch_message(message_id)
         except Exception as error:
-            Logger.error(f"{traceback.format_exc()}")
+            Logger.info(f"{channel_id} => {channel}")
             return channel, None
 
         return channel, message

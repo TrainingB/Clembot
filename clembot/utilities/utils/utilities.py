@@ -317,6 +317,47 @@ class Utilities:
             await confirmation.delete()
             return True
 
+
+    @staticmethod
+    @wrap_error
+    async def ask_via_reactions(ctx, message, question_message, accepted_message, rejected_message, timed_out_message, reaction_dict, error_response):
+        author = message.author
+        channel = message.channel
+
+        rusure = await ctx.channel.send(f"{question_message}")
+
+        for r in reaction_dict.keys():
+            await rusure.add_reaction(r)
+
+        def check(react, user):
+            if user.id != author.id:
+                return False
+            return True
+
+        try:
+            reaction, user = await ctx.bot.wait_for('reaction_add', check=check, timeout=10)
+        except asyncio.TimeoutError:
+            await rusure.delete()
+            confirmation = await channel.send(f"{timed_out_message}")
+            await asyncio.sleep(1)
+            await confirmation.delete()
+            return error_response
+
+        if reaction.emoji not in reaction_dict.keys():
+            await rusure.delete()
+            confirmation = await channel.send(f"{rejected_message}")
+            await asyncio.sleep(1)
+            await confirmation.delete()
+            return error_response
+
+        elif reaction.emoji in reaction_dict.keys():
+            await rusure.delete()
+            confirmation = await channel.send(f"{accepted_message}")
+            await asyncio.sleep(1)
+            await confirmation.delete()
+            return reaction_dict.get(reaction.emoji, error_response)
+
+
     @staticmethod
     async def send_to_hastebin(destination, whatever):
         whatever = whatever.encode('ascii', errors='replace').decode('utf-8')
