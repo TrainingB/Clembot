@@ -623,6 +623,8 @@ class RaidParty(RSVPEnabled):
         if not count:
             count = 1
 
+        self.trainer_dict = self.trainer_dict or {}
+
         self.trainer_dict.setdefault(member_id, {})
         self.trainer_dict[member_id]['status'] = status
         self.trainer_dict[member_id]['count'] = count
