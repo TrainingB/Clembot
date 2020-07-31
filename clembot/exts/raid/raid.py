@@ -388,7 +388,7 @@ class RSVPEnabled:
 
     def size_by_status(self, status):
         count = 0
-
+        self.trainer_dict = self.trainer_dict or {}
         for trainer in self.trainer_dict.values():
             if trainer['status'] == status:
                 count += int(trainer['count'])
