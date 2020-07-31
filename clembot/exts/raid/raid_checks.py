@@ -6,7 +6,7 @@ from clembot.exts.raid.raid import Raid, RaidParty
 
 def _is_raid_channel(ctx):
     raid = Raid.by_channel.get(ctx.channel.id, None)
-    if raid:
+    if raid is not None:
         return True
 
     raise NotARaidChannel
@@ -14,7 +14,7 @@ def _is_raid_channel(ctx):
 
 def _is_raid_party_channel(ctx):
     raid = RaidParty.by_channel.get(ctx.channel.id, None)
-    if raid:
+    if raid is not None:
         return True
 
     raise NotARaidChannel

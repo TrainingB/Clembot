@@ -143,7 +143,7 @@ class RaidPartyCog(commands.Cog):
 
         raid_party = RaidPartyCog._get_raid_for_channel(ctx)
 
-        roster_location = await RosterLocation.from_command_text(ctx, ''.join(pkmn_location_eta))
+        roster_location = await RosterLocation.from_command_text(ctx, ' '.join(pkmn_location_eta))
         await raid_party.append(roster_location)
 
         success_message = f"{MyEmojis.INFO} Location {raid_party.current_location_index} has been added to the roster."
