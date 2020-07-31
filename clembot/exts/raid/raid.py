@@ -316,7 +316,7 @@ class RSVPEnabled:
                 int_status = ""
 
                 trainer_names = await self.trainers_by_status(message, 'i')
-                if trainer_names:
+                if trainer_names is not None:
                     int_status += f"{MyEmojis.INTERESTED} {trainer_names}\n"
 
                 trainer_names = await self.trainers_by_status(message, 'ir')
@@ -360,7 +360,7 @@ class RSVPEnabled:
         return Embeds.make_embed(header="RSVP Status", msg_color=discord.Color.gold(), fields=additional_fields, footer=footer, content=description)
 
     async def trainers_by_status(self, message, status, mentions=False, delimiter=', '):
-
+        Logger.info("trainer_by_status")
         name_list = []
         for trainer in self.trainer_dict.keys():
             if self.trainer_dict[trainer]['status'] == status:
@@ -812,7 +812,7 @@ class RaidParty(RSVPEnabled):
     #     return embed
 
 
-    def trainers_by_status(self, message, status, mentions=False):
+    async def trainers_by_status(self, message, status, mentions=False):
 
         name_list = []
         for trainer in self.trainer_dict.keys():

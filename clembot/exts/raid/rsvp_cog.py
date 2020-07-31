@@ -26,7 +26,7 @@ class RSVPCog(commands.Cog):
         self._dbi = bot.dbi
 
     @staticmethod
-    def get_rsvp_source(ctx):
+    def get_rsvp_source(ctx) -> RSVPEnabled:
 
         raid = Raid.by_channel.get(ctx.channel.id)
         if raid is not None:
@@ -175,7 +175,7 @@ class RSVPCog(commands.Cog):
     @raid_checks.rsvp_enabled()
     async def cmd_list(self, ctx):
         rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
-        if rsvp_enabled:
+        if rsvp_enabled is not None:
             return await rsvp_enabled.send_rsvp_embed(ctx.message, "")
 
 
