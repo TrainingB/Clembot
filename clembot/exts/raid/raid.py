@@ -929,12 +929,12 @@ class Raid (RSVPEnabled):
         if timer is not None:
             if self.raid_type == "egg":
                 self.hatch_time = self.reported_time + timedelta(minutes=timer).seconds
-                self.expiry_time = self.hatch_time + self.raid_level_info.egg_timer * 60
+                self.expiry_time = self.hatch_time + (config_template.development_timer or self.raid_level_info.egg_timer) * 60
             elif self.raid_type == "raid":
                 self.expiry_time = self.reported_time + timedelta(minutes=timer).seconds
         else:
-            self.hatch_time = self.hatch_time or self.reported_time + timedelta(minutes=self.raid_level_info.egg_timer).seconds
-            self.expiry_time = self.expiry_time or self.reported_time + timedelta(minutes=self.raid_level_info.egg_timer).seconds + timedelta(minutes=self.raid_level_info.raid_timer).seconds
+            self.hatch_time = self.hatch_time or self.reported_time + timedelta(minutes=(config_template.development_timer or self.raid_level_info.egg_timer)).seconds
+            self.expiry_time = self.expiry_time or self.reported_time + timedelta(minutes=(config_template.development_timer or self.raid_level_info.egg_timer)).seconds + timedelta(minutes=(config_template.development_timer or self.raid_level_info.raid_timer)).seconds
         print(f"{self.reported_at} {self.hatches_at} {self.expires_at}")
 
         self.monitor_task_tuple = None
@@ -1015,9 +1015,9 @@ class Raid (RSVPEnabled):
     @property
     def max_timer(self):
         if self.is_egg:
-            return self.raid_level_info.egg_timer
+            return (config_template.development_timer or self.raid_level_info.egg_timer)
         else:
-            return self.raid_level_info.raid_timer
+            return (config_template.development_timer or self.raid_level_info.raid_timer)
 
 
     def get_raid_dict(self):
@@ -1182,7 +1182,7 @@ class Raid (RSVPEnabled):
     def update_time(self, new_utc_timestamp):
         if self.raid_type == "egg":
             self.hatch_time = new_utc_timestamp
-            self.expiry_time = self.hatch_time + self.raid_level_info.raid_timer * 60
+            self.expiry_time = self.hatch_time + (config_template.development_timer or (config_template.development_timer or self.raid_level_info.raid_timer)) * 60
         elif self.raid_type == "raid":
             self.expiry_time = new_utc_timestamp
 
@@ -1371,14 +1371,16 @@ class Raid (RSVPEnabled):
 
         try:
             chm_channel, chm_message = await ChannelMessage.from_text(self.bot, self.channel_message)
-            if chm_channel and chm_channel.name != self.channel_name:
+            if chm_channel is not None and chm_channel.name != self.channel_name:
                 try:
-                    Logger.info("updating channel name")
-                    await chm_channel.edit(name=self.channel_name)
+                    await asyncio.wait_for(chm_channel.edit(name=self.channel_name), timeout=20)
                     Logger.info("updated channel name")
+                except asyncio.TimeoutError:
+                    Logger.info("channel name update has been delayed.")
+                    await Embeds.message(self.channel, "Channel name update has been delayed (rate-limited by discord)...")
                 except Exception as error:
                     Logger.error(error)
-            Logger.info(f"Channel name is okay! {chm_channel.name}")
+            Logger.info(f"channel name is okay for {chm_channel.name}")
 
             if self.is_egg and TH.is_in_future(self.hatch_time):
                 embed = await self.egg_embed()
@@ -1389,12 +1391,10 @@ class Raid (RSVPEnabled):
 
 
             if chm_message:
-                # Logger.info(f"Updated channel message!")
                 await chm_message.edit(embed=embed)
 
             res_channel, res_message = await ChannelMessage.from_text(self.bot, self.response_message)
             if res_channel and res_message:
-                # Logger.info(f"Updated response message!")
                 if self.active:
                     await res_message.edit(embed=embed)
                 else:
@@ -1414,7 +1414,7 @@ class Raid (RSVPEnabled):
         return False
 
     async def hatch_egg(self):
-        Logger.info(f"===========> hatch_egg({self})")
+        Logger.info(f"{self}")
         try:
             channel, message = await ChannelMessage.from_text(self.bot, self.channel_message)
         except Exception as error:
@@ -1457,11 +1457,13 @@ class Raid (RSVPEnabled):
         Logger.info(f"===========> [{self.cuid}]><>[{lc}]<><=> expire_raid({self})")
         try:
             self.bot.loop.create_task(self.update_messages())
+            await Embeds.message(self.channel, "This channel will be removed in 60 seconds.")
             Logger.info(f"[{self.cuid}]><>[{lc}]<><=> Messages update task triggered, will delete channel after 60 seconds.")
             await asyncio.sleep(60)
 
             if TH.is_in_future(self.expiry_time):
                 Logger.info(f"[{self.cuid}]><>[{lc}]<><=> {self.channel_name} hasn't expired yet!")
+                await Embeds.message(self.channel, "This channel hasn't expired yet!")
                 self.monitor_task = self.create_task_tuple(self.monitor_status())
                 self.expire_task = None
                 return
@@ -1469,7 +1471,7 @@ class Raid (RSVPEnabled):
 
             # TODO: Archive if needed
             channel, message = await ChannelMessage.from_text(self.bot, self.channel_message)
-            if channel:
+            if channel is not None:
                 try:
                     await channel.delete()
                     Logger.info(f"[{self.cuid}]><>[{lc}]<><=> {self.channel_name} delete successful")
@@ -1494,12 +1496,12 @@ class Raid (RSVPEnabled):
         """
         if sleep_time > 0:
             task_id = self.monitor_task_id
-            Logger.info(f"[{self.cuid}] {task_id} => #{self.channel_name} will be checked after {int(sleep_time)} seconds.")
+            Logger.info(f"[{self.cuid}] #{self.channel_name} [{task_id}] => will be checked after {int(sleep_time)} seconds.")
             await asyncio.sleep(sleep_time)
             if task_id == self.monitor_task_id:
-                Logger.info(f"[{self.cuid}] [{task_id}] [{self.monitor_task_id}] Monitor task is same.")
+                # Logger.info(f"[{self.cuid}] [{task_id}] [{self.monitor_task_id}] Monitor task is same.")
                 return True
-        Logger.info(f"[{self.cuid}] [{task_id}] [{self.monitor_task_id}] Monitor task changed during sleep.")
+        Logger.info(f"[{self.cuid}] #{self.channel_name} has stale task. Slept with [{task_id}] but woke up with [{self.monitor_task_id}]")
         return False
 
 
@@ -1515,20 +1517,18 @@ class Raid (RSVPEnabled):
                 self.expire_task = self.create_task_tuple(self.expire_raid())
                 return
 
-            if self.pkmn is None:
-                if TH.is_in_future(self.hatch_time):
-                    sleep_time = self.hatch_time - TH.current_epoch()
-                    is_task_stale = not await self.safe_sleep(sleep_time)
-                    if is_task_stale:
-                        return
-                if self.is_egg:
-                    self.hatch_task = self.create_task_tuple(self.hatch_egg())
+
+            next_event_time = self.hatch_time if self.is_egg else self.expiry_time
+
+            if TH.is_in_future(next_event_time):
+                sleep_time = next_event_time - TH.current_epoch()
+                is_task_stale = not await self.safe_sleep(sleep_time)
+                if is_task_stale:
+                    return
+
+            if self.is_egg:
+                self.hatch_task = self.create_task_tuple(self.hatch_egg())
             else:
-                if TH.is_in_future(self.expiry_time):
-                    sleep_time = self.expiry_time - TH.current_epoch()
-                    is_task_stale = not await self.safe_sleep(sleep_time)
-                    if is_task_stale:
-                        return
                 self.expire_task = self.create_task_tuple(self.expire_raid())
 
         except asyncio.CancelledError:
@@ -1798,6 +1798,9 @@ class RaidRepository:
         raid_table = cls._dbi.table('raid_report')
         raid_table_query = raid_table.query().select()
         list_of_raids = await raid_table_query.getjson()
+
+        list_of_raids = [raid for raid in list_of_raids if raid.get('guild_id', None) == (config_template.development_guild_id if config_template.development_guild_id is not None else raid.get('guild_id', None))]
+
         return list_of_raids
 
     @classmethod

@@ -9,6 +9,7 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument
 
 import clembot.utilities.timezone.timehandler as TH
+from clembot.config import config_template
 from clembot.config.constants import MyEmojis, Icons
 from clembot.core.bot import command, group
 from clembot.core.commands import Cog
@@ -419,7 +420,7 @@ class RaidCog(commands.Cog):
                 raid.level = RaidMaster.get_level(p_pkmn)
                 raid.raid_level_info = RaidMaster.from_cache(p_level)
                 # set hatch_time just in case.
-                raid.hatch_time = raid.hatch_time or raid.expiry_time - timedelta(minutes=self.raid_level_info.egg_timer).seconds
+                raid.hatch_time = raid.hatch_time or raid.expiry_time - timedelta(minutes=(config_template.development_timer or self.raid_level_info.egg_timer)).seconds
 
         if p_level or p_pkmn:
             await raid.update()

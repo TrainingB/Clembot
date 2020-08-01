@@ -185,13 +185,15 @@ class ConfigCog(commands.Cog):
         if config_name and config_name not in CHANNEL_METADATA_KEY:
             return await Embeds.error(ctx.message.channel, "No such configuration exists.")
 
-        config = await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name, value=config_value)
         if config_name:
             if config_value:
-                config = await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name)
+                await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name)
             else:
-                config = await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name, delete=True)
+                await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name, delete=True)
 
+        await ctx.channel_profile(channel_id=ctx.message.channel.id, key=config_name, value=config_value)
+
+        config = await ctx.channel_profile(channel_id=ctx.message.channel.id)
         await ctx.send(embed = ChannelMetadata.profile_embed(ctx, config))
 
 
