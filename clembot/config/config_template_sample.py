@@ -102,3 +102,7 @@ team_dict= {"mystic": ":mystic:", "valor": "valor", "instinct": ":instinct:"}
 omw_id= ":omw:"
 here_id= ":here:"
 
+
+# helps in debugging issue
+development_guild_id=None
+development_timer=None
