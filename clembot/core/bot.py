@@ -17,7 +17,6 @@ from clembot.core.context import Context
 from clembot.core.data_manager import DatabaseInterface, DataManager
 from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
-
 from clembot.utilities.utils import pagination
 
 

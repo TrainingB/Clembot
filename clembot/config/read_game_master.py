@@ -2,7 +2,8 @@ import asyncio
 import json
 import os
 import traceback
-import urllib, urllib.request
+import urllib
+import urllib.request
 
 import aiohttp
 

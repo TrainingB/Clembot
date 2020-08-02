@@ -1,6 +1,7 @@
 import subprocess
-import pip
 from sys import platform
+
+import pip
 
 _apt_req_= [
     "tesseract-ocr",

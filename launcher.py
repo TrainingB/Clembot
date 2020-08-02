@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
-import sys
+import argparse
 import os
 import subprocess
-import argparse
+import sys
+
 
 #Launcher for clembotv2
 

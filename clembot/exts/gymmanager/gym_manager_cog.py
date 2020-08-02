@@ -4,7 +4,6 @@ import json
 import discord
 from discord.ext import commands
 
-
 from clembot.core.bot import group
 from clembot.core.logs import Logger
 from clembot.exts.config.channelconfigmanager import ChannelConfigCache

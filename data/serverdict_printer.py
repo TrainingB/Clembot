@@ -1,9 +1,7 @@
+import datetime
+import json
 import os
 import pickle
-import discord
-import tempfile
-import json
-import datetime
 
 server_dict_new = {}
 

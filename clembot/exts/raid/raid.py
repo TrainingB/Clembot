@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Union
 
 import discord
+import pydash as _
 from discord.ext import commands
 from discord.ext.commands import BadArgument
 
@@ -18,11 +19,7 @@ from clembot.exts.gymmanager.gym import POILocation, POILocationConverter
 from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.exts.pkmn.raid_boss import RaidMaster
 from clembot.exts.profile.user_profile import UserProfile
-
 from clembot.utilities.timezone import timehandler as TH
-import pydash as _
-
-from clembot.utilities.utils import parse_emoji
 from clembot.utilities.utils.embeds import Embeds, color
 from clembot.utilities.utils.snowflake import CUIDGenerator, Snowflake
 from clembot.utilities.utils.utilities import TextUtil
@@ -49,6 +46,23 @@ class ChannelMessage:
     def from_message(cls, message):
         """returns channel_id-message_id"""
         return f"{message.channel.id}-{message.id}"
+
+    @classmethod
+    async def from_id(cls, bot, channel_id, message_id):
+
+        channel = bot.get_channel(channel_id)
+
+        if channel is None:
+            return None, None
+
+        try:
+            message = await channel.fetch_message(message_id)
+        except Exception as error:
+            Logger.error(f"{channel_id} {message_id} {error}")
+            return channel, None
+
+        return channel, message
+
 
     @classmethod
     async def from_text(cls, bot, arg):

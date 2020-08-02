@@ -1,20 +1,17 @@
 import json
 import os
-import traceback
 
 import discord
 from discord.ext import commands
 
 from clembot.core.bot import group, command
 from clembot.core.errors import wrap_error
-from clembot.core.logs import Logger
 from clembot.exts.bingo.bingo_card_manager import BingoCardManager
 from clembot.exts.bingo.bingo_card_writer import BingoCardWriter
 from clembot.exts.bingo.bingo_data_generator import BingoDataGenerator
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
 from clembot.exts.config.guild_metadata import GuildMetadata
 from clembot.utilities.timezone import timehandler as TH
-from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.utilities import Utilities
 
 

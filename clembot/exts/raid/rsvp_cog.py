@@ -1,10 +1,10 @@
 from discord.ext import commands
 
 from clembot.config.constants import Icons
-from clembot.core import checks
-from clembot.core.bot import group, command
+from clembot.core.bot import command
 from clembot.core.commands import Cog
 from clembot.exts.raid import raid_checks
+
 from clembot.exts.raid.errors import RSVPNotEnabled
 from clembot.exts.raid.raid import RSVPEnabled, Raid, RaidParty
 from clembot.utilities.utils.embeds import Embeds

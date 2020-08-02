@@ -1,5 +1,4 @@
 import asyncio
-import traceback
 from functools import wraps
 from inspect import signature, getfullargspec
 
@@ -9,12 +8,27 @@ from discord.ext.commands.errors import CommandError, BadArgument
 
 from clembot.config.constants import Icons
 from clembot.core.checks import AccessDenied
-
 from clembot.core.context import Context
 from clembot.core.logs import Logger
-from clembot.utilities.utils.embeds import Embeds
+
 from clembot.utilities.timezone import timehandler as TH
+from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.snowflake import CUIDGenerator
+
+
+
+class NotARaidReportChannel(CommandError):
+    'Exception for RSVP commands in non RSVP channel.'
+    pass
+
+class NotAWildReportChannel(CommandError):
+    'Exception for RSVP commands in non RSVP channel.'
+    pass
+
+
+class NotANestReportChannel(CommandError):
+    'Exception for RSVP commands in non RSVP channel.'
+    pass
 
 
 class ShowErrorMessage(CommandError):
@@ -107,7 +121,6 @@ def custom_error_handling(bot, logger):
     async def on_command_error(ctx, error):
         channel = ctx.channel
 
-
         if isinstance(error, commands.MissingRequiredArgument):
 
             prefix, parent, command, missing_args, sig = missing_arg_msg(ctx)
@@ -174,6 +187,13 @@ def custom_error_handling(bot, logger):
             pass
         elif isinstance(error, commands.CommandNotFound):
             pass
+        if isinstance(error, NotARaidReportChannel):
+            await Embeds.error(ctx.channel, f'Raid Reports are not enabled in this channel.', ctx.message.author)
+        elif isinstance(error, NotAWildReportChannel):
+            await Embeds.error(ctx.channel, f'Wild Reports are not enabled in this channel.', ctx.message.author)
+        elif isinstance(error, NotANestReportChannel):
+            await Embeds.error(ctx.channel, f'Nest Reports are not enabled in this channel.', ctx.message.author)
+
 
         elif isinstance(error, TeamSetCheckFail):
             msg = 'Beep Beep! Team Management is not enabled on this server. **!{cmd_name}** is unable to be used.'.format(cmd_name=ctx.command.name)

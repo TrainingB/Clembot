@@ -1,12 +1,9 @@
-import traceback
-
 import discord
 from discord.ext import commands
 from discord.ext.commands import BadArgument
 
 from clembot.core.bot import group, command
 from clembot.core.errors import wrap_error
-from clembot.core.logs import Logger
 from clembot.exts.profile.user_profile import UserProfile
 from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.utilities import Utilities

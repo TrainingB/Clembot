@@ -8,11 +8,9 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument
 
 from clembot.config.constants import MyEmojis
-from clembot.core import checks
 from clembot.core.bot import group, command
 from clembot.core.logs import Logger
 from clembot.exts.pkmn.gm_pokemon import Pokemon
-
 from clembot.exts.raid import raid_checks
 from clembot.exts.raid.raid import RaidRepository, RaidParty, RosterLocation
 from clembot.exts.raid.raid_cog import NoRaidForChannelError
@@ -28,22 +26,21 @@ class RaidPartyCog(commands.Cog):
         self._dbi = bot.dbi
         self.utilities = Utilities()
 
-        self.bot.loop.create_task(self.pickup_raidpartydata())
+        self.bot.loop.create_task(self.load_raid_parties())
 
 
-    async def pickup_raidpartydata(self):
-        Logger.info("pickup_raidpartydata()")
+    async def load_raid_parties(self):
+        Logger.info("load_raid_parties()")
 
         await Pokemon.load(self.bot)
         for rcrd in await RaidRepository.find_raid_parties():
-            self.bot.loop.create_task(self.pickup_raidparty(rcrd))
+            self.bot.loop.create_task(self.load_raid_party(rcrd))
 
 
-    async def pickup_raidparty(self, rcrd):
-        Logger.info(f"pickup_raidparty({rcrd.get('raid_party_id', None)})")
-        raid_party = await RaidParty.from_db_dict(self.bot, rcrd)
-        print(raid_party);
-        # raid.monitor_task = raid.create_task_tuple(raid.monitor_status())
+    async def load_raid_party(self, rcrd):
+        Logger.info(f"load_raid_party({rcrd.get('raid_party_id', None)})")
+        await RaidParty.from_db_dict(self.bot, rcrd)
+
 
     @staticmethod
     def _get_raid_for_channel(ctx) -> RaidParty:

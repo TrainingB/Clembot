@@ -1,6 +1,7 @@
 import asyncio
 import json
 
+from clembot.config import config_template
 from clembot.config.constants import Icons
 from clembot.core.logs import Logger
 from clembot.exts.draft.draft import CUIDGenerator
@@ -18,7 +19,7 @@ class Wild:
 
     def __init__(self, bot, wild_id, guild_id, reporter_id, pkmn: Pokemon, location: POILocation = None, timezone=None,
                  caught_by=None,
-                 message_id=None, channel_message_id=None, reported_time=None, despawn_time=None):
+                 message_id=None, channel_id=None, reported_time=None, despawn_time=None):
         self.bot = bot
         self.wild_id = wild_id
         self.guild_id = guild_id
@@ -26,9 +27,9 @@ class Wild:
         self.location = location
         self.pkmn = pkmn
         self.reported_time = TH.current_epoch(second_precision=True) if reported_time is None else reported_time
-        self.despawn_time = self.reported_time + 1800 if despawn_time is None else despawn_time
+        self.despawn_time = self.reported_time + (config_template.development_timer or 30) * 60 if despawn_time is None else despawn_time
         self.message_id = message_id
-        self.channel_message_id = channel_message_id
+        self.channel_id = channel_id
         self.caught_by = caught_by or []
         self.timezone = timezone
         self.monitor_task_tuple = None
@@ -39,12 +40,12 @@ class Wild:
             'wild_id': self.wild_id,
             'guild_id': self.guild_id,
             'reporter_id': self.reporter_id,
-            'pokemon_id': self.pkmn.pokemon_id,
+            'pokemon_id': self.pkmn.id,
             'location': json.dumps(self.location.to_dict()),
             'reported_time': self.reported_time,
             'despawn_time': self.despawn_time,
             'message_id': self.message_id,
-            'channel_message_id': self.channel_message_id,
+            'channel_id': self.channel_id,
             'timezone': self.timezone
         }
         return state
@@ -53,18 +54,18 @@ class Wild:
     @classmethod
     async def from_db_dict(cls, bot, db_dict):
 
-        wild_id, guild_id, reporter_id, pokemon_id, location, reported_time, despawn_time, message_id, channel_message_id, timezone = [
+        wild_id, guild_id, reporter_id, pokemon_id, location, reported_time, despawn_time, message_id, channel_id, timezone = [
             db_dict.get(attr, None) for attr in
             ['wild_id', 'guild_id', 'reporter_id', 'pokemon_id', 'location', 'reported_time', 'despawn_time',
              'message_id',
-             'channel_message_id', 'timezone']]
+             'channel_id', 'timezone']]
 
         pkmn = Pokemon.to_pokemon(pokemon_id) if pokemon_id else None
         wild_location = await POILocation.from_dict(bot, json.loads(location))
 
         wild = cls(bot, wild_id=wild_id, guild_id=guild_id, reporter_id=reporter_id,
                    pkmn=pkmn, location=wild_location, timezone=timezone,
-                   message_id=message_id, channel_message_id=channel_message_id,
+                   message_id=message_id, channel_id=channel_id,
                    reported_time=reported_time, despawn_time=despawn_time)
 
         Wild.cache(wild)
@@ -122,7 +123,7 @@ class Wild:
 
     def set_message(self, message):
         self.message_id = message.id
-        self.channel_message_id = ChannelMessage.from_message(message)
+        self.channel_id = message.channel.id
 
 
     @staticmethod
@@ -157,7 +158,7 @@ class Wild:
 
     async def despawn(self):
         try:
-            channel, message = await ChannelMessage.from_text(self.bot, self.channel_message_id)
+            channel, message = await ChannelMessage.from_id(self.bot, self.channel_id, self.message_id)
             embed = self.expire_embed()
             await message.edit(content="", embed=embed)
             await message.clear_reactions()
@@ -194,9 +195,9 @@ class WildEmbed:
         footer = f"Reported by {author.display_name} | {wild.timer_info()}"
 
         fields = {
-            "**Pokemon**": [False, f"{wild.pkmn.extended_label}"],
-            "**Where**": [False, f"{location.embed_label}"],
-            "**Reactions**": [False, f":race_car: - On my way!\t :dash: - Despawned!"]
+            "**Pokemon**": [True, f"{wild.pkmn.extended_label}"],
+            "**Where**": [True, f"{location.embed_label}"],
+            "**Reaction(s)**": [False, f":dash: - Despawned!"]
         }
 
         embed = Embeds.make_embed(header="Wild Report", header_icon=Icons.wild_report, thumbnail=img_url, fields=fields,

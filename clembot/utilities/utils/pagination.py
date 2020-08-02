@@ -6,7 +6,6 @@ import re
 import discord
 
 from clembot.core.errors import wrap_error
-from clembot.core.logs import Logger
 from clembot.utilities.utils.embeds import Embeds
 
 

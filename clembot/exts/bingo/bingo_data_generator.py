@@ -9,7 +9,6 @@ from clembot.core.logs import Logger
 from clembot.exts.bingo.pokemondataprovider import PokemonDataProvider
 from clembot.exts.pkmn.gm_pokemon import Pokemon
 
-
 # https://json-csv.com/
 
 script_path = os.path.dirname(os.path.realpath(__file__))

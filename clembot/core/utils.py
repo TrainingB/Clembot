@@ -3,6 +3,7 @@ import re
 
 import discord
 
+
 def colour(*args):
     """Returns a discord Colour object.
 

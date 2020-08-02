@@ -14,11 +14,15 @@ from clembot.config.constants import MyEmojis, Icons
 from clembot.core.bot import command, group
 from clembot.core.commands import Cog
 from clembot.core.logs import Logger
+from clembot.exts.config import channel_checks
+
 from clembot.exts.gymmanager.gym import GymRepository, POILocationConverter
-from clembot.exts.pkmn.raid_boss import RaidMaster, Pokemon
+from clembot.exts.pkmn.gm_pokemon import Pokemon
+from clembot.exts.pkmn.raid_boss import RaidMaster
 from clembot.exts.profile.user_guild_profile import UserGuildProfile
 from clembot.exts.raid import raid_checks
-from clembot.exts.raid.errors import NotARaidChannel, NotARaidReportChannel
+from clembot.exts.raid.errors import NotARaidChannel
+
 from clembot.exts.raid.raid import ChannelMessage, Raid, RaidRepository, DiscordOperations
 from clembot.utilities.utils import snowflake
 from clembot.utilities.utils.argparser import ArgParser
@@ -68,17 +72,17 @@ class RaidCog(commands.Cog):
         self.gymRepository = GymRepository(self._dbi)
         RaidRepository.set_dbi(bot.dbi)
 
-        self.bot.loop.create_task(self.pickup_raiddata())
+        self.bot.loop.create_task(self.load_raid_reports())
 
-    async def pickup_raiddata(self):
-        Logger.info("pickup_raiddata()")
+    async def load_raid_reports(self):
+        Logger.info("load_raid_reports()")
         await Pokemon.load(self.bot)
         for rcrd in await RaidRepository.find_raids():
-            self.bot.loop.create_task(self.pickup_raid(rcrd))
+            self.bot.loop.create_task(self.load_raid_report(rcrd))
 
 
-    async def pickup_raid(self, rcrd):
-        Logger.info(f"pickup_raid({rcrd.get('raid_id', None)})")
+    async def load_raid_report(self, rcrd):
+        Logger.info(f"load_raid_report({rcrd.get('raid_id', None)})")
         raid = await Raid.from_db_dict(self.bot, rcrd)
         raid.monitor_task = raid.create_task_tuple(raid.monitor_status())
 
@@ -93,8 +97,6 @@ class RaidCog(commands.Cog):
         """Method to handle Cog specific errors"""
         if isinstance(error, NotARaidChannel):
             await Embeds.error(ctx.channel, f'{ctx.prefix}{ctx.invoked_with} can be used in Raid Channel.', ctx.message.author)
-        elif isinstance(error, NotARaidReportChannel):
-            await Embeds.error(ctx.channel, f'Raid Reports are disabled in current channel.', ctx.message.author)
 
 
     async def expire_raid(self, raid):
@@ -173,7 +175,7 @@ class RaidCog(commands.Cog):
 
 
     @group(pass_context=True, hidden=True, aliases=["raid", "r"])
-    @raid_checks.raid_report_enabled()
+    @channel_checks.raid_report_enabled()
     async def cmd_raid(self, ctx, pokemon_or_level, *, gym_and_or_time):
         """
         Reports a raid
@@ -497,6 +499,7 @@ class RaidCog(commands.Cog):
 
 
     @group(pass_context=True, hidden=True, aliases=["nest"])
+    @channel_checks.nest_report_enabled()
     async def cmd_nest(self, ctx, pokemon: Pokemon, *location_args):
         """
         !nest chimchar MESC
@@ -523,9 +526,9 @@ class RaidCog(commands.Cog):
         nest_embed.add_field(name="**Pokemon**", value=pokemon.label, inline=True)
         nest_embed.add_field(name="**Where**", value=nest_location.gym_embed_label, inline=True)
         nest_embed.set_thumbnail(url=raid_img_url)
-        hide_preview = not nest_location.is_gym or await ctx.guild_profile('nest.preview.hide') == 'true'
-        if not hide_preview:
-            nest_embed.set_image(url=nest_location.google_preview_url)
+        # hide_preview = not nest_location.is_gym or await ctx.guild_profile('nest.preview.hide') == 'true'
+        # if not hide_preview:
+        #     nest_embed.set_image(url=nest_location.google_preview_url)
         nest_embed.set_footer(text=f"Reported by {message.author.display_name}", icon_url=Icons.avatar(message.author))
         await ctx.channel.send(embed=nest_embed)
         await asyncio.sleep(15)

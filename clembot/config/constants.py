@@ -1,5 +1,3 @@
-from enum import Enum
-
 import discord
 
 from clembot.config import config_template

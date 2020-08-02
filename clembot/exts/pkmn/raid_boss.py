@@ -1,19 +1,4 @@
-import asyncio
-import json
-import math
-import os
-import pydash as _
-
-from discord.ext import commands
-from discord.ext.commands import BadArgument
-
-from clembot.config import config_template
-from clembot.core.data_manager.dbi import DatabaseInterface
 from clembot.core.logs import Logger
-from clembot.exts.pkmn.cpcalculator import CPCalculator
-from clembot.exts.pkmn.gm_pokemon import Pokemon
-from clembot.exts.pkmn.spelling import SpellHelper
-from clembot.utilities.utils.utilities import Utilities
 
 
 class RaidMaster:
