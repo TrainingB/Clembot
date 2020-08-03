@@ -174,6 +174,13 @@ class RaidCog(commands.Cog):
         await Embeds.message(ctx.channel, json.dumps(raid.get_raid_dict(), indent=2))
 
 
+    @command(pass_context=True, hidden=True, aliases=["raidegg"])
+    @channel_checks.raid_report_enabled()
+    async def cmd_raidegg(self, ctx):
+        await Embeds.message(ctx.channel,
+                             f"Ahh I see you've got some experience with Clembot. Things are different now.\nNow you can report either raid or egg both using just `!raid` or `!r`")
+
+
     @group(pass_context=True, hidden=True, aliases=["raid", "r"])
     @channel_checks.raid_report_enabled()
     async def cmd_raid(self, ctx, pokemon_or_level, *, gym_and_or_time):

@@ -63,6 +63,8 @@ class MasterDataCog(commands.Cog):
             raise BadArgument("`!migrate` can be used with `game-master, user-profile, raid-boss`")
 
 
+
+
     @cmd_migrate.command(pass_context=True, hidden=True, aliases=["game-master"])
     @wrap_error
     @checks.is_bot_owner()
@@ -150,6 +152,69 @@ class MasterDataCog(commands.Cog):
             raise BadArgument(error)
 
 
+    @cmd_migrate.command(pass_context=True, hidden=True, aliases=["leaderboard"])
+    @wrap_error
+    @checks.is_bot_owner()
+    async def cmd_migrate_leaderboard(self, ctx, guild_id, trainer_id, force=False):
+        try:
+            with open(os.path.join(os.path.abspath('.'), 'data', 'guilddict_clembot_202008020605'), "rb") as fd:
+                server_dict_old = pickle.load(fd)
+
+            # message = await ctx.send(content=f"Migrating user profiles...")
+
+
+            guild_id = int(guild_id) if guild_id else ctx.guild.id
+            trainer_id = int(trainer_id)
+            guild_dict = server_dict_old.get(guild_id)
+            trainers_dict = guild_dict.get('trainers')
+
+            if trainer_id is not None:
+                trainer_dict = trainers_dict.get(trainer_id)
+
+                await ctx.send(content=json.dumps(trainer_dict, indent=1))
+
+            # async with ctx.typing():
+            #
+            #     # for guild_id in server_dict_old.keys():
+            #     await message.edit(content=f"Processing {guild_id}")
+            #
+            #     total_trainers = len(trainers_dict.keys())
+            #     processed_trainers = 0
+            #     await message.edit(content=f"Processed {processed_trainers}/{total_trainers} trainers.")
+            #
+            #     for trainer_id in trainers_dict.keys():
+            #         processed_trainers+=1
+            #         trainer_dict = trainers_dict.get(trainer_id)
+            #         trainer_dict.pop('leaderboard-stats', None)
+            #         trainer_dict.pop('lifetime', None)
+            #         trainer_dict.pop('badges', None)
+            #
+            #         if processed_trainers % 20 == 0:
+            #             await message.edit(content=f"Processed {processed_trainers}/{total_trainers} trainers.")
+            #         if not bool(trainer_dict):
+            #             continue
+            #
+            #
+            #         user_profile = await UserProfile.find(self.bot, trainer_id)
+            #         if user_profile['status'] == batch:
+            #             continue
+            #
+            #         user_profile['trade_requests'] = trainer_dict.get('trade_requests')
+            #         user_profile['trade_offers'] = trainer_dict.get('trade_offers')
+            #         user_profile['trainer_code'] = trainer_dict.get('profile',{}).get('trainer-code')
+            #         user_profile['ign'] = trainer_dict.get('profile', {}).get('ign')
+            #         user_profile['silph_id'] = trainer_dict.get('profile', {}).get('silph-id')
+            #         user_profile['pokebattler_id'] = trainer_dict.get('profile', {}).get('pokebattler_id')
+            #         user_profile['status'] = batch
+            #         await user_profile.update()
+
+                    # break
+        except Exception as error:
+            Logger.error(f"{traceback.format_exc()}")
+
+
+
+
     @cmd_migrate.command(aliases=["user-profile"])
     @wrap_error
     async def cmd_migrate_user_profile(self, ctx, guild_id=None, batch='migrated'):
@@ -196,7 +261,7 @@ class MasterDataCog(commands.Cog):
                     user_profile['ign'] = trainer_dict.get('profile', {}).get('ign')
                     user_profile['silph_id'] = trainer_dict.get('profile', {}).get('silph-id')
                     user_profile['pokebattler_id'] = trainer_dict.get('profile', {}).get('pokebattler_id')
-                    user_profile['status'] = 'migrated'
+                    user_profile['status'] = batch
                     await user_profile.update()
 
                     # break
