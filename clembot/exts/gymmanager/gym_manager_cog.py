@@ -3,11 +3,13 @@ import json
 
 import discord
 from discord.ext import commands
+from discord.ext.commands import BadArgument
 
 from clembot.core.bot import group
 from clembot.core.logs import Logger
 from clembot.exts.config.channelconfigmanager import ChannelConfigCache
 from clembot.exts.gymmanager.gym import Gym, GymRepository
+from clembot.utilities.utils import pagination
 from clembot.utilities.utils.embeds import Embeds
 from clembot.utilities.utils.utilities import Utilities
 
@@ -138,17 +140,18 @@ class GymManagerCog(commands.Cog):
 
     @group(pass_context=True, hidden=True, aliases=["gyms"])
     async def _command_gyms(self, ctx, gym_code_or_name=None, city=None):
-        city = await ctx.city()
-        await self._gyms(ctx.message, gym_code_or_name, city)
+        city = city or await ctx.city()
+
+        if gym_code_or_name is None or len(gym_code_or_name) < 1:
+            raise BadArgument("I need at-least one character for lookup!")
 
 
-    async def _gyms(self, message, gym_code_or_name = None, city_state=None):
+        await self._gyms(ctx, ctx.message, gym_code_or_name, city)
+
+
+    async def _gyms(self, ctx, message, gym_code_or_name = None, city_state=None):
 
         gym_code_or_name = gym_code_or_name.upper() if gym_code_or_name is not None else gym_code_or_name
-
-        if len(gym_code_or_name) < 1:
-            await Embeds.error(message.channel, "I need at-least one character for lookup!", user=message.author)
-            return
 
         try:
 
@@ -162,21 +165,17 @@ class GymManagerCog(commands.Cog):
 
             gym_message_output = f"Here is a list of gyms for **{city_state}** :\n\n"
 
+            list_of_gym_names = []
+
             for gym in list_of_gyms:
-                new_gym_info = f"**{gym.gym_code.ljust(6)}** - {gym.gym_name}\n"
+                list_of_gym_names.append(f"**{gym.gym_code.ljust(6)}** - {gym.gym_name}")
 
-                if len(gym_message_output) + len(new_gym_info) > 1990:
-                    await Embeds.message(message.channel, gym_message_output, user=message.author)
-                    gym_message_output = ""
+            p = pagination.TextPagination(ctx, list_of_gym_names, per_page=25, title="Gym information", embed_header=gym_message_output, plain_text=True)
+            await p.paginate()
 
-                gym_message_output += new_gym_info
-
-            if gym_message_output:
-                await Embeds.message(message.channel, gym_message_output, user=message.author)
-            else:
-                await Embeds.error(message.channel, f"No matches found for **{gym_code_or_name}** in **{city_state}**! **Tip:** Use first two letters of the gym-name to search.", user=message.author)
         except Exception as error:
             Logger.error(error)
             await Embeds.error(message.channel, f"No matches found for **{gym_code_or_name}** in **{city_state}**! **Tip:** Use first two letters of the gym-name to search.", user=message.author)
+
 
 

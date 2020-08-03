@@ -23,21 +23,6 @@ class TradeManager(commands.Cog):
         self.bot = bot
         self.dbi = bot.dbi
 
-    # @_poke_form.command(aliases=["save"])
-    # async def _poke_form_save(self, ctx):
-    #     with open(os.path.join('data', 'pokemon_forms.json'), 'r') as fd:
-    #         data = json.load(fd)
-    #
-    #     tmp = data['pokemon_forms']
-    #     data['pokemon_forms'] = PokemonForm.available_pokemon_forms
-    #
-    #     with open(os.path.join('data', 'pokemon_forms.json'), 'w') as fd:
-    #         json.dump(data, fd, indent=2, separators=(', ', ': '))
-    #
-    #     await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, saved pokemon-forms successfully. See the complete list using **!poke-form list**.")
-
-
-
     @group(pass_context=True, hidden=True, aliases=["trade","t"])
     async def cmd_trade(self, ctx):
         if not PokemonForm.available_pokemon_forms:
