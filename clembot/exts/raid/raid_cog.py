@@ -21,7 +21,7 @@ from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.exts.pkmn.raid_boss import RaidMaster
 from clembot.exts.profile.user_guild_profile import UserGuildProfile
 from clembot.exts.raid import raid_checks
-from clembot.exts.raid.errors import NotARaidChannel
+from clembot.exts.raid.errors import NotARaidChannel, NotARaidPartyChannel
 
 from clembot.exts.raid.raid import ChannelMessage, Raid, RaidRepository, DiscordOperations
 from clembot.utilities.utils import snowflake
@@ -96,8 +96,9 @@ class RaidCog(commands.Cog):
     async def on_command_error(self, ctx, error):
         """Method to handle Cog specific errors"""
         if isinstance(error, NotARaidChannel):
-            await Embeds.error(ctx.channel, f'{ctx.prefix}{ctx.invoked_with} can be used in Raid Channel.', ctx.message.author)
-
+            await Embeds.error(ctx.channel, f'{ctx.prefix}{ctx.invoked_with} can be used in Raid channel.', ctx.message.author)
+        elif isinstance(error, NotARaidPartyChannel):
+            await Embeds.error(ctx.channel, f'{ctx.prefix}{ctx.invoked_with} can be used in Raid party channel.', ctx.message.author)
 
     async def expire_raid(self, raid):
         """

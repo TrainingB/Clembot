@@ -10,9 +10,11 @@ from discord.ext.commands import BadArgument
 from clembot.config.constants import MyEmojis
 from clembot.core.bot import group, command
 from clembot.core.logs import Logger
+from clembot.exts.config import channel_checks
+from clembot.exts.config.channel_metadata import ChannelMetadata
 from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.exts.raid import raid_checks
-from clembot.exts.raid.raid import RaidRepository, RaidParty, RosterLocation
+from clembot.exts.raid.raid import RaidRepository, RaidParty, RosterLocation, ChannelMessage
 from clembot.exts.raid.raid_cog import NoRaidForChannelError
 from clembot.utilities.utils import snowflake
 from clembot.utilities.utils.embeds import Embeds
@@ -43,7 +45,7 @@ class RaidPartyCog(commands.Cog):
 
 
     @staticmethod
-    def _get_raid_for_channel(ctx) -> RaidParty:
+    def get_raid_party_for_channel(ctx) -> RaidParty:
         raid_party = RaidParty.by_channel.get(ctx.channel.id, None)
         if raid_party is not None:
             return raid_party
@@ -51,13 +53,25 @@ class RaidPartyCog(commands.Cog):
             raise NoRaidForChannelError(f"Raid not found for channel {ctx.channel.mention}.")
 
 
-    @group(pass_context=True, hidden=True, aliases=["raidparty", "rp", "raid-party"])
-    async def cmd_raidparty(self, ctx, party_title):
+    @command(pass_context=True, hidden=True, aliases=["raidparty", "rp", "raid-party"])
+    @channel_checks.raid_report_enabled()
+    async def cmd_raidparty(self, ctx, *party_title):
         """
+        **!raid-party channel-name** - creates a raid party channel.
 
-        :param ctx:
-        :param pokemon:
-        :return:
+        **Organizer commands:**
+        **!add pokemon-or-egg gym-or-location [eta]** - adds a location into the roster
+        **!update location# [pokemon-or-egg] [gym-or-location] [eta]** - updates the pokemon or location or eta for location #
+        **!remove location#** - to remove specified location from roster
+        **!move** - moves raid party to the next location in roster
+        **!reset** - to clean up the roster
+        **!raid-over** - to clean up the roster
+
+        **Participant commands:**
+        **!roster** - lists the roster
+        **!where** - to see the current location of raid party
+        **!next** - to see the next location of raid party
+
         """
 
         city = await ctx.guild_profile(key='city')
@@ -65,64 +79,86 @@ class RaidPartyCog(commands.Cog):
         raid_party_id = next(snowflake.create())
 
         try:
-            raid_party_channel = await ctx.guild.create_text_channel(party_title, overwrites=dict(ctx.channel.overwrites),
+            raid_party_channel = await ctx.guild.create_text_channel('-'.join(party_title), overwrites=dict(ctx.channel.overwrites),
                                                 category=ctx.guild.get_channel(ctx.channel.category_id))
+
+            raid_party_message = await Embeds.message(ctx.channel, f"Raid Party has been created, organize in {raid_party_channel.mention}")
+
         except discord.Forbidden:
                 raise commands.BotMissingPermissions(['Manage Channels'])
 
         raid_party = RaidParty(raid_party_id=raid_party_id, bot=self.bot, guild_id=ctx.guild.id,
+                               response_message_id=raid_party_message.id, report_channel_id = ctx.channel.id,
                                channel_id=raid_party_channel.id, author_id=ctx.message.author.id, city=city,
                                timezone=timezone, roster_begins_at=0)
         await raid_party.insert()
-        await Embeds.message(ctx.channel, f"Raid Party has been created, organize in {raid_party_channel.mention}")
 
 
-        Logger.info(raid_party)
+
+    @command(pass_context=True, hidden=True, aliases=["raid-over", "raidover"])
+    @raid_checks.raid_party_channel()
+    async def cmd_raid_over(self, ctx):
+
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
+
+        channel = ctx.message.channel
+        started_by = raid_party.author_id
+
+        if ctx.message.author.id == started_by:
+
+            clean_channel = await Utilities.ask_confirmation(ctx, ctx.message, "Are you sure to delete the channel?", "The channel will be deleted shortly.", "No changes done!", "Request Timed out!")
+            if clean_channel:
+                try:
+                    report_channel, report_message = await ChannelMessage.from_id(ctx.bot, raid_party.report_channel_id, raid_party.response_message_id)
+                    expire_msg = f"**This raid party is over!**"
+                    await report_message.edit(embed=discord.Embed(description=expire_msg))
+                except Exception as error:
+                    pass
+                await asyncio.sleep(30)
+                await ctx.message.channel.delete()
+        else:
+            await Embeds.error(channel, "Only channel creator is allowed to clean-up the channel.")
+
 
 
     @command(pass_context=True, hidden=True, aliases=["roster"])
+    @raid_checks.raid_party_channel()
     async def cmd_raidparty_roster(self, ctx):
-        try:
-            raid_party = RaidPartyCog._get_raid_for_channel(ctx)
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
-            embed = await raid_party.embed()
+        embed = await raid_party.embed()
 
-            return await ctx.channel.send(embed=embed)
+        return await ctx.channel.send(embed=embed)
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
-        pass
+
 
     @command(pass_context=True, hidden=True, aliases=["rinfo"])
+    @raid_checks.raid_party_channel()
     async def cmd_raidparty_info(self, ctx):
-        try:
-            raid_party = RaidPartyCog._get_raid_for_channel(ctx)
-            await Embeds.message(ctx.channel, json.dumps(raid_party.to_dict(), indent=2))
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
-        pass
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
+        await Embeds.message(ctx.channel, json.dumps(raid_party.to_dict(), indent=2))
+
 
     @command(pass_context=True, hidden=True, aliases=["where"])
-    async def cmd_raidparty_where(self, ctx, location_number: int):
-        try:
-            raid_party = RaidPartyCog._get_raid_for_channel(ctx)
-            roster_location = raid_party[location_number]
-            if roster_location:
-                embed = roster_location.raid_location_embed()
-                return await ctx.channel.send(embed=embed)
+    @raid_checks.raid_party_channel()
+    async def cmd_raidparty_where(self, ctx, location_number: int = None):
 
-            return await Embeds.error(ctx.channel, f"The roster doesn't have location {location_number}.", user=ctx.message.author)
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
+        location_number = location_number or raid_party.current_location
+        roster_location = raid_party[location_number]
+        if roster_location:
+            embed = roster_location.raid_location_embed()
+            return await ctx.channel.send(embed=embed)
 
+        return await Embeds.error(ctx.channel, f"The roster doesn't have location {location_number}.", user=ctx.message.author)
 
-        except Exception as error:
-            await Embeds.error(ctx.channel, f"{error}", user=ctx.message.author)
-        pass
 
     @command(pass_context=True, hidden=True, aliases=["move"])
+    @raid_checks.raid_party_channel()
     async def cmd_raidparty_move(self, ctx):
         try:
-            raid_party = RaidPartyCog._get_raid_for_channel(ctx)
+            raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
             await raid_party.move()
 
@@ -138,7 +174,7 @@ class RaidPartyCog(commands.Cog):
     @raid_checks.raid_party_channel()
     async def cmd_raidparty_add(self, ctx, *pkmn_location_eta):
 
-        raid_party = RaidPartyCog._get_raid_for_channel(ctx)
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
         roster_location = await RosterLocation.from_command_text(ctx, ' '.join(pkmn_location_eta))
         await raid_party.append(roster_location)
@@ -151,7 +187,7 @@ class RaidPartyCog(commands.Cog):
     @raid_checks.raid_party_channel()
     async def cmd_raidparty_update(self, ctx, location_number:int, *pkmn_gym_or_eta):
 
-        raid_party = RaidPartyCog._get_raid_for_channel(ctx)
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
         if len(raid_party.roster) <=0 :
             raise BadArgument("Raid party doesn't have any location on the roster.")
@@ -191,6 +227,7 @@ class RaidPartyCog(commands.Cog):
 
         if ctx.invoked_subcommand is None:
             await self.utilities._send_message(ctx.channel, f"Beep Beep! **{ctx.message.author.display_name}**, **!{ctx.invoked_with}** can be used with various options.")
+
 
     @_import.command(aliases=["roster"])
     async def _import_roster(self, ctx):
@@ -341,71 +378,11 @@ class RaidPartyCog(commands.Cog):
 
         return roster_msg
 
-    beep_notes = ("""**{member}** here are the commands for trade management. 
 
-**!trade offer <pokemon>** - to add pokemon to your offers list.
-**!trade request <pokemon>** - to add pokemon to your requests list.
 
-**!trade clear <pokemon>** - to remove pokemon from your trade offer or request list.
-**!trade clear all** - to clear your trade offer and request list.
-
-**!trade list** - brings up pokemon in your trade offer/request list.
-**!trade list @user** - brings up pokemon in user's trade offer/request list.
-**!trade list pokemon** - filters your trade offer/request list by sepcified pokemon.
-
-**!trade search <pokemon>** - brings up a list of 10 users who are offering pokemon with their pokemon request as well.
-
-**<pokemon> - can be one or more pokemon or pokedex# separated by space.**
-
-""")
-
-    def get_beep_embed(self, title, description, usage=None, available_value_title=None, available_values=None, footer=None, mode="message"):
-
-        if mode == "message":
-            color = discord.Colour.green()
-        else:
-            color = discord.Colour.red()
-
-        help_embed = discord.Embed(title=title, description=f"{description}", colour=color)
-
-        help_embed.set_footer(text=footer)
-        return help_embed
-
-    @classmethod
-    async def _help(self, ctx):
-        footer = "Tip: < > denotes required and [ ] denotes optional arguments."
-        await ctx.message.channel.send(embed=self.get_beep_embed(self, title="Help - Trade Management", description=self.beep_notes.format(member=ctx.message.author.display_name), footer=footer))
 
 #
-# @Clembot.command(pass_context=True, hidden=True)
-# @checks.raidpartychannel()
-# async def raidover(ctx):
-#
-#     try:
-#         channel = ctx.message.channel
-#         message = ctx.message
-#         started_by = guild_dict[message.guild.id]['raidchannel_dict'][channel.id]['started_by']
-#
-#         if ctx.message.author.id == started_by:
-#
-#             clean_channel = await ask_confirmation(ctx.message, "Are you sure to delete the channel?", "The channel will be deleted shortly.", "No changes done!", "Request Timed out!")
-#             if clean_channel:
-#                 await asyncio.sleep(30)
-#                 try:
-#                     report_channel = Clembot.get_channel(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['reportcity'])
-#                     reportmsg = await report_channel.fetch_message(guild_dict[channel.guild.id]['raidchannel_dict'][channel.id]['raidreport'])
-#                     expiremsg = _("**This raidparty is over!**")
-#                     await reportmsg.edit(embed=discord.Embed(description=expiremsg, colour=channel.guild.me.colour))
-#                 except Exception as error:
-#                     pass
-#                 await ctx.message.channel.delete()
-#
-#
-#         else:
-#             await _send_error_message(channel, _("Beep Beep! Only raid reporter can clean up the channel!"))
-#     except Exception as error:
-#         Logger.info(error)
-#
+
 #
 
 # @Clembot.command(pass_context=True, hidden=True)

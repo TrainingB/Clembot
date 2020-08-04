@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from clembot.exts.raid.errors import RSVPNotEnabled, NotARaidChannel
+from clembot.exts.raid.errors import RSVPNotEnabled, NotARaidChannel, NotARaidPartyChannel
 from clembot.exts.raid.raid import Raid, RaidParty
 
 
@@ -17,7 +17,7 @@ def _is_raid_party_channel(ctx):
     if raid is not None:
         return True
 
-    raise NotARaidChannel
+    raise NotARaidPartyChannel
 
 def _is_rsvp_enabled(ctx):
 

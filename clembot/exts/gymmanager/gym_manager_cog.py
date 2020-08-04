@@ -114,7 +114,7 @@ class GymManagerCog(commands.Cog):
             return await GymManagerCog._generate_gym_embed(ctx.message, gym)
         else:
             await Embeds.error(ctx.message.channel,
-                               f"I could not find any gyms with gym-code **{gym_code}** in **{city}**.\nPlease use **!gym list word** to see the list of gyms.",
+                               f"I could not find any gyms with gym-code **{gym_code}** in **{city}**.\nPlease use **!gyms {gym_code}** to see the list of gyms.",
                                user=ctx.message.author)
 
     @staticmethod

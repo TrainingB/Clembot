@@ -136,7 +136,6 @@ class UserProfile:
         user_profile = await cls.find(bot, user_id)
         if user_profile:
             return f"{' '.join(user_profile['ign'])}"
-
         return None
 
 

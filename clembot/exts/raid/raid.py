@@ -337,7 +337,7 @@ class RSVPEnabled:
                 if trainer_names:
                     int_status += f"{MyEmojis.REMOTE} {trainer_names}\n"
 
-                trainer_names = await self.trainers_by_status(message, 'ii')
+                trainer_names = await self.trainers_by_status(message, 'ii', mentions=False, delimiter='\n')
                 if trainer_names:
                     int_status += f"{MyEmojis.INVITE} {trainer_names}\n"
 
@@ -369,9 +369,18 @@ class RSVPEnabled:
                     int_status += f"{MyEmojis.REMOTE} {trainer_names}\n"
                 additional_fields[int_label] = int_status
 
-
-
         return Embeds.make_embed(header="RSVP Status", msg_color=discord.Color.gold(), fields=additional_fields, footer=footer, content=description)
+
+
+
+    def size_by_status(self, status):
+        count = 0
+        self.trainer_dict = self.trainer_dict or {}
+        for trainer in self.trainer_dict.values():
+            if trainer['status'] == status:
+                count += int(trainer['count'])
+
+        return count
 
     async def trainers_by_status(self, message, status, mentions=False, delimiter=', '):
         Logger.info("trainer_by_status")
@@ -385,9 +394,10 @@ class RSVPEnabled:
                     user_name = user.nick if user.nick else user.name
 
                     if status == 'ii':
-                        ign = await UserProfile.find_ign(self.bot, user.id)
-                        if ign:
-                            user_name = f"{user_name} ({ign})"
+                        user_profile = await UserProfile.find(self.bot, user.id)
+
+                        ign = f" ({'/'.join(user_profile['ign'])})" if user_profile is not None and user_profile['ign'] else ""
+                        user_name = f"{user_name}{ign}"
 
                     count = self.trainer_dict[trainer]['count']
                     if count > 1:
@@ -400,17 +410,6 @@ class RSVPEnabled:
 
         return None
 
-    def size_by_status(self, status):
-        count = 0
-        self.trainer_dict = self.trainer_dict or {}
-        for trainer in self.trainer_dict.values():
-            if trainer['status'] == status:
-                count += int(trainer['count'])
-
-        return count
-
-
-
 
 class RaidParty(RSVPEnabled):
     """
@@ -421,13 +420,16 @@ class RaidParty(RSVPEnabled):
     embed_options = ['description', 'rsvp']
 
     def __init__(self, raid_party_id=None, bot=None, guild_id=None, channel_id=None, author_id = None,
-                 city=None, timezone=None, roster= [] , roster_begins_at = 0, trainer_dict=dict()):
+                 response_message_id = None, report_channel_id=None, city=None, timezone=None, roster= [] , roster_begins_at = 0,
+                 trainer_dict=dict()):
         super().__init__(bot=bot, trainer_dict=trainer_dict)
         self.id = raid_party_id
         self.bot = bot
         self.guild_id = guild_id
         self.channel_id = channel_id
         self.author_id = author_id
+        self.response_message_id = response_message_id
+        self.report_channel_id = report_channel_id
         self.raid_type = "raidparty"
         self.city = city
         self.timezone = timezone
@@ -509,6 +511,8 @@ class RaidParty(RSVPEnabled):
         state_dict = {
             'raid_type' : self.raid_type,
             'author_id': self.author_id,
+            'response_message_id' : self.response_message_id,
+            'report_channel_id' : self.report_channel_id,
             'timezone': self.timezone,
             'city' : self.city,
             'roster_begins_at': self.roster_begins_at,
@@ -587,11 +591,11 @@ class RaidParty(RSVPEnabled):
 
         roster = [await RosterLocation.from_dict(bot, rl) for rl in roster_dict]
 
-        p_raid_type, p_author_id, p_timezone, p_city, p_roster_begins_at = [raid_party_dict.get(attr, None) for attr in
-                                                 ['raid_type', 'author_id', 'timezone', 'city', 'roster_begins_at']]
+        p_raid_type, p_author_id, p_response_message_id, p_report_channel_id, p_timezone, p_city, p_roster_begins_at = [raid_party_dict.get(attr, None) for attr in
+                                                 ['raid_type', 'author_id', 'response_message_id', 'report_channel_id', 'timezone', 'city', 'roster_begins_at']]
 
         raid_party = RaidParty(raid_party_id=raid_party_id, bot=bot, guild_id=guild_id, channel_id=channel_id,
-                    author_id=p_author_id, timezone=p_timezone, city=p_city,
+                    author_id=p_author_id, response_message_id=p_response_message_id, report_channel_id=p_report_channel_id, timezone=p_timezone, city=p_city,
                     roster=roster, roster_begins_at=p_roster_begins_at, trainer_dict=trainer_dict)
 
         RaidParty.cache(raid_party)
@@ -747,105 +751,6 @@ class RaidParty(RSVPEnabled):
 
         return await message.channel.send(embed=await self.rsvp_embed_by_options(message, options=options,
                                                                            description=description))
-    #
-    # def rsvp_embed_by_options(self, message, options=None, description=None):
-    #     additional_fields = {}
-    #
-    #     for option in options:
-    #         if option == 'timer':
-    #             _type, _action, _at = self.type_action_at()
-    #             additional_fields[f"{_type} {_action}".capitalize()] = _at
-    #
-    #             # TODO: handle suggested start time
-    #             # TODO: handle ex-raid
-    #             # raid_time_value = fetch_channel_expire_time(message.channel.id).strftime("%I:%M %p (%H:%M)")
-    #             # raid_time_label = "Raid Expires At"
-    #             # if rc_d['type'] == 'egg':
-    #             #     raid_time_label = "Egg Hatches At"
-    #             #     if rc_d['egglevel'] == 'EX':
-    #             #         raid_time_value = fetch_channel_expire_time(message.channel.id).strftime(
-    #             #             "%B %d %I:%M %p (%H:%M)")
-    #         #
-    #         #     start_time = fetch_channel_start_time(message.channel.id)
-    #         #     start_time_label = "None"
-    #         #     if start_time:
-    #         #         raid_time_label = raid_time_label + " / Suggested Start Time"
-    #         #         raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")
-    #         #
-    #         #     additional_fields[raid_time_label] = raid_time_value
-    #
-    #         if option == 'rsvp':
-    #             aggregated_label = "Interested / On the way / At the raid"
-    #             aggregated_status = f"{self.size_by_status('maybe')} / {self.size_by_status('omw')} / {self.size_by_status('waiting')}"
-    #
-    #             additional_fields[aggregated_label] = aggregated_status
-    #         elif option == 'interested':
-    #             trainer_names = self.trainers_by_status(message, "maybe")
-    #             if trainer_names:
-    #                 additional_fields['Interested'] = trainer_names
-    #         elif option == 'coming':
-    #             trainer_names = self.trainers_by_status(message, "omw")
-    #             if trainer_names:
-    #                 additional_fields['On the way'] = trainer_names
-    #         elif option == 'here':
-    #             trainer_names = self.trainers_by_status(message, "waiting")
-    #             if trainer_names:
-    #                 additional_fields['At the raid'] = trainer_names
-    #         elif option == 'remote':
-    #             trainer_names = self.trainers_by_status(message, "remote")
-    #             if trainer_names:
-    #                 additional_fields['Remote'] = trainer_names
-    #
-    #
-    #     footer = None
-    #
-    #     return Embeds.make_embed(content=description, fields=additional_fields, footer=footer)
-
-    # def _generate_rsvp_embed(self, message):
-    #     embed_msg = ""
-    #
-    #     embed = discord.Embed(description=embed_msg, colour=discord.Colour.gold())
-    #
-    #     embed.add_field(name="**Interested / On the way / At the raid**", value="{maybe} / {omw} / {waiting}".format(
-    #         waiting=self.size_by_status("waiting"),
-    #         omw=self.size_by_status("omw"),
-    #         maybe=self.size_by_status("maybe")), inline=True)
-    #
-    #     maybe = self.trainers_by_status(message, "maybe")
-    #     if maybe:
-    #         embed.add_field(name="**Interested**", value=maybe)
-    #
-    #     omw = self.trainers_by_status(message, "omw")
-    #     if omw:
-    #         embed.add_field(name="**On the way**", value=omw)
-    #
-    #     waiting = self.trainers_by_status(message, "waiting")
-    #     if waiting:
-    #         embed.add_field(name="**At the raid**", value=waiting)
-    #
-    #     return embed
-
-
-    async def trainers_by_status(self, message, status, mentions=False):
-
-        name_list = []
-        for trainer in self.trainer_dict.keys():
-            if self.trainer_dict[trainer]['status'] == status:
-                user = message.channel.guild.get_member(int(trainer))
-                if mentions:
-                    name_list.append(user.mention)
-                else:
-                    user_name = user.nick if user.nick else user.name
-                    count = self.trainer_dict[trainer]['count']
-                    if count > 1:
-                        name_list.append("**{trainer} ({count})**".format(trainer=user_name, count=count))
-                    else:
-                        name_list.append("**{trainer}**".format(trainer=user_name))
-
-        if len(name_list) > 0:
-            return MyUtilities.trim_to(', '.join(name_list), 950, ', ')
-
-        return None
 
     def size_by_status(self, status):
         count = 0
