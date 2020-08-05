@@ -859,7 +859,7 @@ class Raid (RSVPEnabled):
         if timer is not None:
             if self.raid_type == "egg":
                 self.hatch_time = self.reported_time + timedelta(minutes=timer).seconds
-                self.expiry_time = self.hatch_time + (config_template.development_timer or self.raid_level_info.egg_timer) * 60
+                self.expiry_time = self.hatch_time + (config_template.development_timer or self.raid_level_info.raid_timer) * 60
             elif self.raid_type == "raid":
                 self.expiry_time = self.reported_time + timedelta(minutes=timer).seconds
         else:
