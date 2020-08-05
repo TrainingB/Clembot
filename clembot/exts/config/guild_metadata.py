@@ -51,8 +51,9 @@ class GuildMetadata:
 
         if db_record:
             guild_metadata = GuildMetadata.deserialize(dict(db_record[0]))
+            return guild_metadata
 
-        return guild_metadata
+        return {}
 
     @classmethod
     async def city(cls, bot, guild_id):
@@ -61,7 +62,7 @@ class GuildMetadata:
 
     @classmethod
     async def bingo_card_repo(cls, bot, guild_id):
-        guild_dict = await GuildMetadata.data(bot, guild_id, 'bingo-card-repo')
+        guild_dict = await GuildMetadata.data(bot, guild_id, 'bingo-card-repo') or {}
         return guild_dict.get('config_value')
 
     @staticmethod

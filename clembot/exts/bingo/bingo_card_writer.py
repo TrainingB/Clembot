@@ -1,8 +1,11 @@
 import os
 import textwrap
+import traceback
 from random import randint
 
 from PIL import Image, ImageDraw, ImageFont
+
+from clembot.core.logs import Logger
 
 
 class BingoCardWriter:
@@ -52,38 +55,40 @@ class BingoCardWriter:
             dir_path = os.path.join(script_path)
             file_path = os.path.join(script_path, "templates")
             y_position = 190
-            cell_width =  162
+            cell_width =  155
             cell_height = 110
             margin = 10
-            font = ImageFont.truetype(os.path.join(script_path,"fonts","Helvetica-Bold.ttf"), 24, encoding="unic")
+            font = ImageFont.truetype(os.path.join(script_path,"fonts","Helvetica-Bold.ttf"), 10, encoding="unic")
             special_font = ImageFont.truetype(os.path.join(script_path, "fonts","DejaVuSansMono.ttf"), 40, encoding="unic")
             small_font = ImageFont.truetype(os.path.join(script_path, "fonts","Helvetica-Bold.ttf"), 20, encoding="unic")
 
             path  = os.path.join(file_path, template_file)
-            print(path)
 
             canvas = Image.open(os.path.join(file_path, template_file))
             draw = ImageDraw.Draw(canvas)
 
-            colors = ['white','white','white','white','white','white','white','white','white']
+            colors = ['indigo','indigo','indigo','indigo','indigo','indigo','indigo','indigo','indigo']
             counter = 0
             for row in bingo_board:
-                x_position = 25
+                x_position = 45
                 for cell in row:
 
                     if len(cell) == 1:
                         text = textwrap.fill(cell[0], 12)
                         draw.text((x_position, y_position), text, colors[counter], small_font)
+                        # print(f'[1]{x_position},{y_position}=>{text}')
                     else:
                         text = textwrap.fill(cell[0], 12)
                         draw.text((x_position, y_position - 15 ), text, colors[counter], small_font)
-
+                        # print(f'[2]{x_position},{y_position}=>{text}')
                         if len(cell[1]) == 1:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 55, y_position + 10 ), text, colors[counter], special_font)
+                            draw.text((x_position + 35, y_position + 10 ), text, colors[counter], special_font)
+                            # print(f'[3]{x_position},{y_position}=>{text}')
                         else:
                             text = textwrap.fill(cell[1], 12)
-                            draw.text((x_position + 22 , y_position + 20), text, colors[counter], small_font)
+                            draw.text((x_position, y_position + 20), text, colors[counter], small_font)
+                            # print(f'[4]{x_position},{y_position}=>{text}')
                     counter=counter+1
 
                     x_position += cell_width

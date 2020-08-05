@@ -29,6 +29,8 @@ def keep_number_in_range(number, spread, min_cp, max_cp):
 
     if low < 10:
         print(f"----------------------{low} {high} {number} {spread} {min_cp} {max_cp}")
+        high = high + 10 - low
+        low = 10
 
     return "{0:>3}-{1}".format(low,high)
 
@@ -164,7 +166,7 @@ class BingoDataGenerator:
                 }
                 })
 
-            print(json.dumps(level_json, indent=2))
+            # print(json.dumps(level_json, indent=2))
             cls.pokemon_cp_level[pokemon] = level_json
 
     @classmethod
