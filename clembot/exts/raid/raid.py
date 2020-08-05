@@ -439,7 +439,15 @@ class RaidParty(RSVPEnabled):
         self.trainer_dict = trainer_dict
 
     @property
+    def empty(self):
+        if len(self.roster) == 0:
+            return True
+        return False
+
+    @property
     def current_location(self):
+        if self.empty:
+            return None
         return self.roster[self.physical_index(self.roster_begins_at)]
 
     @property
@@ -486,13 +494,16 @@ class RaidParty(RSVPEnabled):
         self.__delitem__(location_number)
 
     async def move(self):
-        if len(self) == 0:
+        if self.empty:
             raise ValueError("No next location available on the roster!")
         self.remove_location(self.roster_begins_at)
         self.roster_begins_at += 1
         await self.update()
 
-
+    async def reset(self):
+        self.roster = []
+        self.roster_begins_at = 0
+        await self.update()
 
     async def embed(self):
         return (RaidPartyEmbed.from_raid_party(self)).embed
@@ -1630,10 +1641,14 @@ class RaidPartyEmbed:
     @classmethod
     def from_raid_party(cls, raid_party: RaidParty):
         raid_party_image_url = "https://media.discordapp.net/attachments/419935483477622793/450201828802560010/latest.png"
+        if raid_party.empty:
+            embed = Embeds.make_embed(header="Raid Party Roster", header_icon="https://i.imgur.com/iX5yWVW.png",
+                                      content="The roster has no locations.\n Use **!add** command to add a location.",
+                                      thumbnail=raid_party_image_url, msg_color=color)
+            return cls(embed)
+
         description = cls.get_roster_message(raid_party)
-
         current = raid_party.current_location
-
         embed = Embeds.make_embed(header="Raid Party Roster", header_icon="https://i.imgur.com/iX5yWVW.png",
                                   title=f"Click here for directions to location {raid_party.current_location_index}",
                                   title_url=current.poi_location.url, content=description,
@@ -1646,9 +1661,6 @@ class RaidPartyEmbed:
         roster_message = ""
         index = raid_party.current_location_index
         for rloc in raid_party.roster:
-
-            # emoji = "egg" if rloc.raid_boss == "egg" else rloc.raid_boss.emoji
-
             roster_message += f"{emojify_numbers(index)} {rloc.poi_location} - {rloc.raid_boss} - {rloc.eta}\n"
             index = index + 1
 

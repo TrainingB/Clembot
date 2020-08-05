@@ -65,7 +65,7 @@ class RaidPartyCog(commands.Cog):
         **!remove location#** - to remove specified location from roster
         **!move** - moves raid party to the next location in roster
         **!reset** - to clean up the roster
-        **!raid-over** - to clean up the roster
+        **!raid-over** - to delete the channel (only channel-creator can do this)
 
         **Participant commands:**
         **!roster** - lists the roster
@@ -156,13 +156,16 @@ class RaidPartyCog(commands.Cog):
 
     @command(pass_context=True, hidden=True, aliases=["move"])
     @raid_checks.raid_party_channel()
-    async def cmd_raidparty_move(self, ctx):
+    async def cmd_raid_party_move(self, ctx):
         try:
             raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
             await raid_party.move()
 
             success_message = f"{MyEmojis.INFO} Raid party is moving to next location."
+            if raid_party.empty:
+                success_message = f"{MyEmojis.INFO} The roster has no locations now."
+
             await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
 
         except Exception as error:
@@ -172,8 +175,13 @@ class RaidPartyCog(commands.Cog):
 
     @command(pass_context=True, hidden=True, aliases=["add"])
     @raid_checks.raid_party_channel()
-    async def cmd_raidparty_add(self, ctx, *pkmn_location_eta):
-
+    async def cmd_raid_party_add(self, ctx, *pkmn_location_eta):
+        """
+        **!add pokemon-or-egg gym-code-or-location eta**
+        **Example**
+        **!add Pikachu MESC 12:45** - adds Pikachu at MEtallic SCulpture for eta 12:45 to the roster
+        **!add egg some-gym** - adds egg at some-gym to the roster
+        """
         raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
         roster_location = await RosterLocation.from_command_text(ctx, ' '.join(pkmn_location_eta))
@@ -183,9 +191,45 @@ class RaidPartyCog(commands.Cog):
         await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
 
 
+    @command(pass_context=True, hidden=True, aliases=["remove"])
+    @raid_checks.raid_party_channel()
+    async def cmd_raid_party_remove(self, ctx, location_number:int):
+
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
+
+        if len(raid_party.roster) <=0 :
+            raise BadArgument("Raid party doesn't have any location on the roster.")
+
+        if not raid_party[location_number]:
+            raise BadArgument(f"Location {Utilities.emojify_numbers(location_number)} doesn't exist on the roster!")
+
+
+        del raid_party[location_number]
+        await raid_party.update()
+
+        success_message = f"{MyEmojis.INFO} Location {raid_party.current_location_index} has been removed to the roster."
+        await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
+
+    @command(pass_context=True, hidden=True, aliases=["reset"])
+    @raid_checks.raid_party_channel()
+    async def cmd_raid_party_reset(self, ctx):
+
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
+
+        if len(raid_party.roster) <=0 :
+            raise BadArgument("Raid party doesn't have any location on the roster.")
+
+        reset = await Utilities.ask_confirmation(ctx, ctx.message, "Are you sure to clear the roster?", "The roster will be cleared shortly.", "No changes done!", "Request Timed out!")
+        if reset:
+            await raid_party.reset()
+            success_message = f"{MyEmojis.INFO} The roster has been cleared."
+            await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
+
+
+
     @command(pass_context=True, hidden=True, aliases=["update"])
     @raid_checks.raid_party_channel()
-    async def cmd_raidparty_update(self, ctx, location_number:int, *pkmn_gym_or_eta):
+    async def cmd_raid_party_update(self, ctx, location_number:int, *pkmn_gym_or_eta):
 
         raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 

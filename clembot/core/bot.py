@@ -13,11 +13,13 @@ from discord.ext import commands
 from discord.utils import cached_property
 
 from clembot.config import config_template
+from clembot.core import checks
 from clembot.core.context import Context
 from clembot.core.data_manager import DatabaseInterface, DataManager
 from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
 from clembot.utilities.utils import pagination
+from clembot.utilities.utils.embeds import Embeds
 
 
 class ExitCodes(Enum):
@@ -102,6 +104,7 @@ class Bot(commands.AutoShardedBot):
         invite_url = discord.utils.oauth_url(self.user.id,
                                              permissions=self.req_perms)
         return invite_url
+
 
 
     async def shutdown(self, *, restart=False):

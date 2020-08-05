@@ -7,6 +7,7 @@ from discord.ext.commands import Cog
 
 from clembot.config import config_template
 from clembot.config.constants import Icons
+from clembot.core import checks
 from clembot.core.bot import command, group
 from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
@@ -27,7 +28,7 @@ class Core(Cog):
         bot.remove_command('help')
 
     @command(pass_context=True, hidden=True, name="shutdown", category='Owner')
-    # @checks.is_owner()
+    @checks.is_bot_owner()
     async def cmd_shutdown(self, ctx):
         """Shuts the bot down."""
         embed = Embeds.make_embed(title='Shutting down...', msg_color='red', header_icon="https://i.imgur.com/uBYS8DR.png")
@@ -39,7 +40,7 @@ class Core(Cog):
 
 
     @command(pass_context=True, hidden=True, name="restart", category='Owner')
-    # @checks.is_owner()
+    @checks.is_bot_owner()
     async def cmd_restart(self, ctx):
         """Restarts the bot"""
         embed = Embeds.make_embed(title='Restarting...', msg_color='red', header_icon="https://i.imgur.com/uBYS8DR.png")
@@ -79,9 +80,37 @@ class Core(Cog):
         except discord.errors.Forbidden:
             await ctx.send("Invite URL: <{}>".format(invite_url))
 
+    @command(pass_context=True, hidden=True, category='Owner', aliases = ["change-activity"])
+    @checks.is_bot_owner()
+    async def change_activity(self, ctx, *, status: str):
+        """Sets the bot's online status
+
+        Available statuses:
+            online
+            idle
+            dnd
+        """
+
+        statuses = {
+            "online"    : discord.Status.online,
+            "idle"      : discord.Status.idle,
+            "dnd"       : discord.Status.dnd,
+            "invisible" : discord.Status.invisible
+            }
+
+        game = ctx.me.activity
+
+        try:
+            status = statuses[status.lower()]
+        except KeyError:
+            await ctx.bot.send_cmd_help(ctx)
+        else:
+            await ctx.bot.change_presence(status=status,
+                                          activity=game)
+            await ctx.send(embed=Embeds.make_embed('success', title="Status modified"))
 
     @command(pass_context=True, hidden=True, aliases=["list-servers"], category='Bot Info')
-    # @checks.is_owner()
+    @checks.is_bot_owner()
     async def cmd_list_servers(self, ctx):
 
         recipient = {}
@@ -235,7 +264,7 @@ class Core(Cog):
 
 
     @command(pass_context=True, hidden=True)
-    # @checks.is_owner()
+    @checks.is_bot_owner()
     async def mysetup(ctx):
         text=[]
         current_guild = ctx.message.guild
