@@ -1,6 +1,7 @@
 import json
 import datetime
 import os
+import traceback
 from datetime import timedelta
 
 import discord
@@ -75,9 +76,12 @@ class BingoCog(commands.Cog):
                 file_path = self.MyBingoBoardGenerator.generate_board(user_name=author.id, bingo_card=bingo_card,
                                                                  template_file="{0}.png".format(event_pokemon))
                 repo_channel = await self.get_repository_channel(message)
-                file_url_message = await repo_channel.send(file=discord.File(file_path),
-                                                           content="Generated for : {user} at {timestamp}".format(
-                                                               user=author.mention, timestamp=timestamp))
+                try:
+                    file_url_message = await repo_channel.send(file=discord.File(file_path),
+                                                               content="Generated for : {user} at {timestamp}".format(
+                                                                   user=author.mention, timestamp=timestamp))
+                except Exception as error:
+                    print(f"{traceback.format_exc()}")
                 file_url = file_url_message.attachments[0].url
 
             msg = 'Beep Beep! {0.author.mention} here is your Bingo Card; please take a screenshot for future use!'.format(

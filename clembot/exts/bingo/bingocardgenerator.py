@@ -102,7 +102,7 @@ class BingoCardGenerator(commands.Cog):
             canvas = Image.open(os.path.join(file_path, template_file))
             draw = ImageDraw.Draw(canvas)
 
-            colors = ['white','white','white','white','white','white','white','white','white']
+            colors = ['indigo','indigo','indigo','indigo','indigo','indigo','indigo','indigo','indigo']
             counter = 0
             for row in bingo_board:
                 x_position = 45

@@ -43,7 +43,8 @@ class BingoDataGenerator:
 
         if low < 10:
             print(f"----------------------{low} {high} {number} {spread} {min_cp} {max_cp}")
-
+            high = high + 10 - low
+            low = 10
         return "{0:>3}-{1}".format(low,high)
 
     def test_cp_extractor(self, cp_values):
