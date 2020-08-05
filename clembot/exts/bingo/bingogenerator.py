@@ -158,7 +158,7 @@ class BingoDataGenerator:
                 }
                 })
 
-            print(json.dumps(level_json, indent=2))
+            # print(json.dumps(level_json, indent=2))
             self.pokemon_cp_level[pokemon] = level_json
 
     def generate_card(self, event_pokemon='ralts'):
