@@ -2445,12 +2445,9 @@ async def about(ctx):
         uptime_str = await _uptime(Clembot)
         yourguild = ctx.message.guild.name
         yourmembers = len(ctx.message.guild.members)
-        embed_colour = ctx.message.guild.me.colour or discord.Colour.lighter_grey()
 
-        about = ("I'm Clembot! A Pokemon Go helper bot for Discord!\n\n"
-                 "[{author_name}]({author_repo}) has been working on me and I am evovled from [{original_author_name}]({original_author_repo})'s famous bot Meowth!\n\n"
-                 "[Join our guild]({guild_invite}) if you have any questions or feedback.\n\n"
-                 "".format(original_author_name=original_author_name, original_author_repo=original_author_repo, author_name=author_name, author_repo=author_repo, guild_invite=guild_url))
+        INVITE_BOT_LINK = f"https://discord.com/oauth2/authorize?client_id=363917328880107522&scope=bot&permissions=268822608"
+
 
         member_count = 0
         guild_count = 0
@@ -2458,24 +2455,37 @@ async def about(ctx):
             guild_count += 1
             member_count += len(guild.members)
 
-        embed = discord.Embed(title="For support, Click here to contact Clembot's discord guild.", url="https://discord.gg/" + INVITE_CODE, colour=embed_colour, icon_url=Clembot.user.avatar_url)
-        embed.add_field(name="About Clembot", value=about, inline=False)
-        embed.add_field(name="Owner", value=owner)
-        if guild_count > 1:
-            embed.add_field(name="Servers", value=guild_count)
-            embed.add_field(name="Members", value=member_count)
-        embed.add_field(name="Your Server", value=yourguild)
-        embed.add_field(name="Your Members", value=yourmembers)
-        embed.add_field(name="Uptime", value=uptime_str)
-        embed.set_footer(text="This message will be auto-deleted after 40 seconds".format(invite=INVITE_CODE))
+        embed = discord.Embed(colour=discord.Colour.blue(), icon_url=Clembot.user.avatar_url, author_name="About Clembot")
+        embed.add_field(name="**Bot Information**", value="--------------------------------------", inline=False)
+
+        embed.add_field(name="**Owner**", value=owner)
+        embed.add_field(name="**Servers**", value=guild_count)
+        embed.add_field(name="**Members**", value=member_count)
+        embed.add_field(name="**Current Server**", value=yourguild)
+        embed.add_field(name="**Your Members**", value=yourmembers)
+        embed.add_field(name="**Uptime**", value=uptime_str)
+
+        embed.add_field(name="**Credits**", value="--------------------------------------", inline=False)
+
+        embed.add_field(name="**Inspired (and Forked) from:**",
+                        value="Meowth, That's right! - [Meowth by FoglyOgly](https://github.com/FoglyOgly/Meowth)",
+                        inline=False)
+        embed.add_field(name="**Bingo Cards designed by**", value="@Rogue Beatz#3940, @NPlumb#8841, @CptShuckle#4419",
+                        inline=False)
+        embed.add_field(name="**(Most) Icons designed using**", value="https://icons8.com/", inline=False)
+
+        embed.add_field(name="**Links**", value="--------------------------------------", inline=False)
+
+        embed.add_field(name="**Contact us**", value=f"[Join guild](https://discord.gg/{INVITE_CODE})", inline=True)
+        embed.add_field(name="**Want Clembot?**", value=f"[Invite Clembot]({INVITE_BOT_LINK})", inline=True)
+        embed.add_field(name="**:heart: Clembot**", value=f"[Buy me a :coffee:](https://paypal.me/directtob)",
+                        inline=True)
 
         try:
             about_msg = await channel.send( embed=embed)
         except discord.HTTPException:
             about_msg = await channel.send( "I need the `Embed links` permission to send this")
 
-        await asyncio.sleep(40)
-        await about_msg.delete()
         await ctx.message.delete()
     except Exception as error:
         logger.info(error)
