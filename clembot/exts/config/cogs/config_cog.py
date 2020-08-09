@@ -80,11 +80,6 @@ class ConfigCog(commands.Cog):
 
         await ConfigCog.send_guild_config_embed(ctx, response_config)
 
-
-
-
-
-
     @group(pass_context=True, aliases=["timezone"])
     async def cmd_timezone(self, ctx, country_code):
 
@@ -101,7 +96,7 @@ class ConfigCog(commands.Cog):
         response_message = await ctx.send(embed=Embeds.make_embed(header=f"Available Timezones for {country_code}{country_name}",
                                                header_icon=Icons.TIMEZONE,
                                                msg_color=discord.Color.blue(),
-                                               content=f"{timezones} \n\n ||You can tap 🗑️ to delete this message.||",
+                                               content=f"{timezones}",
                                                 footer="Timezone info from Olson database"))
 
         await response_message.add_reaction(MyEmojis.TRASH)

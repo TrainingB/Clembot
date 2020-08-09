@@ -8,7 +8,9 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument
 
 from clembot.config.constants import MyEmojis
+from clembot.core import checks
 from clembot.core.bot import group, command
+from clembot.core.checks import AccessDenied, is_moderator
 from clembot.core.logs import Logger
 from clembot.exts.config import channel_checks
 from clembot.exts.config.channel_metadata import ChannelMetadata
@@ -74,7 +76,7 @@ class RaidPartyCog(commands.Cog):
 
         """
 
-        city = await ctx.guild_profile(key='city')
+        city = await ctx.city()
         timezone = await ctx.guild_profile(key='timezone')
         raid_party_id = next(snowflake.create())
 
@@ -95,17 +97,31 @@ class RaidPartyCog(commands.Cog):
 
 
 
+    @command(pass_context=True, hidden=True, aliases=["raid-city", "rc"])
+    @raid_checks.raid_party_channel()
+    async def cmd_raid_city(self, ctx, city=None):
+
+        raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
+
+        if city is not None:
+            if raid_party.is_started_by(ctx.message.author.id) or checks.is_moderator(ctx):
+                await ctx.channel_profile(channel_id=ctx.message.channel.id, key='city', value=city)
+                ChannelMetadata.evict(ctx.channel.id)
+            else:
+                raise AccessDenied("This operation is allowed only for person who started this raid-party.")
+
+        channel_city = await ChannelMetadata.city(self.bot, ctx.channel.id)
+
+        await Embeds.message(ctx.channel, f"The city for this channel is set to **{channel_city}**.")
+
+
     @command(pass_context=True, hidden=True, aliases=["raid-over", "raidover"])
     @raid_checks.raid_party_channel()
     async def cmd_raid_over(self, ctx):
 
         raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
-        channel = ctx.message.channel
-        started_by = raid_party.author_id
-
-        if ctx.message.author.id == started_by:
-
+        if raid_party.is_started_by(ctx.message.author.id) or checks.is_moderator(ctx):
             clean_channel = await Utilities.ask_confirmation(ctx, ctx.message, "Are you sure to delete the channel?", "The channel will be deleted shortly.", "No changes done!", "Request Timed out!")
             if clean_channel:
                 try:
@@ -117,7 +133,7 @@ class RaidPartyCog(commands.Cog):
                 await asyncio.sleep(30)
                 await ctx.message.channel.delete()
         else:
-            await Embeds.error(channel, "Only channel creator is allowed to clean-up the channel.")
+            raise AccessDenied("This operation is allowed only for person who started this raid-party.")
 
 
 
@@ -185,6 +201,10 @@ class RaidPartyCog(commands.Cog):
         raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
         roster_location = await RosterLocation.from_command_text(ctx, ' '.join(pkmn_location_eta))
+
+        if roster_location.poi_location is None:
+            raise BadArgument(f"I need a location.")
+
         await raid_party.append(roster_location)
 
         success_message = f"{MyEmojis.INFO} Location {raid_party.current_location_index} has been added to the roster."

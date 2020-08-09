@@ -115,6 +115,7 @@ class RosterLocation:
 
         if args[0] == 'egg':
             pkmn_or_egg = 'egg'
+            del args[0]
         else:
             try:
                 pkmn_or_egg = (await Pokemon.convert(ctx, args[0]))
@@ -128,11 +129,16 @@ class RosterLocation:
 
         eta=None
         if len(args) > 0:
-            eta = args[-1]
+            index = -1
+            if args[-1].upper() == 'AM' or args[-1].upper() == 'PM':
+                eta = ''.join(args[-2:])
+                index = -2
+            else:
+                eta = args[-1]
             if convert_into_time(eta, require_am_pm=False) is None:
                 eta = None
             else:
-                del args[-1]
+                del args[index:]
 
         poi_location = None
         if len(args) > 0:
@@ -453,6 +459,10 @@ class RaidParty(RSVPEnabled):
     @property
     def current_location_index(self):
         return self.roster_begins_at
+
+
+    def is_started_by(self, member_id):
+        return self.author_id == member_id
 
     def physical_index(self, i):
         return i - self.roster_begins_at

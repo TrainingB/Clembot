@@ -58,7 +58,7 @@ async def check_is_guild_admin(ctx):
     raise AccessDenied("Access restricted for Guild admins (with manage_guild permission) only.")
 
 
-async def _check_is_moderator(ctx):
+async def is_moderator(ctx):
     if await check_is_guild_admin(ctx):
         return True
     if ctx.author.permissions_in(ctx.channel).manage_messages:
@@ -66,7 +66,7 @@ async def _check_is_moderator(ctx):
     return False
 
 async def check_is_moderator(ctx):
-    if await _check_is_moderator(ctx):
+    if await is_moderator(ctx):
         return True
     raise AccessDenied("Access restricted for Moderators (with manage_messages permission) only.")
 

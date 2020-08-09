@@ -81,6 +81,19 @@ class GuildManager:
             channel_config_table = self.dbi.table('channel_metadata')
             if channel_id is None:
                 raise ValueError("missing channel_id")
+
+            channel_profile = await self.dbi.channel_profile_select_stmt.fetchrow(self.guild_id, channel_id)
+            # TODO: Just in case if the guild_config data is missing, insert a blank row with default prefix.
+            if channel_profile is None:
+
+                channel_metadata_table = self.dbi.table('channel_metadata')
+                d = {
+                    'guild_id': self.guild_id,
+                    'channel_id': channel_id
+                }
+                channel_metadata_table_insert = channel_metadata_table.insert.row(**d)
+                await channel_metadata_table_insert.commit()
+
             if delete:
                 if key:
                     d = {f'{key}' : None}

@@ -45,6 +45,11 @@ class ChannelMetadata:
 
 
     @classmethod
+    def evict(cls, channel_id):
+        ChannelMetadata.by_channel.pop(channel_id, None)
+
+
+    @classmethod
     async def find(cls, bot, channel_id, guild_id = None):
 
         channel_metadata = ChannelMetadata.by_channel.get(channel_id)
@@ -92,8 +97,8 @@ class ChannelMetadata:
     @classmethod
     async def insert(cls, bot, channel_dict):
         channel_metadata_table = bot.dbi.table('channel_metadata')
-        update_dict = ChannelMetadata.serialize(channel_dict)
-        channel_metadata_table_insert = channel_metadata_table.insert(**update_dict)
+        insert_dict = ChannelMetadata.serialize(channel_dict)
+        channel_metadata_table_insert = channel_metadata_table.insert(**insert_dict)
         await channel_metadata_table_insert.commit()
         ChannelMetadata.cache(channel_dict)
 

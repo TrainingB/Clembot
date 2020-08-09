@@ -141,7 +141,7 @@ def custom_error_handling(bot, logger):
             error_message = await ctx.send(embed=Embeds.make_embed(
                 header_icon=Icons.error, msg_color=discord.Color.dark_red(),
                 header=f"{header}",
-                content=f'**Error details:** {error}\n\n ||You can tap 🗑️ to delete this message.||'))
+                content=f'**Error details:** {error}'))
 
             await error_message.add_reaction('🗑️')
 
@@ -152,11 +152,9 @@ def custom_error_handling(bot, logger):
             error_message = await ctx.send(embed=Embeds.make_embed(
                 header_icon=Icons.INVALID_ACCESS, msg_color=discord.Color.dark_red(),
                 header=f"{header}",
-                content=f'**Error details:** {error}\n\n ||You can tap 🗑️ to delete this message.||'))
+                content=f'**Error details:** {error}'))
 
             await error_message.add_reaction('🗑️')
-
-            pass
 
         elif isinstance(error, ShowErrorMessage):
 
@@ -165,7 +163,7 @@ def custom_error_handling(bot, logger):
             error_message = await ctx.send(embed=Embeds.make_embed(
                 header_icon=Icons.BOT_ERROR_2, msg_color=discord.Color.dark_red(),
                 header=f"{header}",
-                content=f'{error}\n\n ||You can tap 🗑️ to delete this message.||'))
+                content=f'{error}'))
 
             await error_message.add_reaction('🗑️')
 
@@ -397,6 +395,16 @@ def wrap_error(func):
         try:
             return await func(*args, **kwargs)
 
+        except AccessDenied as aErr:
+            ctx = next(filter(lambda arg: isinstance(arg, Context), args))
+            header = check_failure_header[int(str(TH.current_epoch()).split(".")[-1]) % len(check_failure_header)]
+
+            error_message = await ctx.send(embed=Embeds.make_embed(
+                header_icon=Icons.INVALID_ACCESS, msg_color=discord.Color.dark_red(),
+                header=f"{header}",
+                content=f'**Error details:** {aErr}'))
+
+            await error_message.add_reaction('🗑️')
         except BadArgument as bErr:
             ctx = next(filter(lambda arg: isinstance(arg, Context), args))
 
@@ -405,7 +413,7 @@ def wrap_error(func):
             error_message = await ctx.send(embed=Embeds.make_embed(
                 header_icon=Icons.error, msg_color=discord.Color.dark_red(),
                 header=f"{header}",
-                content=f'**Error details:** {bErr}\n\n ||You can tap 🗑️ to delete this message.||'))
+                content=f'**Error details:** {bErr}'))
 
             await error_message.add_reaction('🗑️')
             return
@@ -418,7 +426,7 @@ def wrap_error(func):
             error_message = await ctx.send(embed=Embeds.make_embed(
                 header_icon=Icons.BOT_ERROR_2, msg_color=discord.Color.dark_red(),
                 header=f"{header}",
-                content=f'{sErr}\n\n ||You can tap 🗑️ to delete this message.||'))
+                content=f'{sErr}'))
 
             await error_message.add_reaction('🗑️')
 
