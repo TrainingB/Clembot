@@ -65,7 +65,9 @@ class RSVPCog(commands.Cog):
             "Set raid boss (pre-hatch)" : [False, "~~!r assume pokemon~~ is now \n**!assume pokemon**"],
             "Report an egg" : [False, "\n~~!raidegg 4 somewhere~~ is now \n**!raid 4 somewhere**"],
             "Change location of a raid": [False, "\n**!set-gym gym-code**"],
+            "See the list of raids": [False, "\n**!list-raid**"],
             ":new: RSVP Status" : [False, "**!ir** - interested *remotely*\n**!cr** - coming or on the way *remotely*\n**!hr** - here at raid *remotely*\n**!ii** - interested in raid *invite*. ***!list** will show your IGN, if set using **!profile**.*"]
+
         }
 
         await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="What changed?", fields=status))

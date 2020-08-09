@@ -438,6 +438,25 @@ class RaidCog(commands.Cog):
         else:
             raise BadArgument("Invalid raid level or Pokemon.")
 
+    @command(pass_context=True, hidden=True, aliases=["list-raid", "lr"])
+    @channel_checks.raid_report_enabled()
+    async def cmd_list_raid(self, ctx):
+
+        list_of_raid_id = await RaidRepository.find_raids_reported_in_channel(self.bot, ctx.message.channel.id)
+
+
+        list_of_raid_detail = []
+
+        if len(list_of_raid_id) > 0:
+            for raid_id in list_of_raid_id:
+                raid = await Raid.from_cache(ctx, raid_id)
+                list_of_raid_detail.append(f"{raid.summary}")
+        else:
+            list_of_raid_detail.append("No active raid report(s).")
+
+        raid_list_msg = await ctx.send(embed=Embeds.make_embed(header="Current Raid(s):", content="\n\n".join(list_of_raid_detail), msg_color=ctx.message.author.color))
+        await raid_list_msg.add_reaction('🗑️')
+
 
     @command(pass_context=True, hidden=True, aliases=["refresh-raid"])
     @raid_checks.raid_channel()

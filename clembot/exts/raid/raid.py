@@ -1007,13 +1007,12 @@ class Raid (RSVPEnabled):
     async def from_cache(cls, ctx, raid_id=None):
         if raid_id:
             raid = cls.by_id.get(raid_id, None)
-            if not raid:
+            if raid is None:
                 RaidRepository.set_dbi(ctx.bot.dbi)
                 raid_from_db = await RaidRepository.find_raid_by_id(raid_id)
                 raid = await Raid.from_db_dict(ctx.bot, raid_from_db)
                 if not raid:
                     return None
-                return raid
         else:
             raid = cls.by_channel.get(ctx.channel.id, None)
             if not raid:
@@ -1022,7 +1021,7 @@ class Raid (RSVPEnabled):
                 raid = await Raid.from_db_dict(ctx.bot, raid_from_db)
                 if not raid:
                     return None
-                return raid
+        return raid
 
 
     @classmethod
@@ -1163,6 +1162,16 @@ class Raid (RSVPEnabled):
         value = f"#{self.channel_name}{hatch_info}{end_info}"
 
         return value
+
+    @property
+    def summary(self):
+        hatch_info = f"Hatches at: {self.hatches_at}" if self.hatch_time else ""
+        end_info = f"Ends at: {self.expires_at} " if self.expiry_time else ""
+        value = f"{self.channel.mention} | {hatch_info if self.is_egg else end_info} |"
+
+        return value
+
+
 
     def timer_info(self):
         hatch_info = f"Hatches at: {self.hatches_at}" if self.hatch_time else ""
@@ -1741,6 +1750,22 @@ class RaidRepository:
         list_of_raids = await raid_table_query.getjson()
         return list_of_raids
 
+    @classmethod
+    async def find_raids_reported_in_channel(cls, bot, channel_id):
+
+        query = raids_reported_in_channel_query
+        query_args = [str(channel_id)]
+        raid_list = await bot.dbi.execute_query_json(query, *query_args)
+        print(raid_list)
+
+        raid_id_list = [record.get('raid_id') for record in raid_list]
+        print(raid_id_list)
+
+
+        return raid_id_list
+
+
+
 
 class DiscordOperations:
 
@@ -1812,3 +1837,10 @@ class InvalidRaidLevelError(ValueError):
 #
 #     additional_fields[raid_time_label] = raid_time_value
 
+
+raids_reported_in_channel_query = """
+select raid_id
+from raid_report
+where split_part((raid_dict::json ->> 'report_message')::text, '-'::text, 1) = $1
+order by raid_dict::json ->> 'expiry_time';
+"""
