@@ -125,7 +125,10 @@ class Bot(commands.AutoShardedBot):
         not be processed.
         """
         if message.author.bot:
-            return
+            if message.content.startswith("!pbraidparty"):
+                pass
+            else:
+                return
         ctx = await self.get_context(message, cls=Context)
 
         # if not a valid command

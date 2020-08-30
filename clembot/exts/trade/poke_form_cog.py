@@ -2,6 +2,7 @@ from discord.ext import commands
 
 from clembot.core.bot import group
 from clembot.exts.trade.pokemonform import PokemonForm
+from clembot.exts.trade.trademanager import print_pokemon, print_pokemon_list
 from clembot.utilities.utils.converters import RemoveComma
 from clembot.utilities.utils.embeds import Embeds
 
@@ -56,7 +57,7 @@ class PokemonFormCog(commands.Cog):
 
         await Embeds.message(ctx.channel,
                              f"loaded pokemon-forms successfully. See the complete list using **!poke-form list**.",
-                             ctx.message.author)
+                             user=ctx.message.author)
         print(PokemonForm.available_pokemon_forms)
 
     @cmd_poke_form.command(aliases=["add"])
@@ -70,11 +71,11 @@ class PokemonFormCog(commands.Cog):
 
         if len(added_poke_form_list) > 0:
             await Embeds.message(ctx.channel,
-                                 f"**{self.print_pokemon(added_poke_form_list)}** has been added successfully. See the complete list using **!poke-form list**.",
-                                 ctx.message.author)
+                                 f"**{print_pokemon_list(added_poke_form_list)}** has been added successfully. See the complete list using **!poke-form list**.",
+                                 user=ctx.message.author)
         else:
             await Embeds.message(ctx.channel, f"No changes were made. See the complete list using **!poke-form list**.",
-                                 ctx.message.author)
+                                 user=ctx.message.author)
 
     @cmd_poke_form.command(aliases=["remove"])
     async def cmd_poke_form_remove(self, ctx, *pokemon_form_list: RemoveComma):
@@ -88,11 +89,11 @@ class PokemonFormCog(commands.Cog):
 
         if len(removed_poke_form_list) > 0:
             await Embeds.message(ctx.channel,
-                                 f"**{self.print_pokemon(removed_poke_form_list)}** has been removed successfully. See the complete list using **!poke-form list**.",
-                                 ctx.message.author)
+                                 f"**{print_pokemon_list(removed_poke_form_list)}** has been removed successfully. See the complete list using **!poke-form list**.",
+                                 user=ctx.message.author)
         else:
             await Embeds.message(ctx.channel, f"No changes were made. See the complete list using **!poke-form list**.",
-                                 ctx.message.author)
+                                 user=ctx.message.author)
 
     # @cmd_poke_form.command(aliases=["dump"])
     # async def _poke_form_dump(self, ctx):

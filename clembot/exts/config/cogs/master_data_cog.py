@@ -15,7 +15,7 @@ from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
 from clembot.exts.config.globalconfigmanager import GlobalConfigCache
 from clembot.exts.pkmn.gm_pokemon import Pokemon
-from clembot.exts.pkmn.raid_boss import RaidMaster
+from clembot.exts.pkmn.raid_boss import RaidLevelMaster
 from clembot.exts.profile.user_profile import UserProfile
 from clembot.utilities.utils.embeds import Embeds
 
@@ -24,7 +24,7 @@ class MasterDataCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.dbi = bot.dbi
-        self.bot.loop.create_task(RaidMaster.load(bot, True))
+        self.bot.loop.create_task(RaidLevelMaster.load(bot, True))
 
     @group(pass_context=True, hidden=True, aliases=["form"])
     async def cmd_form(self, ctx, form: Pokemon):
@@ -46,7 +46,7 @@ class MasterDataCog(commands.Cog):
             form = forms[0]
             data = json.loads(form.get("data"))
 
-            pForm = Pokemon(data, form.get('pokedex_id'), form.get('aliases'))
+            pForm = Pokemon(data, form.get('pokedex_id'), form.get('aliases'), form.get('pokemon_form_id'))
             await ctx.send(embed=Embeds.make_embed(title=pForm.extended_label, thumbnail=pForm.preview_url, fields={
                 'Fast Moves' : [True, '\n'.join(pForm.fast_moves_labels)],
                 'Charge Moves': [True, '\n'.join(pForm.charge_moves_labels)]
@@ -219,7 +219,7 @@ class MasterDataCog(commands.Cog):
     @wrap_error
     async def cmd_migrate_user_profile(self, ctx, guild_id=None, batch='migrated'):
         try:
-            with open(os.path.join(os.path.abspath('.'), 'data', 'guilddict_clembot'), "rb") as fd:
+            with open(os.path.join(os.path.abspath('.'), 'data', 'guildict_clembot_202008292352'), "rb") as fd:
                 server_dict_old = pickle.load(fd)
 
             message = await ctx.send(content=f"Migrating user profiles...")
@@ -265,6 +265,7 @@ class MasterDataCog(commands.Cog):
                     await user_profile.update()
 
                     # break
+            await message.edit(content=f"Processed {processed_trainers}/{total_trainers} trainers.")
         except Exception as error:
             Logger.error(f"{traceback.format_exc()}")
 
@@ -302,19 +303,19 @@ class MasterDataCog(commands.Cog):
         !raid-boss change level *list of pokemon*
         """
 
-        await RaidMaster.load(ctx.bot, force=True)
+        await RaidLevelMaster.load(ctx.bot, force=True)
         if ctx.invoked_subcommand is None:
-            level = ctx.subcommand_passed if ctx.subcommand_passed in RaidMaster.by_level.keys() else None
+            level = ctx.subcommand_passed if ctx.subcommand_passed in RaidLevelMaster.by_level.keys() else None
             return await self.cmd_raid_boss_list(ctx, level)
 
 
     @cmd_raid_boss.command(pass_context=True, hidden=True, aliases=["list"])
     async def cmd_raid_boss_list(self, ctx, level=None):
         fields = { }
-        raid_levels = [boss_level for boss_level in RaidMaster.by_level.keys() if boss_level == (level or boss_level)]
+        raid_levels = [boss_level for boss_level in RaidLevelMaster.by_level.keys() if boss_level == (level or boss_level)]
         title = f"(Level - {level})" if level else ""
         for raid_level in sorted(raid_levels):
-            raid = RaidMaster.from_cache(raid_level)
+            raid = RaidLevelMaster.from_cache(raid_level)
             fields[f'Level {raid_level}'] = [True, '\n'.join(
                 [(await Pokemon.convert(ctx, raid_boss)).extended_label for raid_boss in raid['raid_boss']])]
 
@@ -330,7 +331,7 @@ class MasterDataCog(commands.Cog):
 
         Logger.info(pokemon_list)
 
-        raid_boss_at_level = RaidMaster.from_cache(level)
+        raid_boss_at_level = RaidLevelMaster.from_cache(level)
         raid_bosses = set([pokemon.upper() for pokemon in raid_boss_at_level['raid_boss']])
 
         for pokeform in pokemon_list:
@@ -348,7 +349,7 @@ class MasterDataCog(commands.Cog):
 
         Logger.info(pokemon_list)
 
-        raid_boss_at_level = RaidMaster.from_cache(level)
+        raid_boss_at_level = RaidLevelMaster.from_cache(level)
         raid_bosses = set()
 
         for pokeform in pokemon_list:
@@ -367,7 +368,7 @@ class MasterDataCog(commands.Cog):
 
         Logger.info(pokemon_list)
 
-        raid_boss_at_level = RaidMaster.from_cache(level)
+        raid_boss_at_level = RaidLevelMaster.from_cache(level)
         raid_bosses = set([pokemon.upper() for pokemon in raid_boss_at_level['raid_boss']])
 
         for pokeform in pokemon_list:

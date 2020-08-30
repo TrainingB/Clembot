@@ -17,7 +17,8 @@ from clembot.core.logs import Logger
 from clembot.core.time_util import convert_into_time
 from clembot.exts.gymmanager.gym import POILocation, POILocationConverter
 from clembot.exts.pkmn.gm_pokemon import Pokemon
-from clembot.exts.pkmn.raid_boss import RaidMaster
+from clembot.exts.pkmn.raid_boss import RaidLevelMaster, RaidLevelConverter
+from clembot.exts.pokebattler.pokebattler import PokeBattler
 from clembot.exts.profile.user_profile import UserProfile
 from clembot.utilities.timezone import timehandler as TH
 from clembot.utilities.utils.embeds import Embeds, color
@@ -80,6 +81,12 @@ class ChannelMessage:
             return channel, None
 
         return channel, message
+
+    @classmethod
+    def split_parts(cls, arg):
+        """returns Channel & Message from - separated IDs"""
+        channel_id, message_id = [int(a) for a in arg.split('-')]
+        return channel_id, message_id
 
 
 class RosterLocation:
@@ -810,20 +817,21 @@ class Raid (RSVPEnabled):
     """
     by_channel = dict()
     by_id = dict()
+    by_message_id = dict()
+    by_poke_battler_id = dict()
 
-    def __init__(self, raid_id=None, bot=None, guild_id=None, channel_id=None, author_id = None,
-                 report_message: str = None,
-                 raid_type=None, level=None,
-                 raid_location: POILocation=None, pkmn :Pokemon=None, timer=None,
-                 reported_time=None, hatch_time=None, expiry_time=None, start_time=None,
-                 response_message: str = None, channel_message: str = None, timezone=None,
-                 trainer_dict=None):
+    def __init__(self, raid_id=None, bot=None, guild_id=None, channel_id=None, author_id=None,
+                 report_message: str = None, raid_type=None, level=None, raid_location: POILocation = None,
+                 pkmn: Pokemon = None, timer=None, reported_time=None, hatch_time=None, expiry_time=None,
+                 start_time=None, response_message: str = None, channel_message: str = None, timezone=None,
+                 poke_battler_id=None, pb_raid_info=None, trainer_dict=None):
         """
         From command:
             Raid(bot, report_message, raid_type, level, raid_location, timer, pokemon )
             Raid(bot, raid_report_id, reported_time, expiry_time, report_message, response_message, channel_message
                         raid_type, level, raid_location, pokemon )
 
+        :param pb_raid_info:
         :param bot: needed for dbi & dpy operations
         :param raid_type:
         :param level:
@@ -848,8 +856,6 @@ class Raid (RSVPEnabled):
         self.raid_type = raid_type
         self.level = level
         self.pkmn = pkmn
-        if not self.pkmn:
-            self.verify_level()
         self.raid_location = raid_location
         # TODO: Connect guild timezone
         self.timezone = timezone
@@ -864,7 +870,7 @@ class Raid (RSVPEnabled):
 
         self.reported_time = TH.current_epoch(second_precision=False) if reported_time is None else reported_time
 
-        self.raid_level_info = RaidMaster.from_cache(self.level)
+        self.raid_level_info = RaidLevelMaster.from_cache(self.level)
 
         if timer is not None:
             if self.raid_type == "egg":
@@ -881,7 +887,20 @@ class Raid (RSVPEnabled):
         self.expire_task_tuple = None
         self.hatch_task_tuple = None
         self.trainer_dict = trainer_dict
+        self.pb_raid_id = poke_battler_id
+        self.pb_raid_info = pb_raid_info
         self.snowflake = Snowflake()
+
+
+    @property
+    def poke_battler_id(self):
+        return self.pb_raid_id
+
+    @poke_battler_id.setter
+    def poke_battler_id(self, pb_raid_id):
+        self.pb_raid_id = pb_raid_id
+        Raid.cache(self)
+
 
     @property
     def monitor_task(self):
@@ -955,9 +974,9 @@ class Raid (RSVPEnabled):
     @property
     def max_timer(self):
         if self.is_egg:
-            return (config_template.development_timer or self.raid_level_info.egg_timer)
+            return config_template.development_timer or self.raid_level_info.egg_timer
         else:
-            return (config_template.development_timer or self.raid_level_info.raid_timer)
+            return config_template.development_timer or self.raid_level_info.raid_timer
 
 
     def get_raid_dict(self):
@@ -976,6 +995,7 @@ class Raid (RSVPEnabled):
             'report_message': self.report_message,
             'response_message': self.response_message,
             'channel_message': self.channel_message,
+            'pb_raid_id': self.poke_battler_id
         }
         if self.pkmn:
             state_dict['pkmn'] = self.pkmn.id
@@ -1007,11 +1027,18 @@ class Raid (RSVPEnabled):
     def cache(cls, raid):
         cls.by_channel[raid.channel_id] = raid
         cls.by_id[raid.id] = raid
+        cls.by_message_id[ChannelMessage.split_parts(raid.response_message)[1]] = raid
+        cls.by_message_id[ChannelMessage.split_parts(raid.channel_message)[1]] = raid
+        if raid.poke_battler_id is not None:
+            cls.by_poke_battler_id[raid.poke_battler_id] = raid
 
     @classmethod
     def evict(cls, raid):
+        cls.by_poke_battler_id.pop(raid.poke_battler_id, None)
         cls.by_channel.pop(raid.channel_id, None)
         cls.by_id.pop(raid.id, None)
+        cls.by_message_id.pop(ChannelMessage.split_parts(raid.channel_message)[1], None)
+        cls.by_message_id.pop(ChannelMessage.split_parts(raid.channel_message)[1], None)
 
     @classmethod
     async def from_cache(cls, ctx, raid_id=None):
@@ -1052,8 +1079,8 @@ class Raid (RSVPEnabled):
         p_rm, p_rr, p_cm = [raid_dict.get(attr, None) for attr in
                             ['report_message', 'response_message', 'channel_message']]
 
-        raid_type, level, p_pkmn, p_author_id = [raid_dict.get(attr, None) for attr in
-                                                 ['raid_type', 'level', 'pkmn', 'author_id']]
+        raid_type, level, p_pkmn, p_author_id, p_pb_raid_id = [raid_dict.get(attr, None) for attr in
+                                                 ['raid_type', 'level', 'pkmn', 'author_id', 'pb_raid_id']]
 
         reported_time, expiry_time, hatch_time, timezone \
             = [raid_dict.get(attr, None) for attr in ['reported_time', 'expiry_time', 'hatch_time', 'timezone']]
@@ -1062,11 +1089,10 @@ class Raid (RSVPEnabled):
 
         raid_location = await POILocation.from_dict(bot, rl_dict)
 
-        raid = Raid(raid_id=raid_id, bot=bot, guild_id=guild_id, channel_id=raid_channel_id, raid_type=raid_type,
-                    level=level, pkmn=pkmn, raid_location=raid_location, author_id=p_author_id,
-                    reported_time=reported_time, hatch_time=hatch_time, expiry_time=expiry_time, timezone=timezone,
-                    report_message=p_rm, response_message=p_rr, channel_message=p_cm,
-                    trainer_dict=trainer_dict)
+        raid = Raid(raid_id=raid_id, bot=bot, guild_id=guild_id, channel_id=raid_channel_id, author_id=p_author_id,
+                    report_message=p_rm, raid_type=raid_type, level=level, raid_location=raid_location, pkmn=pkmn,
+                    reported_time=reported_time, hatch_time=hatch_time, expiry_time=expiry_time, response_message=p_rr,
+                    channel_message=p_cm, timezone=timezone, poke_battler_id=p_pb_raid_id, trainer_dict=trainer_dict)
 
         Raid.cache(raid)
         return raid
@@ -1126,10 +1152,6 @@ class Raid (RSVPEnabled):
             self.expiry_time = new_utc_timestamp
 
         self.monitor_task = self.create_task_tuple(self.monitor_status())
-
-    def verify_level(self):
-        if self.level and not 0 < self.level < 6:
-            raise InvalidRaidLevelError("Raid egg levels are only from 1-5.")
 
     @property
     def message(self):
@@ -1220,7 +1242,7 @@ class Raid (RSVPEnabled):
         location = self.raid_location.name
 
         if self.is_egg:
-            raid_boss = f"{self.level}-"
+            raid_boss = f"{RaidLevelConverter.label(self.level)}-"
         else:
             if self.pkmn:
                 raid_boss = f"{self.pokemon_label}-"
@@ -1317,7 +1339,7 @@ class Raid (RSVPEnabled):
 
     async def update_messages(self, content=''):
         Logger.info(f"[{self.cuid}] {self.channel_name}")
-
+        clear_reaction = False
         try:
             chm_channel, chm_message = await ChannelMessage.from_text(self.bot, self.channel_message)
             if chm_channel is not None and chm_channel.name != self.channel_name:
@@ -1337,10 +1359,13 @@ class Raid (RSVPEnabled):
                 embed = await self.raid_embed()
             else:
                 embed = await self.expired_embed()
-
+                clear_reaction = True
 
             if chm_message:
                 await chm_message.edit(embed=embed)
+                if clear_reaction:
+                    await chm_message.clear_reactions()
+
 
             res_channel, res_message = await ChannelMessage.from_text(self.bot, self.response_message)
             if res_channel and res_message:
@@ -1348,9 +1373,10 @@ class Raid (RSVPEnabled):
                     await res_message.edit(embed=embed)
                 else:
                     await res_message.edit(content=content, embed=embed)
+                if clear_reaction:
+                    await res_message.clear_reactions()
 
         except Exception as error:
-            Logger.info(self.channel_message)
             Logger.error(error)
 
 
@@ -1545,13 +1571,23 @@ class RaidEmbed:
             img_url = boss.preview_url
             weakness = f"{boss.weaknesses_icon}"
             cp_range = f"{boss.raid_cp_range}"
+
             # Logger.info(f"Weaknesses: {boss.weaknesses}")
         else:
             field_title = "Possible Bosses:"
-            name = '\n'.join([Pokemon.to_pokemon(raid_boss).extended_label for raid_boss in RaidMaster.get_boss_list(raid.level)])
+            name = '\n'.join([Pokemon.to_pokemon(raid_boss).extended_label for raid_boss in RaidLevelMaster.get_boss_list(raid.level)])
             img_url = get_egg_image_url(raid.level)
             weakness = None
             cp_range = None
+
+
+        if raid.poke_battler_id is None:
+            pb_raid_party_info = f"Tap {MyEmojis.POKE_BATTLER} to create."
+            pb_raid_party_stats = raid.pb_raid_info
+        else:
+            pb_raid_party_info = f"Tap {MyEmojis.POKE_BATTLER} to join [#{raid.poke_battler_id}]({PokeBattler.get_raid_party_url(raid.poke_battler_id)})"
+            pb_raid_party_stats = raid.pb_raid_info
+            #f"1 Player - 0% win% - 2.82 Players Needed - 71.1% Damage Dealt"
 
 
         raid_location = raid.raid_location
@@ -1572,6 +1608,8 @@ class RaidEmbed:
             "**Where**" : raid_location.gym_embed_label,
             "**Weaknesses**" : weakness,
             "**CP Range**" : cp_range,
+            "**Pokebattler Raid Party**" : pb_raid_party_info,
+            "**Pokebattler says**": [False, pb_raid_party_stats],
             "**Suggested Start**" : start,
         }
 
@@ -1613,10 +1651,10 @@ class EggEmbed:
 
         footer = f"{raid.cuid} | Reported by {author.display_name} | {raid.timer_info()}"
 
-        raid_boss_list = '\n'.join([Pokemon.to_pokemon(raid_boss).extended_label for raid_boss in RaidMaster.get_boss_list(level)])
+        raid_boss_list = '\n'.join([Pokemon.to_pokemon(raid_boss).extended_label for raid_boss in RaidLevelMaster.get_boss_list(level)])
 
         fields = {
-            "**Level**" : f"{level}",
+            "**Level**" : f"{RaidLevelConverter.label(level).title()}",
             "**Where**" : f"{raid_location.gym_embed_label}",
             "**Possible Bosses**" : f"{raid_boss_list}"
         }
@@ -1840,7 +1878,6 @@ class InvalidRaidLevelError(ValueError):
     #             "%B %d %I:%M %p (%H:%M)")
 #
 #     start_time = fetch_channel_start_time(message.channel.id)
-#     start_time_label = "None"
 #     if start_time:
 #         raid_time_label = raid_time_label + " / Suggested Start Time"
 #         raid_time_value = raid_time_value + " / " + start_time.strftime("%I:%M %p (%H:%M)")

@@ -1,4 +1,6 @@
 import asyncio
+import functools
+import textwrap
 
 import discord
 
@@ -71,11 +73,11 @@ class Embeds:
         return gmap_base_url
 
     @staticmethod
-    async def message(channel, description, title=None, footer=None, user=None):
+    async def message(channel, description, title=None, footer=None, user=None, icon=MyEmojis.INFO):
         try:
             error_message = "The output contains more than 2000 characters."
 
-            user_mention = f"{MyEmojis.INFO} "
+            user_mention = f"{icon} "
             if user:
                 user_mention = f"{user_mention}**{user.display_name}** "
 
@@ -111,6 +113,14 @@ class Embeds:
         except Exception as err:
             Logger.error(err)
 
+
+    @staticmethod
+    def trim_to(text, length, delimiter=","):
+        if len(text) == 0:
+            return "None"
+        if text and delimiter:
+            return text[:text.rfind(delimiter, 0, length)] + " ** and more1.**" if len(text) > length else text
+        return text
 
     @staticmethod
     def make_embed(msg_type='', header=None, header_icon=None, title=None, title_url=None, content=None, thumbnail='',
@@ -172,7 +182,7 @@ class Embeds:
                         ilf = value[0]
                         value = value[1]
                 if value:
-                    embed.add_field(name=f"**{key}**", value=value, inline=ilf)
+                    embed.add_field(name=f"**{key}**", value=Embeds.trim_to(value, 995), inline=ilf)
         if footer:
             footer = {'text':footer}
             if footer_icon:

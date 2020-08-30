@@ -33,10 +33,11 @@ class Pokemon:
 
     _cache = dict()
 
-    def __init__(self, db_dict, pokedex_num, aliases=[]):
+    def __init__(self, db_dict, pokedex_num, aliases=[], pokemon_form_id=None):
         self.db_dict = db_dict
         self.pokedex_num = pokedex_num
         self.aliases = aliases
+        self.pokemon_form_id = pokemon_form_id
 
     def __getitem__(self, item):
         """use [] operator to access members, simpler to create entity objects"""
@@ -57,7 +58,7 @@ class Pokemon:
 
     @property
     def label(self):
-        return self.id.capitalize()
+        return self.id.title()
 
     # @property
     # def label(self):
@@ -204,9 +205,9 @@ class Pokemon:
             raise Exception("Error : Pokemon forms are not loaded yet.")
 
         if search_for:
-            form = cls._cache.get(search_for.upper(), None)
+            return cls._cache.get(search_for.upper(), None)
 
-        return form
+        return None
 
     @classmethod
     async def load(cls, bot):
@@ -216,7 +217,7 @@ class Pokemon:
             forms = await table.query().select().getjson()
 
             for form in forms:
-                pForm = Pokemon(json.loads(form.get('data')), form.get('pokedex_id'), form.get('aliases'))
+                pForm = Pokemon(json.loads(form.get('data')), form.get('pokedex_id'), form.get('aliases'), form.get('pokemon_form_id'))
                 Pokemon.cache(pForm)
         GMPokemonFormSpellHelper.set_dictionary(cls._cache.keys())
 

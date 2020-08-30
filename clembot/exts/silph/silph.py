@@ -1,4 +1,5 @@
 import datetime
+import traceback
 
 import aiohttp
 import dateparser
@@ -7,6 +8,7 @@ from discord.ext import commands
 
 # from clembot import utils
 from clembot.core.bot import command
+from clembot.core.logs import Logger
 
 
 def convert_to_bool(argument):

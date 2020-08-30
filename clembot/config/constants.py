@@ -68,3 +68,4 @@ class MyEmojis:
     INTERESTED = f"{parse_emoji(None, config_template.misc_emoji.get('interested'))}"
     INFO = f"{parse_emoji(None, config_template.misc_emoji.get('info'))}"
     ERROR = f"{parse_emoji(None, config_template.misc_emoji.get('error'))}"
+    POKE_BATTLER = f"{parse_emoji(None, config_template.misc_emoji.get('pb'))}"

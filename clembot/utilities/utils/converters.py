@@ -1,9 +1,11 @@
 from discord.ext import commands
 
+from clembot.core.errors import wrap_error
 from clembot.utilities.utils.utilities import Utilities
 
 
 class RemoveComma(commands.Converter):
+    @wrap_error
     async def convert(self, ctx, argument):
         return argument.replace(",", " ").strip()
 

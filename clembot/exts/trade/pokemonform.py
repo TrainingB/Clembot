@@ -62,6 +62,18 @@ class PokemonForm:
         # pokemon_list.extend([ctx.bot.pkmn_info['pokemon_list'][int(e)-1] for e in list_of_pokemon if e.isdigit()])
         return pokemon_list
 
+    @classmethod
+    def split_pokemon_forms(cls, list_of_pokemon):
+
+        pokemon_list, non_pokemon_list = [], []
+        for e in list_of_pokemon:
+            if PokemonForm.is_valid(e.lower()):
+                pokemon_list.append(e.lower())
+            else:
+                non_pokemon_list.append(e)
+
+        return pokemon_list, non_pokemon_list
+
     def __str__(self):
         return self.text
 

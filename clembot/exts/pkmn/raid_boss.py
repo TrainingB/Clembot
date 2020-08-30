@@ -1,7 +1,43 @@
+from discord.ext import commands
+
 from clembot.core.logs import Logger
 
 
-class RaidMaster:
+class RaidLevelConverter(commands.Converter):
+    level_alias_map = {
+        'MEGA': 'M',
+        'EX': 'E'
+    }
+
+    label_map = {
+        'M' : 'mega',
+        'E' : 'ex'
+    }
+
+    @classmethod
+    def to_level(cls, argument) -> str:
+        case_corrected_level = argument.upper()
+
+        if case_corrected_level in RaidLevelMaster.get_all_levels():
+            return case_corrected_level
+
+        if case_corrected_level in RaidLevelConverter.level_alias_map.keys():
+            return RaidLevelConverter.level_alias_map.get(case_corrected_level)
+
+        return None
+
+    async def convert(self, ctx, argument) -> str:
+        return RaidLevelConverter.to_level(argument)
+
+    @classmethod
+    def label(cls, level):
+        if level in RaidLevelConverter.label_map.keys():
+            return RaidLevelConverter.label_map.get(level)
+
+        return level
+
+
+class RaidLevelMaster:
 
     TABLE_NAME = 'raid_master'
 
@@ -46,27 +82,27 @@ class RaidMaster:
         self.db_dict.update(db_dict)
 
     async def insert(self):
-        table = self.bot.dbi.table(RaidMaster.TABLE_NAME)
+        table = self.bot.dbi.table(RaidLevelMaster.TABLE_NAME)
         insert_query = table.insert(**self.db_dict)
         await insert_query.commit()
-        RaidMaster.cache(self)
+        RaidLevelMaster.cache(self)
 
     async def update(self):
-        table = self.bot.dbi.table(RaidMaster.TABLE_NAME)
+        table = self.bot.dbi.table(RaidLevelMaster.TABLE_NAME)
         update_query = table.update(**self.db_dict).where(raid_level=self.level)
         await update_query.commit()
-        RaidMaster.cache(self)
+        RaidLevelMaster.cache(self)
 
     @staticmethod
     async def find_all(bot):
-        table = bot.dbi.table(RaidMaster.TABLE_NAME)
+        table = bot.dbi.table(RaidLevelMaster.TABLE_NAME)
         query = table.query().select()
         record_list = await query.getjson()
         return record_list
 
     @classmethod
     async def find_by(cls, bot, raid_level):
-        table = bot.dbi.table(RaidMaster.TABLE_NAME)
+        table = bot.dbi.table(RaidLevelMaster.TABLE_NAME)
         query = table.query().select().where(raid_level=raid_level)
         try:
             record_list = await query.getjson()
@@ -81,12 +117,12 @@ class RaidMaster:
     async def load(cls, bot, force=False):
         Logger.info("load()")
         if len(cls.by_level) == 0 or force:
-            table = bot.dbi.table(RaidMaster.TABLE_NAME)
+            table = bot.dbi.table(RaidLevelMaster.TABLE_NAME)
             records = await table.query().select().getjson()
 
             for record in records:
-                raid_master = RaidMaster(bot, record)
-                RaidMaster.cache(raid_master)
+                raid_master = RaidLevelMaster(bot, record)
+                RaidLevelMaster.cache(raid_master)
 
 
     @classmethod
@@ -119,16 +155,26 @@ class RaidMaster:
     @classmethod
     def get_level(cls, pokeform):
         """get_level(pokemon) - return None if the boss is listed."""
-        for raid_master in RaidMaster.by_level.values():
-            if pokeform.id in raid_master.raid_boss_list:
-                return int(raid_master.level)
+
+
+        if 'MEGA' in pokeform.id:
+            return 'M'
+
+        for raid_master_level in RaidLevelMaster.by_level.values():
+            if pokeform.id in raid_master_level.raid_boss_list:
+                return raid_master_level.level
 
         return None
 
     @classmethod
+    def get_all_levels(cls):
+        """get_all_levels(pokemon) - return pokemon raid levels"""
+        return RaidLevelMaster.by_level.keys()
+
+    @classmethod
     def get_boss_list(cls, level):
         """get_boss_list(level) - returns a list of raid bosses for that level"""
-        raid_master = RaidMaster.by_level.get(str(level), None)
+        raid_master = RaidLevelMaster.by_level.get(str(level), None)
         if raid_master:
             return raid_master.raid_boss_list
 
@@ -136,4 +182,4 @@ class RaidMaster:
 
     @classmethod
     def is_current_raid_boss(cls, pokeform):
-        return RaidMaster.get_level(pokeform) is not None
+        return RaidLevelMaster.get_level(pokeform) is not None

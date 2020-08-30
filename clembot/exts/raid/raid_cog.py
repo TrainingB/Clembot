@@ -18,7 +18,8 @@ from clembot.exts.config import channel_checks
 
 from clembot.exts.gymmanager.gym import GymRepository, POILocationConverter
 from clembot.exts.pkmn.gm_pokemon import Pokemon
-from clembot.exts.pkmn.raid_boss import RaidMaster
+from clembot.exts.pkmn.raid_boss import RaidLevelMaster, RaidLevelConverter
+from clembot.exts.pokebattler.pokebattler import PokeBattler
 from clembot.exts.profile.user_guild_profile import UserGuildProfile
 from clembot.exts.raid import raid_checks
 from clembot.exts.raid.errors import NotARaidChannel, NotARaidPartyChannel
@@ -179,7 +180,7 @@ class RaidCog(commands.Cog):
     @channel_checks.raid_report_enabled()
     async def cmd_raidegg(self, ctx):
         await Embeds.message(ctx.channel,
-                             f"Ahh I see you've got some experience with Clembot. Things are different now.\nNow you can report either raid or egg both using just `!raid` or `!r`")
+                             f"Ahh I see you've got some Clembot experience. Things are different now.\nNow you can report either raid or egg both using just `!raid` or `!r`")
 
 
     @group(pass_context=True, hidden=True, aliases=["raid", "r"])
@@ -206,31 +207,33 @@ class RaidCog(commands.Cog):
         dscrd = DiscordOperations(self.bot)
         p_level, p_pkmn, p_timer = None, None, None
         raid_type = "raid"
-        if pokemon_or_level.isdigit():
+
+
+
+        p_level = RaidLevelConverter.to_level(pokemon_or_level)
+
+        if p_level is not None:
             raid_type = "egg"
-            p_level = int(pokemon_or_level)
-            if p_level < 1 or p_level > 5:
-                raise BadArgument("Invalid raid level")
         else:
             p_pkmn = await Pokemon.convert(ctx, pokemon_or_level)
             p_pokeform = await Pokemon.convert(ctx, pokemon_or_level)
             Logger.info(f"{p_pkmn} <=> {p_pokeform}")
-            p_level = RaidMaster.get_level(p_pokeform)
-            if not p_level:
+            p_level = RaidLevelMaster.get_level(p_pokeform)
+            if p_level is None:
                 new_raid_boss = f"Last time I checked, **{p_pokeform}** didn't appear as a raid boss. Please contact an admin to add **{p_pokeform}** as a raid-boss. Anyway, what is the raid boss level?"
                 reaction_dict = {
                     "1⃣": "1",
                     "2⃣": "2",
                     "3⃣": "3",
                     "4⃣": "4",
-                    "5⃣": "5"
+                    "5⃣": "5",
+                    "🇲" : "M",
+                    "🇪" : "E"
                 }
 
                 p_level = await Utilities.ask_via_reactions(ctx, ctx.message, new_raid_boss, "Got it!", "I need to know the raid boss level.", "Too late!", reaction_dict, None)
                 if not p_level:
                     raise BadArgument("Raid level information not available!")
-                p_level = int(p_level)
-
 
         if not p_level and not p_pkmn:
             raise BadArgument("Invalid raid level or Pokemon.")
@@ -244,9 +247,9 @@ class RaidCog(commands.Cog):
 
         raid_location = await POILocationConverter.convert_from_text(ctx, " ".join(gym_time_split))
 
-        raid = Raid(raid_id=raid_id, bot=self.bot, guild_id = ctx.guild.id,
-                    author_id=ctx.message.author.id, raid_type=raid_type, level=p_level, timer=p_timer,
-                    pkmn=p_pkmn, raid_location=raid_location, report_message=report_message, timezone=timezone )
+        raid = Raid(raid_id=raid_id, bot=self.bot, guild_id=ctx.guild.id, author_id=ctx.message.author.id,
+                    report_message=report_message, raid_type=raid_type, level=p_level, raid_location=raid_location,
+                    pkmn=p_pkmn, timer=p_timer, timezone=timezone)
 
         # create channel
         # respond in new channel that raid has been created
@@ -262,10 +265,11 @@ class RaidCog(commands.Cog):
         else:
             raid_embed = await raid.raid_embed()
 
-        raid.response_message = ChannelMessage.from_message(
-            await dscrd.send_raid_response(raid, raid_embed, ref_channel=new_raid_channel))
-        raid.channel_message = ChannelMessage.from_message(
-            await dscrd.send_raid_channel_message(raid, raid_embed, raid_channel=new_raid_channel))
+        actual_repsonse_message = await dscrd.send_raid_response(raid, raid_embed, ref_channel=new_raid_channel)
+        actual_channel_message = await dscrd.send_raid_channel_message(raid, raid_embed, raid_channel=new_raid_channel)
+
+        raid.response_message = ChannelMessage.from_message(actual_repsonse_message)
+        raid.channel_message = ChannelMessage.from_message(actual_channel_message)
 
         if p_timer is not None:
             await Embeds.message(new_raid_channel, raid.timer_message)
@@ -276,13 +280,15 @@ class RaidCog(commands.Cog):
                                                                                            raid_location.gym.gym_code)]
             # TODO if roles_to_notify send notification
 
+        await actual_repsonse_message.add_reaction(MyEmojis.POKE_BATTLER)
+        await actual_channel_message.add_reaction(MyEmojis.POKE_BATTLER)
+
         await raid.insert()
 
         # TODO: record raid report for leader-board
         user_guild_profile = await UserGuildProfile.find(self.bot, user_id=ctx.message.author.id, guild_id=ctx.guild.id)
         user_guild_profile.record_report('eggs' if raid.is_egg else 'raids')
         await user_guild_profile.update()
-
 
         self.bot.loop.create_task(raid.monitor_status())
         Logger.info(raid)
@@ -317,7 +323,7 @@ class RaidCog(commands.Cog):
 
         raid = RaidCog._get_raid_for_channel(ctx)
 
-        if pkmn.id in RaidMaster.get_boss_list(raid.level):
+        if pkmn.id in RaidLevelMaster.get_boss_list(raid.level):
             raid.raid_boss = pkmn
             await raid.update()
 
@@ -427,8 +433,8 @@ class RaidCog(commands.Cog):
             if p_pkmn:
                 raid.pkmn = p_pkmn
                 raid.raid_type = "raid"
-                raid.level = RaidMaster.get_level(p_pkmn)
-                raid.raid_level_info = RaidMaster.from_cache(p_level)
+                raid.level = RaidLevelMaster.get_level(p_pkmn)
+                raid.raid_level_info = RaidLevelMaster.from_cache(p_level)
                 # set hatch_time just in case.
                 raid.hatch_time = raid.hatch_time or raid.expiry_time - timedelta(minutes=(config_template.development_timer or self.raid_level_info.egg_timer)).seconds
 
@@ -489,6 +495,33 @@ class RaidCog(commands.Cog):
             payload_reaction = next(filter(lambda r: (r.emoji == payload.emoji.name), message.reactions), None)
             if payload_reaction and payload_reaction.me:
                 await message.delete()
+
+        if emoji == MyEmojis.POKE_BATTLER:
+            channel = self.bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+            payload_reaction = next(filter(lambda r: (r.emoji.id == payload.emoji.id), message.reactions), None)
+            if payload_reaction and payload_reaction.me:
+
+                raid = Raid.by_message_id.get(message.id)
+                if raid is not None:
+                    # create PBRP if already not present
+                    if raid.poke_battler_id is None:
+                        pb_raid_id = PokeBattler.create_raid_party(raid.pkmn.pokemon_form_id, PokeBattler.pb_raid_level(raid.level))
+                        raid.poke_battler_id = pb_raid_id
+                        await raid.update()
+
+                    # add the user to the raid party
+                    user = self.bot.get_user(payload.user_id)
+                    PokeBattler.add_user_to_raid_party(raid.poke_battler_id, user)
+                    await Embeds.message(raid.channel, f"{user.display_name} has joined pokebattler raid party [#{raid.poke_battler_id}]({PokeBattler.get_raid_party_url(raid.poke_battler_id)}).", icon=MyEmojis.POKE_BATTLER)
+
+
+
+
+
+
+
+
 
 
     @command(pass_context=True, hidden=True)
