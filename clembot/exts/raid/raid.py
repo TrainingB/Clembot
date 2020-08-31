@@ -1419,6 +1419,10 @@ class Raid (RSVPEnabled):
             self.pkmn = pkmn
             self.raid_type = "raid"
             await Embeds.message(cm_chnl, f"This egg has hatched into a **{pkmn}** raid.")
+
+            if self.poke_battler_id is not None:
+                PokeBattler.update_raid_party(self.poke_battler_id, PokeBattler.pb_raid_level(self.level), self.pkmn.pokemon_form_id if self.pkmn is not None else None)
+
             await self.update()
             self.monitor_task = self.create_task_tuple(self.monitor_status())
 
@@ -1651,12 +1655,23 @@ class EggEmbed:
 
         footer = f"{raid.cuid} | Reported by {author.display_name} | {raid.timer_info()}"
 
+        if raid.poke_battler_id is None:
+            pb_raid_party_info = f"Tap {MyEmojis.POKE_BATTLER} to create."
+            pb_raid_party_stats = raid.pb_raid_info
+        else:
+            pb_raid_party_info = f"Tap {MyEmojis.POKE_BATTLER} to join [#{raid.poke_battler_id}]({PokeBattler.get_raid_party_url(raid.poke_battler_id)})"
+            pb_raid_party_stats = raid.pb_raid_info
+            #f"1 Player - 0% win% - 2.82 Players Needed - 71.1% Damage Dealt"
+
+
         raid_boss_list = '\n'.join([Pokemon.to_pokemon(raid_boss).extended_label for raid_boss in RaidLevelMaster.get_boss_list(level)])
 
         fields = {
             "**Level**" : f"{RaidLevelConverter.label(level).title()}",
             "**Where**" : f"{raid_location.gym_embed_label}",
-            "**Possible Bosses**" : f"{raid_boss_list}"
+            "**Possible Bosses**" : f"{raid_boss_list}",
+            "**Pokebattler Raid Party**": pb_raid_party_info,
+            "**Pokebattler says**": [False, pb_raid_party_stats],
         }
 
         embed = Embeds.make_embed(header="Raid Report", header_icon=Icons.raid_report, thumbnail=img_url, fields=fields,

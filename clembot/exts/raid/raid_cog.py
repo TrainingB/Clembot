@@ -439,6 +439,9 @@ class RaidCog(commands.Cog):
                 raid.hatch_time = raid.hatch_time or raid.expiry_time - timedelta(minutes=(config_template.development_timer or self.raid_level_info.egg_timer)).seconds
 
         if p_level or p_pkmn:
+            if raid.poke_battler_id is not None:
+                PokeBattler.update_raid_party(raid.poke_battler_id, PokeBattler.pb_raid_level(raid.level), raid.pkmn.pokemon_form_id if raid.pkmn is not None else None)
+
             await raid.update()
             await Embeds.message(ctx.channel, "The raid has been updated.\n Use `!timer` to check and `!timerset` to reset the timer if needed.")
         else:
@@ -485,7 +488,7 @@ class RaidCog(commands.Cog):
     @Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """If user reacted 🗑 where I added 🗑 already, delete the message."""
-        Logger.info(f"on_raw_reaction_add({str(payload.emoji)} by {payload.member.nick}")
+        Logger.info(f"{str(payload.emoji)} added by {payload.member.nick}")
         if payload.user_id == self.bot.user.id:
             return
 

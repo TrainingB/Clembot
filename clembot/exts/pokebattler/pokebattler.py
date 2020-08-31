@@ -12,6 +12,8 @@ class PokeBattler:
 
     PB_CREATE_RAID_PARTY_URL = "https://fight.pokebattler.com/secure/raidParties"
 
+    PB_CREATE_RAID_PARTY_URL = "https://fight.pokebattler.com/secure/raidParties"
+
     PB_ADD_DISCORD_USER_RAID_PARTY_URL = "https://fight.pokebattler.com/secure/raidParties/:pbraidpartyid:/users"
 
     HEADERS = {
@@ -42,7 +44,7 @@ class PokeBattler:
 
     @staticmethod
     def create_raid_party(raid_level, raid_boss):
-        Logger.info(f"create_raid_party({raid_boss},{raid_level})")
+        Logger.info(f"create_raid_party({raid_level},{raid_boss})")
         try:
             create_payload = {
                 "tier": PokeBattler.pb_raid_level(raid_level)
@@ -57,6 +59,26 @@ class PokeBattler:
             pb_raid_party = response.json()
             pb_raid_party_id = pb_raid_party['id']
             Logger.info(f"({raid_boss}, {raid_level}) : {pb_raid_party_id}")
+            return pb_raid_party_id
+        except Exception as error:
+            return None
+
+
+    @staticmethod
+    def update_raid_party(pb_raid_id, raid_level, raid_boss):
+        Logger.info(f"update_raid_party({pb_raid_id},{raid_boss})")
+        try:
+            update_payload = {
+                "defender": raid_boss,
+                "tier" : raid_level
+            }
+
+            raid_party_url = f"https://fight.pokebattler.com/secure/raidParties/{pb_raid_id}"
+
+            response = requests.request("POST", raid_party_url, headers=PokeBattler.HEADERS, data=json.dumps(update_payload) )
+
+            pb_raid_party = response.json()
+            pb_raid_party_id = pb_raid_party['id']
             return pb_raid_party_id
         except Exception as error:
             return None
