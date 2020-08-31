@@ -41,12 +41,15 @@ class PokeBattler:
 
 
     @staticmethod
-    def create_raid_party(raid_boss, raid_level):
+    def create_raid_party(raid_level, raid_boss):
+        Logger.info(f"create_raid_party({raid_boss},{raid_level})")
         try:
             create_payload = {
-                "defender": raid_boss,
                 "tier": PokeBattler.pb_raid_level(raid_level)
             }
+
+            if raid_boss:
+                create_payload['defender'] = raid_boss
 
 
             response = requests.request("POST", PokeBattler.PB_CREATE_RAID_PARTY_URL, headers=PokeBattler.HEADERS, data=json.dumps(create_payload) )

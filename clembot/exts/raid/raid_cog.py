@@ -498,25 +498,27 @@ class RaidCog(commands.Cog):
                 await message.delete()
 
         if emoji == MyEmojis.POKE_BATTLER:
-            channel = self.bot.get_channel(payload.channel_id)
-            message = await channel.fetch_message(payload.message_id)
-            payload_reaction = next(filter(lambda r: (r.emoji.id == payload.emoji.id), message.reactions), None)
-            if payload_reaction and payload_reaction.me:
+            try:
+                channel = self.bot.get_channel(payload.channel_id)
+                message = await channel.fetch_message(payload.message_id)
+                payload_reaction = next(filter(lambda r: (r.emoji.id == payload.emoji.id), message.reactions), None)
+                if payload_reaction and payload_reaction.me:
 
-                raid = Raid.by_message_id.get(message.id)
-                if raid is not None:
-                    # create PBRP if already not present
-                    if raid.poke_battler_id is None:
-                        pb_raid_id = PokeBattler.create_raid_party(raid.pkmn.pokemon_form_id, PokeBattler.pb_raid_level(raid.level))
-                        raid.poke_battler_id = pb_raid_id
-                        await raid.update()
+                    raid = Raid.by_message_id.get(message.id)
+                    if raid is not None:
+                        # create PBRP if already not present
+                        if raid.poke_battler_id is None:
+                            pb_raid_id = PokeBattler.create_raid_party(PokeBattler.pb_raid_level(raid.level), raid.pkmn.pokemon_form_id if raid.pkmn is not None else None)
+                            raid.poke_battler_id = pb_raid_id
+                            await raid.update()
 
-                    # add the user to the raid party
-                    user = self.bot.get_user(payload.user_id)
-                    PokeBattler.add_user_to_raid_party(raid.poke_battler_id, user)
-                    await Embeds.message(raid.channel, f"{user.display_name} has joined pokebattler raid party [#{raid.poke_battler_id}]({PokeBattler.get_raid_party_url(raid.poke_battler_id)}).", icon=MyEmojis.POKE_BATTLER)
+                        # add the user to the raid party
+                        user = self.bot.get_user(payload.user_id)
+                        PokeBattler.add_user_to_raid_party(raid.poke_battler_id, user)
+                        await Embeds.message(raid.channel, f"{user.display_name} has joined pokebattler raid party [#{raid.poke_battler_id}]({PokeBattler.get_raid_party_url(raid.poke_battler_id)}).", icon=MyEmojis.POKE_BATTLER)
 
-
+            except Exception as error:
+                Logger.info(f"{error}")
 
 
 
