@@ -42,25 +42,21 @@ class PokeBattler:
 
     @staticmethod
     def create_raid_party(raid_boss, raid_level):
-
-        # create_payload = {
-        #     "defender": "HEATRAN",
-        #     "tier": "RAID_LEVEL_5"
-        # }
-
-        create_payload = {
-            "defender": raid_boss,
-            "tier": PokeBattler.pb_raid_level(raid_level)
-        }
+        try:
+            create_payload = {
+                "defender": raid_boss,
+                "tier": PokeBattler.pb_raid_level(raid_level)
+            }
 
 
-        response = requests.request("POST", PokeBattler.PB_CREATE_RAID_PARTY_URL, headers=PokeBattler.HEADERS, data=json.dumps(create_payload) )
+            response = requests.request("POST", PokeBattler.PB_CREATE_RAID_PARTY_URL, headers=PokeBattler.HEADERS, data=json.dumps(create_payload) )
 
-        pb_raid_party = response.json()
-        pb_raid_party_id = pb_raid_party['id']
-        Logger.info(f"({raid_boss}, {raid_level}) : {pb_raid_party_id}")
-        return pb_raid_party_id
-
+            pb_raid_party = response.json()
+            pb_raid_party_id = pb_raid_party['id']
+            Logger.info(f"({raid_boss}, {raid_level}) : {pb_raid_party_id}")
+            return pb_raid_party_id
+        except Exception as error:
+            return None
 
     @staticmethod
     def get_raid_party_url(pb_raid_party_id):
@@ -72,33 +68,24 @@ class PokeBattler:
 
     @staticmethod
     def add_user_to_raid_party(raid_party_id, member: discord.Member):
-        pb_raid_party_id = raid_party_id
-        url = f"https://fight.pokebattler.com/secure/raidParties/{pb_raid_party_id}/users"
+        try:
+            pb_raid_party_id = raid_party_id
+            url = f"https://fight.pokebattler.com/secure/raidParties/{pb_raid_party_id}/users"
 
-        # add_payload = {
-        #     "user": {
-        #         "discordName": f"tinyturtle#2230"
-        #     }
-        # }
-        # # "celandro#5137"
-        # response = requests.request("POST", url, headers=PokeBattler.HEADERS, data=json.dumps(add_payload) )
-        # pb_add_user_response = response.json()
-        # pb_raid_party_user_id = pb_add_user_response['id']
-        # Logger.info(f"({raid_party_id}, {member.name}#{member.discriminator}) : {pb_raid_party_user_id}")
-
-        add_payload = {
-            "user": {
-                "discordName": f"{member.name}#{member.discriminator}"
+            add_payload = {
+                "user": {
+                    "discordName": f"{member.name}#{member.discriminator}"
+                }
             }
-        }
 
-        response = requests.request("POST", url, headers=PokeBattler.HEADERS, data=json.dumps(add_payload) )
+            response = requests.request("POST", url, headers=PokeBattler.HEADERS, data=json.dumps(add_payload) )
 
-        pb_add_user_response = response.json()
-        pb_raid_party_user_id = pb_add_user_response['id']
-        Logger.info(f"({raid_party_id}, {member.name}#{member.discriminator}) : {pb_raid_party_user_id}")
+            pb_add_user_response = response.json()
+            pb_raid_party_user_id = pb_add_user_response['id']
+            Logger.info(f"({raid_party_id}, {member.name}#{member.discriminator}) : {pb_raid_party_user_id}")
 
-        return pb_raid_party_user_id
+            return pb_raid_party_user_id
 
-
+        except Exception as error:
+            return None
 

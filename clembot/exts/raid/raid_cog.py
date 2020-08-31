@@ -485,6 +485,7 @@ class RaidCog(commands.Cog):
     @Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """If user reacted 🗑 where I added 🗑 already, delete the message."""
+        Logger.info(f"on_raw_reaction_add({str(payload.emoji)} by {payload.member.nick}")
         if payload.user_id == self.bot.user.id:
             return
 
