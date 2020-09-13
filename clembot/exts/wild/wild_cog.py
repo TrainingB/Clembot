@@ -35,7 +35,7 @@ class WildCog(commands.Cog):
         wild.monitor_task = wild.create_task_tuple(wild.monitor_status())
 
 
-    @group(pass_context=True, hidden=True, aliases=["wild"])
+    @group(pass_context=True, category='Bot Info', aliases=["wild"])
     @channel_checks.wild_report_enabled()
     async def cmd_wild(self, ctx, pokemon: Pokemon, *loc):
         """Reports a wild spawn
@@ -43,7 +43,7 @@ class WildCog(commands.Cog):
         *pokemon* The name of the wild pokemon
         *location* The location of the spawn
 
-        If the location is a gym, directions will be accruate otherwise I will
+        If the location is a gym, directions will be accurate otherwise I will
         just provide a link for **location** + city of the channel.
         """
 

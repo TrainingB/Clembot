@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import BadArgument
 
+from clembot.core import checks
 from clembot.core.bot import group
 from clembot.core.logs import Logger
 from clembot.exts.config.channelconfigmanager import ChannelConfigCache
@@ -26,14 +27,27 @@ class GymManagerCog(commands.Cog):
         self.CityManager = ChannelConfigCache(bot.dbi, bot)
         self.gymRepository = GymRepository(self._dbi)
 
-    @group(pass_context=True, hidden=True, aliases=["gym"])
-    async def _command_gym(self, ctx):
+    @group(pass_context=True, category='Bot Info', aliases=["gym"])
+    async def cmd_gym(self, ctx):
+        """
+        Allows to lookup a gym information using a **valid gym-code**
+
+        **Note**
+        :one: **gym-code** is **first two letters** of **first two or three words** of gym name with some exceptions.
+        :two: To see a list of gyms you can use **!gyms**
+
+        **Usage:**
+        **!gym gym-code** - will bring up gym information.
+
+        **For Guild Owners Only**
+
+        **!gym add** - to add a new gym
+        **!gym update** - to update gym attributes
+        """
         try:
             if ctx.invoked_subcommand is None:
                 if ctx.subcommand_passed is None:
-                    return await Embeds.error(ctx.channel,
-                                              f"**{ctx.invoked_with}** can be used with various options.",
-                                              user=ctx.message.author)
+                    return await Embeds.message(ctx.channel, f"Use **help gym** to see the usage.")
 
                 city_state = ctx.message.content.split()[2] if len(ctx.message.content.split()) > 2 else None
 
@@ -42,34 +56,12 @@ class GymManagerCog(commands.Cog):
             Logger.error(error)
 
 
-    @_command_gym.command(pass_context=True, hidden=True, aliases=["find"])
+    @cmd_gym.command(pass_context=True, category='Bot Info', aliases=["find"])
     async def _command_gym_find(self, ctx, gym_code, city=None):
         return await self.send_gym_embed(ctx, gym_code, city)
 
-
-    @_command_gym.group(pass_context=True, hidden=True, aliases=["update"])
-    # @checks.is_guild_owner()
-    async def _command_gym_update(self, ctx, gym_id: int, attribute, value):
-
-        gym = await self.gymRepository.to_gym_by_id(gym_id)
-
-        if gym is None:
-            return await Embeds.error(ctx.channel, f"No gym found by id: **{gym_id}.", user=ctx.message.author)
-
-        if attribute not in Gym.attributes:
-            return await Embeds.error(ctx.channel, f"Only following attributes can be updated : `{Gym.attributes}`.",
-                                      user=ctx.message.author)
-
-        await self.gymRepository.update(gym_id, attribute, value)
-
-        updated_gym = await self.gymRepository.to_gym_by_id(gym_id)
-
-        message_text = f"Gym **{updated_gym.gym_name} [{updated_gym.gym_code}]** has been updated successfully."
-        await Embeds.message(ctx.message.channel, message_text, user=ctx.message.author, footer=updated_gym.summary)
-
-
-    @_command_gym.command(pass_context=True, hidden=True, aliases=["add"])
-    # @checks.is_guild_owner()
+    @cmd_gym.command(pass_context=True, category='Bot Info', aliases=["add"])
+    @checks.is_guild_owner()
     async def _command_gym_add(self, ctx, *, raw_gym_list=None):
         Logger.info("_gym_add()")
         try:
@@ -103,6 +95,29 @@ class GymManagerCog(commands.Cog):
             await ctx.message.delete()
 
         return
+
+    @cmd_gym.group(pass_context=True, category='Bot Info', aliases=["update"])
+    @checks.is_guild_owner()
+    async def _command_gym_update(self, ctx, gym_id: int, attribute, value):
+
+        gym = await self.gymRepository.to_gym_by_id(gym_id)
+
+        if gym is None:
+            return await Embeds.error(ctx.channel, f"No gym found by id: **{gym_id}.", user=ctx.message.author)
+
+        if attribute not in Gym.attributes:
+            return await Embeds.error(ctx.channel, f"Only following attributes can be updated : `{Gym.attributes}`.",
+                                      user=ctx.message.author)
+
+        await self.gymRepository.update(gym_id, attribute, value)
+
+        updated_gym = await self.gymRepository.to_gym_by_id(gym_id)
+
+        message_text = f"Gym **{updated_gym.gym_name} [{updated_gym.gym_code}]** has been updated successfully."
+        await Embeds.message(ctx.message.channel, message_text, user=ctx.message.author, footer=updated_gym.summary)
+
+
+
 
     async def send_gym_embed(self, ctx, gym_code, city=None):
 
@@ -138,8 +153,16 @@ class GymManagerCog(commands.Cog):
 
 
 
-    @group(pass_context=True, hidden=True, aliases=["gyms"])
-    async def _command_gyms(self, ctx, gym_code_or_name=None, city=None):
+    @group(pass_context=True, category='Bot Info', aliases=["gyms"])
+    async def cmd_gyms(self, ctx, gym_code_or_name=None, city=None):
+        """
+        **!gyms code** looks up all gyms starting with code.
+
+        **__Example:__**
+        **!gyms A** will bring up all gym code and gym names starting with **A**
+        **!gyms BU** will bring up all gym code and gym names starting with **BU**
+
+        """
         city = city or await ctx.city()
 
         if gym_code_or_name is None or len(gym_code_or_name) < 1:
