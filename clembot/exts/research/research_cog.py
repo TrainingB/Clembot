@@ -209,9 +209,6 @@ class ResearchCog(Cog):
 
         """
 
-        await ctx.send(
-            content=f"invoked_subcommand : {ctx.invoked_subcommand} | subcommand_passed: {ctx.subcommand_passed} ")
-
         if ctx.invoked_subcommand is None:
             if ctx.subcommand_passed is None:
                 await Embeds.message(ctx.channel, f"Use **help research** to see the usage.")
@@ -224,15 +221,6 @@ class ResearchCog(Cog):
 
 
     async def report_research(self, ctx, args):
-        """Report Field research
-        
-        **Usage:**
-        **!research pokestop, quest, reward** - reports a research quest at pokestop for reward. Poke-stop, quest and reward should be separated with a comma (,).
-
-        **!research list** - shows the list of research quests reported in the channel.
-        **!research list filter-text** - filters the quests list using the filter-text.
-
-        """
         args_split = args.split(", ")
         if len(args_split) == 3:
             timezone = await ctx.guild_timezone(ctx)

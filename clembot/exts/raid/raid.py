@@ -1667,7 +1667,7 @@ class EggEmbed:
         raid_boss_list = '\n'.join([Pokemon.to_pokemon(raid_boss).extended_label for raid_boss in RaidLevelMaster.get_boss_list(level)])
 
         fields = {
-            "**Level**" : f"{RaidLevelConverter.label(level).title()}",
+            "**Level**" : f"{str(RaidLevelConverter.label(level)).title()}",
             "**Where**" : f"{raid_location.gym_embed_label}",
             "**Possible Bosses**" : f"{raid_boss_list}",
             "**Pokebattler Raid Party**": pb_raid_party_info,

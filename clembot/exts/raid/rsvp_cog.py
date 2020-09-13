@@ -61,16 +61,18 @@ class RSVPCog(commands.Cog):
     async def cmd_changes(self, ctx):
 
         status = {
+            "Report an egg": [False, "\n~~!raidegg 4 somewhere~~ is now \n**!raid 4 somewhere**\n"],
             "Set raid boss (post-hatch)": [False, f"~~!raid pokemon~~ is now \n**!boss pokemon**"],
             "Set raid boss (pre-hatch)" : [False, "~~!r assume pokemon~~ is now \n**!assume pokemon**"],
-            "Report an egg" : [False, "\n~~!raidegg 4 somewhere~~ is now \n**!raid 4 somewhere**"],
-            "Change location of a raid": [False, "\n**!set-gym gym-code**"],
-            "See the list of raids": [False, "\n**!list-raid**"],
+            "Change raid-boss/location" : [False, "\nSee **!help change** in a raid-channel."],
+            "See/Set timer": [False, "\nSee **!help timer** in a raid-channel."],
+            "Set Suggested Start": [False, "\nSee **!help start** in a raid-channel."],
+            "See the list of raids": [False, "\n**!raids**"],
             ":new: RSVP Status" : [False, "**!ir** - interested *remotely*\n**!cr** - coming or on the way *remotely*\n**!hr** - here at raid *remotely*\n**!ii** - interested in raid *invite*. ***!list** will show your IGN, if set using **!profile**.*"]
 
         }
 
-        await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="What changed?", fields=status))
+        await ctx.send(embed=Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="What changed?", content="Some commands have been changed for better organization.", fields=status))
 
         pass
 
