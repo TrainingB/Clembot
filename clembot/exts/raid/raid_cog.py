@@ -659,8 +659,7 @@ class RaidCog(commands.Cog):
 
         img_url = Pokemon.to_pokemon(pkmn).preview_url
 
-        url = "https://fight.pokebattler.com/raids/defenders/{pkmn}/levels/RAID_LEVEL_{level}/attackers/".format(
-            pkmn=pkmn.replace('-', '_').upper(), level=level)
+        url = f"https://fight.pokebattler.com/raids/defenders/{pkmn.replace('-', '_').upper()}/levels/{PokeBattler.pb_raid_level(level)}/attackers/"
         if user:
             url += "users/{user}/".format(user=user)
             userstr = "user #{user}'s".format(user=user)
