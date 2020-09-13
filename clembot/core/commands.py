@@ -27,7 +27,7 @@ class Core(Cog):
         self.bot = bot
         bot.remove_command('help')
 
-    @command(pass_context=True, hidden=True, name="shutdown", category='Owner')
+    @command(pass_context=True, name="shutdown", category='Owner', hidden=True)
     @checks.is_bot_owner()
     async def cmd_shutdown(self, ctx):
         """Shuts the bot down."""
@@ -39,7 +39,7 @@ class Core(Cog):
         await ctx.bot.shutdown()
 
 
-    @command(pass_context=True, hidden=True, name="restart", category='Owner')
+    @command(pass_context=True, name="restart", category='Owner', hidden=True)
     @checks.is_bot_owner()
     async def cmd_restart(self, ctx):
         """Restarts the bot"""
@@ -51,7 +51,7 @@ class Core(Cog):
         await ctx.bot.shutdown(restart=True)
 
 
-    @command(name="uptime", category='Bot Info')
+    @command(name="uptime", category='Owner', hidden=True)
     async def cmd_uptime(self, ctx):
         """Shows bot's uptime"""
         uptime_str = ctx.bot.uptime_str
@@ -61,7 +61,7 @@ class Core(Cog):
             await ctx.send("Uptime: {}".format(uptime_str))
 
 
-    @command(name="bot-invite", category='Bot Info')
+    @command(name="bot-invite", category='Bot Info', hidden=True)
     async def cmd_bot_invite(self, ctx, plain_url: bool = False):
         """Shows bot's invite url"""
         invite_url = ctx.bot.invite_url
@@ -80,7 +80,7 @@ class Core(Cog):
         except discord.errors.Forbidden:
             await ctx.send("Invite URL: <{}>".format(invite_url))
 
-    @command(pass_context=True, hidden=True, category='Owner', aliases = ["change-activity"])
+    @command(pass_context=True, category='Owner', aliases = ["change-activity"], hidden=True)
     @checks.is_bot_owner()
     async def change_activity(self, ctx, *, status: str):
         """Sets the bot's online status
@@ -109,7 +109,8 @@ class Core(Cog):
                                           activity=game)
             await ctx.send(embed=Embeds.make_embed('success', title="Status modified"))
 
-    @command(pass_context=True, hidden=True, aliases=["list-servers"], category='Bot Info')
+
+    @command(pass_context=True, aliases=["list-servers"], category='Owner', hidden=True)
     @checks.is_bot_owner()
     async def cmd_list_servers(self, ctx):
 
@@ -124,18 +125,36 @@ class Core(Cog):
         return
 
 
-    @group(pass_context=True, hidden=True, aliases=["about"])
+    @group(pass_context=True, hidden=True, category='Bot Info', aliases=["wow"])
+    @wrap_error
+    async def cmd_wow(self, ctx):
+
+
+        embed = Embeds.make_embed()
+        embed.add_field(name="**:heart: Clembot**", value=f"[Buy me a :coffee:](https://paypal.me/directtob)",
+                        inline=True)
+
+        await ctx.send(embed=embed)
+
+
+    @group(pass_context=True, category='Bot Info', aliases=["about"])
     @wrap_error
     async def cmd_about(self, ctx):
+        """
+        Gives information about user roles (and bot)
+        !about - bot information
+        !about me - displays all user roles
+        !about @user - displays all roles for user
+        """
         try:
-            # if ctx.invoked_subcommand is not None:
-            #     return
-            #
-            # if len(ctx.message.mentions) > 0:
-            #     author = ctx.message.mentions[0]
-            #     if author:
-            #         await _about_user(author, ctx.message.channel)
-            #         return
+            if ctx.invoked_subcommand is not None:
+                return
+
+            if len(ctx.message.mentions) > 0:
+                author = ctx.message.mentions[0]
+                if author:
+                    await self.send_info_about_user(author, ctx.message.channel)
+                    return
 
             """Shows info about Clembot"""
             INVITE_CODE = config_template.invite_code
@@ -192,12 +211,12 @@ class Core(Cog):
             except discord.HTTPException:
                 about_msg = await channel.send("I need the `Embed links` permission to send this")
 
-            await ctx.message.delete()
             await about_msg.add_reaction('🗑️')
         except Exception as error:
             Logger.info(error)
 
-    @command(pass_context=True, hidden=True, aliases=["perms"])
+
+    @command(pass_context=True, category='Bot Info', aliases=["perms"])
     async def cmd_perms(self, ctx, *, channel_id: int = None):
 
         channel = ctx.bot.get(ctx.bot.get_all_channels(), id=channel_id)
@@ -265,7 +284,7 @@ class Core(Cog):
 
     @command(pass_context=True, hidden=True)
     @checks.is_bot_owner()
-    async def mysetup(ctx):
+    async def cmd_mysetup(ctx):
         text=[]
         current_guild = ctx.message.guild
 
@@ -275,43 +294,51 @@ class Core(Cog):
             if permission[1]:
                 text.append("{permission}".format(permission=permission[0]) )
 
+        text = " \ ".join(text)
         raid_embed = discord.Embed(colour=discord.Colour.gold())
-        raid_embed.add_field(name="**Username:**", value=_("{option}").format(option=user.name))
-        raid_embed.add_field(name="**Roles:**", value=_("{roles}").format(roles=" \ ".join(text)))
-        raid_embed.set_thumbnail(url=_("https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.{format}".format(user=user, format="jpg")))
+        raid_embed.add_field(name="**Username:**", value=f"{user.name}")
+        raid_embed.add_field(name="**Roles:**", value=f"{text}")
+        raid_embed.set_thumbnail(url=f"https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.jpg")
         await ctx.send(embed=raid_embed)
 
-    @cmd_about.command(pass_context=True)
-    async def me(self, ctx):
+    @cmd_about.command(pass_context=True, aliases=["me"])
+    async def cmd_about_cmd_me(self, ctx):
         author = ctx.message.author
 
-        await self._about_user(author, ctx.message.channel)
+        await self.send_info_about_user(author, ctx.message.channel)
 
 
-    async def _about_user(self, user, target_channel):
+    @staticmethod
+    async def send_info_about_user(user, target_channel):
         text = []
         for role in user.roles:
             text.append(role.name)
         roles_text = ' \ '.join(text)
-        raid_embed = discord.Embed(colour=discord.Colour.gold())
-        raid_embed.add_field(name="**Username:**", value=f"{user.name}")
-        raid_embed.add_field(name="**Roles:**", value=f"{roles_text}")
-        raid_embed.set_thumbnail(url=f"https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.jpg")
-        await target_channel.send(embed=raid_embed)
+        embed = discord.Embed(colour=discord.Colour.gold())
+        embed.add_field(name="**Username:**", value=f"{user.name}")
+        embed.add_field(name="**Roles:**", value=f"{roles_text}")
+        embed.set_thumbnail(url=f"https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.jpg")
+        await target_channel.send(embed=embed)
 
 
-    @command(pass_context=True, hidden=True, aliases=["about-me"])
-    async def _about_me(self, ctx):
+    @command(pass_context=True, category='Bot Info', aliases=["about-me"])
+    async def cmd_about_me(self, ctx):
         author = ctx.message.author
 
-        await self._about_user(author, ctx.message.channel)
+        await self.send_info_about_user(author, ctx.message.channel)
+
 
     @command(name='help', category='Bot Info')
     async def _help(self, ctx, *, command_name: str = None):
         """Shows help on available commands."""
         try:
             if command_name is None:
-                p = await Pagination.from_bot(ctx)
+
+                embed = Embeds.make_embed(header_icon=Icons.CONFIGURATION, header="Command Help", content="Use `!help command` to know more about commands.")
+
+                return await ctx.send(embed=embed)
+                # p = await Pagination.from_bot(ctx)
+
             else:
                 entity = (#self.bot.get_category(command_name) or
                           self.bot.get_cog(command_name) or
