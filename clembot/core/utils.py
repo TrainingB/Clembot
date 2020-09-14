@@ -314,3 +314,13 @@ def printable(guild, emoji_text):
 
     if len(emoji_array) > 0:
         return emoji_array[0]
+
+
+
+async def notify_for(bot, guild, role_name):
+    role = discord.utils.get(guild.roles, name=role_name.lower())
+    if role:
+        notify = await bot.data_manager.guild(guild.id).guild_profile('notifications')
+        if notify == 'true':
+            return role
+    return None

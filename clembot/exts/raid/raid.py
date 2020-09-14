@@ -15,6 +15,7 @@ from clembot.config import config_template
 from clembot.config.constants import Icons, MyEmojis
 from clembot.core.logs import Logger
 from clembot.core.time_util import convert_into_time
+from clembot.core.utils import notify_for
 from clembot.exts.gymmanager.gym import POILocation, POILocationConverter
 from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.exts.pkmn.raid_boss import RaidLevelMaster, RaidLevelConverter
@@ -1415,10 +1416,15 @@ class Raid (RSVPEnabled):
     async def report_hatch(self, pkmn: Pokemon):
         cm_chnl, cm_msg = await ChannelMessage.from_text(self.bot, self.channel_message)
         if cm_chnl:
-            # TODO: send notification to users about hatch
+
             self.pkmn = pkmn
             self.raid_type = "raid"
-            await Embeds.message(cm_chnl, f"This egg has hatched into a **{pkmn}** raid.")
+
+            role = await notify_for(self.bot, cm_chnl.guild, pkmn.id)
+            if role:
+                await cm_chnl.send(content=f"This egg has hatched into a **{role.mention}** raid.")
+            else:
+                await Embeds.message(cm_chnl, f"This egg has hatched into a **{pkmn}** raid.")
 
             if self.poke_battler_id is not None:
                 PokeBattler.update_raid_party(self.poke_battler_id, PokeBattler.pb_raid_level(self.level), self.pkmn.pokemon_form_id if self.pkmn is not None else None)
@@ -1848,27 +1854,6 @@ class DiscordOperations:
                 raise commands.BotMissingPermissions(['Manage Channels'])
 
 
-
-    @staticmethod
-    async def send_raid_response(raid: Raid, raid_embed, ref_channel: discord.TextChannel):
-        channel, message = await ChannelMessage.from_text(raid.bot, raid.report_message)
-        author = message.author
-
-        raid_response_message = await channel.send(
-            content=f"{MyEmojis.INFO} Coordinate the raid in {ref_channel.mention}", embed=raid_embed)
-
-        return raid_response_message
-
-    @staticmethod
-    async def send_raid_channel_message(raid: Raid, raid_embed, raid_channel: discord.TextChannel):
-        channel, message = await ChannelMessage.from_text(raid.bot, raid.report_message)
-        city_channel = channel
-
-        raid_channel_message = await raid_channel.send(
-            content=f"{MyEmojis.INFO} Raid reported in {city_channel.mention}! Coordinate here!",
-            embed=raid_embed)
-
-        return raid_channel_message
 
 
 class DiscordException(ValueError):

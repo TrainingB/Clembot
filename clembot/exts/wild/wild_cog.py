@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 from discord.ext.commands import BadArgument
 
@@ -5,7 +6,9 @@ from clembot.config.constants import MyEmojis
 from clembot.core.bot import group
 from clembot.core.commands import Cog
 from clembot.core.logs import Logger
+from clembot.core.utils import notify_for
 from clembot.exts.config import channel_checks
+from clembot.exts.config.guild_metadata import GuildMetadata
 from clembot.exts.gymmanager.gym import POILocationConverter
 from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.exts.profile.user_guild_profile import UserGuildProfile
@@ -56,7 +59,16 @@ class WildCog(commands.Cog):
         wild = Wild(self.bot, wild_id=wild_id, guild_id=ctx.guild.id, reporter_id=ctx.message.author.id,
                     pkmn=pokemon, location=location, timezone=timezone)
 
-        wild_report = await ctx.send(embed=wild.wild_embed(ctx))
+        message_content = None
+        role = await notify_for(self.bot, ctx.guild, pokemon.id)
+        if role:
+            message_content=f"A wild {role.mention} spotted by {ctx.message.author.mention}."
+
+        if message_content:
+            wild_report = await ctx.send(content=message_content, embed=wild.wild_embed(ctx))
+        else:
+            wild_report = await ctx.send(embed=wild.wild_embed(ctx))
+
         await wild_report.add_reaction(MyEmojis.DESPAWNED)
         wild.set_message(wild_report)
         await wild.insert()

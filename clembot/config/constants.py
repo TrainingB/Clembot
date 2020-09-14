@@ -4,7 +4,7 @@ from clembot.config import config_template
 
 GLOBAL_CONFIG_KEY = ["bingo-event-title", "cache-version", "timezone", "bingo-event-pokemon", "next-badge-id", "game-master-version"]
 
-GUILD_METADATA_KEY = ["hide-nest-preview", "bingo-card-repo", "bingo-event-title", "bingo-event-pokemon"]
+GUILD_METADATA_KEY = ["hide-nest-preview", "bingo-card-repo", "bingo-event-title", "bingo-event-pokemon", "notifications"]
 
 GUILD_CONFIG_KEY = ['prefix', 'city', 'timezone', 'welcome', 'teams', 'config']
 

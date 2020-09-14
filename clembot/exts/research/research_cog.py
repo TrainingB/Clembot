@@ -8,7 +8,9 @@ from clembot.core.commands import Cog
 from clembot.core.error_handler import InvalidInputError
 from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
+from clembot.core.utils import notify_for
 from clembot.exts.draft.draft import CUIDGenerator
+from clembot.exts.pkmn.gm_pokemon import Pokemon
 from clembot.exts.profile.user_guild_profile import UserGuildProfile
 from clembot.utilities.timezone import timehandler as TH
 from clembot.utilities.utils.embeds import Embeds
@@ -233,7 +235,19 @@ class ResearchCog(Cog):
                                 message_id=ctx.message.id, reporter_id=ctx.message.author.id, location=location,
                                 quest_info=quest, reward=reward, timezone=timezone)
 
-            research_response = await ctx.send(embed=await research.embed(ctx))
+            message_content = None
+            reward_pokemon = Pokemon.to_pokemon(reward)
+            if reward_pokemon:
+                role = await notify_for(self.bot, ctx.guild, reward_pokemon.id)
+                if role:
+                    message_content = f"A {role.mention} quest has been reported by {ctx.message.author.mention}."
+
+            if message_content:
+                research_response = await ctx.send(content=message_content, embed=await research.embed(ctx))
+            else:
+                research_response = await ctx.send(embed=await research.embed(ctx))
+
+
             research.message_id = research_response.id
             await research.insert()
             self.bot.loop.create_task(research.monitor_status())

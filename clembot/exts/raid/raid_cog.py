@@ -16,6 +16,7 @@ from clembot.core.bot import command, group
 from clembot.core.commands import Cog
 from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
+from clembot.core.utils import notify_for
 from clembot.exts.config import channel_checks
 
 from clembot.exts.gymmanager.gym import GymRepository, POILocationConverter
@@ -253,13 +254,20 @@ class RaidCog(commands.Cog):
 
         raid.raid_channel_id = new_raid_channel.id
 
+        message_content = f"{MyEmojis.INFO} Raid reported in {ctx.channel.mention}! Coordinate here!"
+
         if raid.is_egg:
             raid_embed = await raid.egg_embed()
         else:
             raid_embed = await raid.raid_embed()
 
-        actual_repsonse_message = await dscrd.send_raid_response(raid, raid_embed, ref_channel=new_raid_channel)
-        actual_channel_message = await dscrd.send_raid_channel_message(raid, raid_embed, raid_channel=new_raid_channel)
+            role = await notify_for(self.bot, ctx.guild, raid.raid_boss.id)
+            if role:
+                message_content = f"{role.mention} raid reported by {ctx.message.author.mention} in {ctx.channel.mention}. Coordinate here!"
+
+
+        actual_repsonse_message = await ctx.channel.send(content=f"{MyEmojis.INFO} Coordinate the raid in {new_raid_channel.mention}", embed=raid_embed)
+        actual_channel_message = await new_raid_channel.send(content=message_content, embed=raid_embed)
 
         raid.response_message = ChannelMessage.from_message(actual_repsonse_message)
         raid.channel_message = ChannelMessage.from_message(actual_channel_message)
@@ -312,8 +320,13 @@ class RaidCog(commands.Cog):
             raid.raid_boss = pkmn
             await raid.update()
 
-            message = f'This egg will be assumed to be **{raid.raid_boss}** when it hatches!'
-            await Embeds.message(ctx.channel, message)
+            role = await notify_for(self.bot, ctx.guild, pkmn.id)
+            if role:
+                message_content = f"This egg will be assumed to be {role.mention} when it hatches!"
+                await ctx.send(content=message_content)
+            else:
+                message_content = f'This egg will be assumed to be **{raid.raid_boss}** when it hatches!'
+                await Embeds.message(ctx.channel, message_content)
         else:
             err_message = f"**{pkmn.label}** doesn't appear in level {raid.level} raids."
             await Embeds.error(ctx.channel, err_message)
@@ -408,7 +421,6 @@ class RaidCog(commands.Cog):
                                       user=ctx.message.author)
 
         await raid.report_hatch(boss)
-
 
     @group(pass_context=True, category='Bot Info', aliases=["change"])
     @raid_checks.raid_channel()
@@ -744,7 +756,7 @@ class RaidCog(commands.Cog):
         nest_embed.add_field(name="**Pokemon**", value=pokemon.label, inline=True)
         nest_embed.add_field(name="**Where**", value=nest_location.gym_embed_label, inline=True)
         nest_embed.set_thumbnail(url=raid_img_url)
-        # hide_preview = not nest_location.is_gym or await ctx.guild_profile('nest.preview.hide') == 'true'
+        # hide_preview = not nest_location.is_gym or await ctx.guild_profile('hide-nest-preview') == 'true'
         # if not hide_preview:
         #     nest_embed.set_image(url=nest_location.google_preview_url)
         nest_embed.set_footer(text=f"Reported by {message.author.display_name}", icon_url=Icons.avatar(message.author))
