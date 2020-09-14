@@ -193,7 +193,7 @@ class GymManagerCog(commands.Cog):
             for gym in list_of_gyms:
                 list_of_gym_names.append(f"**{gym.gym_code.ljust(6)}** - {gym.gym_name}")
 
-            p = pagination.TextPagination(ctx, list_of_gym_names, per_page=25, title="Gym information", embed_header=gym_message_output, plain_text=True)
+            p = pagination.TextPagination(ctx, list_of_gym_names, per_page=20, title="Gym information", embed_header=gym_message_output, plain_text=True)
             await p.paginate()
 
         except Exception as error:
