@@ -40,7 +40,7 @@ class Research:
         self.reward = reward
         self.timezone = timezone
         self.reported_time = TH.current_epoch(second_precision=False) if reported_time is None else reported_time
-        to_midnight = 300 # (24 * 60 * 60) - int((self.reported_time - TH.convert_to_timestamp("12:00 AM", self.timezone)))
+        to_midnight = (24 * 60 * 60) - int((self.reported_time - TH.convert_to_timestamp("12:00 AM", self.timezone)))
         self.reset_time = ( self.reported_time + to_midnight ) if reset_time is None else reset_time
 
         Research.cache(self)
