@@ -61,13 +61,31 @@ class GymManagerCog(commands.Cog):
         return await self.send_gym_embed(ctx, gym_code, city)
 
     @cmd_gym.command(pass_context=True, category='Bot Info', aliases=["add"])
-    @checks.is_guild_owner()
+    @checks.is_guild_admin()
     async def _command_gym_add(self, ctx, *, raw_gym_list=None):
+        """
+        Adds a new gym into Gym database.
+
+        **Usage:**
+        **!gym add list_of_gym**
+
+        You can specify one or more gyms using below format. **gym_display_name** & **gym_code** are optional and auto-generated if not provided.
+
+        [{
+            "gym_name": "Name of the Gym",
+            "latitude": 00.00000,
+            "longitude": 00.00000,
+            "gym_city": "CITY",
+            "gym_state": "ST",
+            "gym_display_name": "optional, uses gym_name",
+            "gym_code": "optional, auto-generated"
+        }]
+        """
         Logger.info("_gym_add()")
         try:
             if raw_gym_list is None:
                 return await Embeds.message(ctx.message.channel,
-                                            f"Beep Beep! **{ctx.message.author.display_name}**, please provide gym information is following format. \n```!gym add \n{json.dumps(Gym.default_dict, indent=1)}```\n You can use https://www.csvjson.com/csv2json to convert CSV to JSON.")
+                                            f"Beep Beep! **{ctx.message.author.display_name}**, please provide gym information is following format. \n```!gym add \n{json.dumps(Gym.default_dict, indent=1)}```")
             gym_list = json.loads(raw_gym_list)
 
             for gym_dict in gym_list:
@@ -99,7 +117,18 @@ class GymManagerCog(commands.Cog):
     @cmd_gym.group(pass_context=True, category='Bot Info', aliases=["update"])
     @checks.is_guild_owner()
     async def _command_gym_update(self, ctx, gym_id: int, attribute, value):
+        """
+        Allows update gyms attributes one at a time.
 
+        **Usage:**
+        **!gym update gym-id attribute value**
+
+        **Example:**
+        **!gym update 1234 latitude 0.00000** - will update latitude to 0.00000 for gym with id 1234.
+
+        To find gym-id you can use `!gym gym-code` command.
+
+        """
         gym = await self.gymRepository.to_gym_by_id(gym_id)
 
         if gym is None:
