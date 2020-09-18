@@ -10,7 +10,7 @@ from discord.ext.commands import BadArgument
 from clembot.config.constants import MyEmojis
 from clembot.core import checks
 from clembot.core.bot import group, command
-from clembot.core.checks import AccessDenied, is_moderator
+from clembot.core.checks import AccessDenied
 from clembot.core.logs import Logger
 from clembot.exts.config import channel_checks
 from clembot.exts.config.channel_metadata import ChannelMetadata
@@ -55,7 +55,7 @@ class RaidPartyCog(commands.Cog):
             raise NoRaidForChannelError(f"Raid not found for channel {ctx.channel.mention}.")
 
 
-    @command(pass_context=True, hidden=True, aliases=["raidparty", "rp", "raid-party"])
+    @command(pass_context=True, category='Bot Info', aliases=["raidparty", "rp", "raid-party"])
     @channel_checks.raid_report_enabled()
     async def cmd_raidparty(self, ctx, *party_title):
         """
@@ -97,14 +97,14 @@ class RaidPartyCog(commands.Cog):
 
 
 
-    @command(pass_context=True, hidden=True, aliases=["raid-city", "rc"])
+    @command(pass_context=True, category='Bot Info', aliases=["raid-city", "rc"])
     @raid_checks.raid_party_channel()
     async def cmd_raid_city(self, ctx, city=None):
 
         raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
         if city is not None:
-            if raid_party.is_started_by(ctx.message.author.id) or checks.is_moderator(ctx):
+            if raid_party.is_started_by(ctx.message.author.id) or checks._check_is_moderator(ctx):
                 await ctx.channel_profile(channel_id=ctx.message.channel.id, key='city', value=city)
                 ChannelMetadata.evict(ctx.channel.id)
             else:
@@ -115,13 +115,13 @@ class RaidPartyCog(commands.Cog):
         await Embeds.message(ctx.channel, f"The city for this channel is set to **{channel_city}**.")
 
 
-    @command(pass_context=True, hidden=True, aliases=["raid-over", "raidover"])
+    @command(pass_context=True, category='Bot Info', aliases=["raid-over", "raidover"])
     @raid_checks.raid_party_channel()
     async def cmd_raid_over(self, ctx):
 
         raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
 
-        if raid_party.is_started_by(ctx.message.author.id) or checks.is_moderator(ctx):
+        if raid_party.is_started_by(ctx.message.author.id) or checks._check_is_moderator(ctx):
             clean_channel = await Utilities.ask_confirmation(ctx, ctx.message, "Are you sure to delete the channel?", "The channel will be deleted shortly.", "No changes done!", "Request Timed out!")
             if clean_channel:
                 try:
@@ -137,7 +137,7 @@ class RaidPartyCog(commands.Cog):
 
 
 
-    @command(pass_context=True, hidden=True, aliases=["roster"])
+    @command(pass_context=True, category='Bot Info', aliases=["roster"])
     @raid_checks.raid_party_channel()
     async def cmd_raidparty_roster(self, ctx):
         raid_party = RaidPartyCog.get_raid_party_for_channel(ctx)
@@ -148,7 +148,7 @@ class RaidPartyCog(commands.Cog):
 
 
 
-    @command(pass_context=True, hidden=True, aliases=["rinfo"])
+    @command(pass_context=True, category='Bot Info', aliases=["rinfo"])
     @raid_checks.raid_party_channel()
     async def cmd_raidparty_info(self, ctx):
 
@@ -156,7 +156,7 @@ class RaidPartyCog(commands.Cog):
         await Embeds.message(ctx.channel, json.dumps(raid_party.to_dict(), indent=2))
 
 
-    @command(pass_context=True, hidden=True, aliases=["where"])
+    @command(pass_context=True, category='Bot Info', aliases=["where"])
     @raid_checks.raid_party_channel()
     async def cmd_raidparty_where(self, ctx, location_number: int = None):
 
@@ -170,7 +170,7 @@ class RaidPartyCog(commands.Cog):
         return await Embeds.error(ctx.channel, f"The roster doesn't have location {location_number}.", user=ctx.message.author)
 
 
-    @command(pass_context=True, hidden=True, aliases=["move"])
+    @command(pass_context=True, category='Bot Info', aliases=["move"])
     @raid_checks.raid_party_channel()
     async def cmd_raid_party_move(self, ctx):
         try:
@@ -189,7 +189,7 @@ class RaidPartyCog(commands.Cog):
         pass
 
 
-    @command(pass_context=True, hidden=True, aliases=["add"])
+    @command(pass_context=True, category='Bot Info', aliases=["add"])
     @raid_checks.raid_party_channel()
     async def cmd_raid_party_add(self, ctx, *pkmn_location_eta):
         """
@@ -211,7 +211,7 @@ class RaidPartyCog(commands.Cog):
         await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
 
 
-    @command(pass_context=True, hidden=True, aliases=["remove"])
+    @command(pass_context=True, category='Bot Info', aliases=["remove"])
     @raid_checks.raid_party_channel()
     async def cmd_raid_party_remove(self, ctx, location_number:int):
 
@@ -230,7 +230,7 @@ class RaidPartyCog(commands.Cog):
         success_message = f"{MyEmojis.INFO} Location {raid_party.current_location_index} has been removed to the roster."
         await RaidPartyCog.show_roster_with_message(ctx, success_message, raid_party)
 
-    @command(pass_context=True, hidden=True, aliases=["reset"])
+    @command(pass_context=True, category='Bot Info', aliases=["reset"])
     @raid_checks.raid_party_channel()
     async def cmd_raid_party_reset(self, ctx):
 
@@ -247,7 +247,7 @@ class RaidPartyCog(commands.Cog):
 
 
 
-    @command(pass_context=True, hidden=True, aliases=["update"])
+    @command(pass_context=True, category='Bot Info', aliases=["update"])
     @raid_checks.raid_party_channel()
     async def cmd_raid_party_update(self, ctx, location_number:int, *pkmn_gym_or_eta):
 
@@ -286,7 +286,7 @@ class RaidPartyCog(commands.Cog):
         await ctx.channel.send(content=message, embed=embed)
 
 
-    @group(pass_context=True, hidden=True, aliases=["import"])
+    @group(pass_context=True, category='Bot Info', aliases=["import"])
     async def _import(self, ctx):
 
         if ctx.invoked_subcommand is None:
@@ -324,7 +324,7 @@ class RaidPartyCog(commands.Cog):
 
 
 
-    @command(pass_context=True, hidden=True, aliases=["rosterx"])
+    @command(pass_context=True, category='Bot Info', aliases=["rosterx"])
     @raid_checks.raid_channel()
     async def _rosterx(self, ctx):
 
@@ -520,7 +520,7 @@ class RaidPartyCog(commands.Cog):
 #
 #
 #
-# @Clembot.command(pass_context=True, hidden=True, aliases= ["next"])
+# @Clembot.command(pass_context=True, category='Bot Info', aliases= ["next"])
 # @checks.raidpartychannel()
 # async def _next_location(ctx):
 #     roster = guild_dict[ctx.message.channel.guild.id]['raidchannel_dict'][ctx.message.channel.id]['roster']
