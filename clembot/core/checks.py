@@ -7,6 +7,7 @@ from discord.ext.commands import CommandError
 class AccessDenied(CommandError):
     pass
 
+"""methods to check for permission doesn't throw errors"""
 
 async def _check_is_owner(ctx):
     has_access = await ctx.bot.is_owner(ctx.author)
@@ -14,23 +15,12 @@ async def _check_is_owner(ctx):
         return True
     return False
 
-async def check_is_owner(ctx):
-    if await _check_is_owner(ctx):
-        return True
-    raise AccessDenied("Access restricted for bot admin.")
-
-
 async def _check_is_trusted(ctx):
     if await _check_is_owner(ctx):
         return True
     if ctx.author.id in ctx.bot.trusted_users:
         return True
     return False
-
-async def check_is_trusted(ctx):
-    if await _check_is_trusted(ctx):
-        return True
-    raise AccessDenied("Access restricted for bot managers only.")
 
 
 async def _check_is_guild_owner(ctx):
@@ -40,17 +30,40 @@ async def _check_is_guild_owner(ctx):
         return True
     return False
 
+async def _check_is_guild_admin(ctx):
+    if await _check_is_guild_owner(ctx):
+        return True
+    if ctx.author.guild_permissions.manage_guild:
+        return True
+    return False
+
+
+async def _check_is_moderator(ctx):
+    if await check_is_guild_admin(ctx):
+        return True
+    if ctx.author.permissions_in(ctx.channel).manage_messages:
+        return True
+    return False
+
+
+"""method wrapper to check for permission, will throw error"""
+async def check_is_owner(ctx):
+    if await _check_is_owner(ctx):
+        return True
+    raise AccessDenied("Access restricted for bot admin.")
+
+
+async def check_is_trusted(ctx):
+    if await _check_is_trusted(ctx):
+        return True
+    raise AccessDenied("Access restricted for bot managers only.")
+
+
 async def check_is_guild_owner(ctx):
     if await _check_is_guild_owner(ctx):
         return True
     raise AccessDenied("Access restricted for Guild owners only.")
 
-async def _check_is_guild_admin(ctx):
-    if await check_is_guild_owner(ctx):
-        return True
-    if ctx.author.guild_permissions.manage_guild:
-        return True
-    return False
 
 async def check_is_guild_admin(ctx):
     if await _check_is_guild_admin(ctx):
@@ -58,15 +71,8 @@ async def check_is_guild_admin(ctx):
     raise AccessDenied("Access restricted for Guild admins (with manage_guild permission) only.")
 
 
-async def is_moderator(ctx):
-    if await check_is_guild_admin(ctx):
-        return True
-    if ctx.author.permissions_in(ctx.channel).manage_messages:
-        return True
-    return False
-
 async def check_is_moderator(ctx):
-    if await is_moderator(ctx):
+    if await _check_is_moderator(ctx):
         return True
     raise AccessDenied("Access restricted for Moderators (with manage_messages permission) only.")
 
