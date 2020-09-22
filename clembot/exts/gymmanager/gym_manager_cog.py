@@ -115,7 +115,7 @@ class GymManagerCog(commands.Cog):
         return
 
     @cmd_gym.group(pass_context=True, category='Bot Info', aliases=["update"])
-    @checks.is_guild_owner()
+    @checks.is_guild_admin()
     async def _command_gym_update(self, ctx, gym_id: int, attribute, value):
         """
         Allows update gyms attributes one at a time.
