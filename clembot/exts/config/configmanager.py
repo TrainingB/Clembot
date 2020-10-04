@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 
@@ -135,13 +136,12 @@ class ConfigManager(commands.Cog):
     @commands.command(pass_context=True, hidden=True, aliases=["list-servers"])
     async def _list_servers(self, ctx):
         recipient = {}
-        recipient_text = ""
 
         for guild in ctx.bot.guilds:
             recipient[guild.name] = guild.owner.mention
-            recipient_text += f"\n**{guild.name} [{len(guild.members)}]** - {guild.owner.name} {guild.owner.mention}"
-
-        await self.utilities._send_message(ctx.channel, recipient_text)
+            recipient_text = f"\n**{guild.name} [{len(guild.members)}]** - {guild.owner.name} {guild.owner.mention}"
+            await asyncio.sleep(0.25)
+            await self.utilities._send_message(ctx.channel, recipient_text)
 
     #
     # @commands.group(pass_context=True, hidden=True, aliases=["config"])
