@@ -119,7 +119,7 @@ class BingoCog(commands.Cog):
         if bingo_card_repo_channel_id:
             bingo_card_repo_channel = self.bot.get_channel(int(bingo_card_repo_channel_id))
     
-            if bingo_card_repo_channel:
+            if bingo_card_repo_channel is None:
                 raise BadArgument(f"Not able to locate #bingo-card-repo. bingo-card-repo config is set to channel-id {bingo_card_repo_channel_id}. Please check if I have enough permission to see and send messages and embeds with files to that channel. \n You can use `!config guild bingo-card-repo channel-id` command to update the value.")
                 
                 return
