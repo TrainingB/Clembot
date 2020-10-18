@@ -118,9 +118,11 @@ class BingoCog(commands.Cog):
         
         if bingo_card_repo_channel_id:
             bingo_card_repo_channel = self.bot.get_channel(int(bingo_card_repo_channel_id))
-
-        if bingo_card_repo_channel:
-            return
+    
+            if bingo_card_repo_channel:
+                raise BadArgument(f"Not able to locate #bingo-card-repo. bingo-card-repo config is set to channel-id {bingo_card_repo_channel_id}. Please check if I have enough permission to see and send messages and embeds with files to that channel. \n You can use `!config guild bingo-card-repo channel-id` command to update the value.")
+                
+                return
         else:
             bingo_card_repo_category = None
             try:
@@ -128,7 +130,7 @@ class BingoCog(commands.Cog):
                     message.channel.overwrites), category=bingo_card_repo_category)
                 await ctx.guild_profile(key='bingo-card-repo', value=bingo_card_repo_channel.id)
             except Exception as error:
-                raise BadArgument("Not able to locate/create #bingo_card_repo channel. Please use `!config guild bingo-card-repo channel-id` to set the configuration or provide me access to manage channels so that I can create one.")
+                raise BadArgument("Failed in creation of #bingo_card_repo channel. Please use `!config guild bingo-card-repo channel-id` to set the configuration or provide me access to manage channels so that I can create one.")
 
         return bingo_card_repo_channel
 
