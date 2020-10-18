@@ -3,6 +3,7 @@ import os
 
 import discord
 from discord.ext import commands
+from discord.ext.commands import BadArgument
 
 from clembot.core.bot import group, command
 from clembot.core.errors import wrap_error
@@ -24,17 +25,17 @@ class BingoCog(commands.Cog):
         self.MyBingoCardManager = BingoCardManager(bot.dbi)
         self.MyGlobalConfigCache = GlobalConfigCache(bot.dbi)
 
-    @command(pass_context=True, hidden=True, aliases=["bingo-card"])
+    @command(pass_context=True, category='Bot Info', aliases=["bingo-card"])
     async def cmd_bingo_card_original(self, ctx):
         await self.cmd_bingo_card(ctx)
 
-    @group(pass_context=True, hidden=True, aliases=["bingo"])
+    @group(pass_context=True, category='Bot Info', aliases=["bingo"])
     async def cmd_bingo(self, ctx):
         if ctx.invoked_subcommand is None:
             await self._bingo_win(ctx)
 
 
-    @cmd_bingo.command(pass_context=True, hidden=True, aliases=["card"])
+    @cmd_bingo.command(pass_context=True, category='Bot Info', aliases=["card"])
     @wrap_error
     async def cmd_bingo_card(self, ctx):
         command_option = "-new"
@@ -78,6 +79,8 @@ class BingoCog(commands.Cog):
             file_path = BingoCardWriter.generate_board(user_name=card_for.id, bingo_card=bingo_card,
                                                        template_file="{0}.png".format(event_pokemon))
             repo_channel = await self.get_repository_channel(ctx, message)
+            if repo_channel is None:
+                return
             file_url_message = await repo_channel.send(file=discord.File(file_path),
                                                        content="Generated for : {user} at {timestamp}".format(
                                                            user=card_for.mention, timestamp=timestamp))
@@ -108,17 +111,24 @@ class BingoCog(commands.Cog):
     @wrap_error
     async def get_repository_channel(self, ctx, message):
 
-        bingo_card_repo_channel_id = await GuildMetadata.bingo_card_repo(self.bot, ctx.message.guild.id)
 
+        # find bingo_card_repo channel
+
+        bingo_card_repo_channel_id = await ctx.guild_profile(key='bingo-card-repo')
+        
         if bingo_card_repo_channel_id:
             bingo_card_repo_channel = self.bot.get_channel(int(bingo_card_repo_channel_id))
 
+        if bingo_card_repo_channel:
+            return
         else:
             bingo_card_repo_category = None
-            bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(
-                message.channel.overwrites), category=bingo_card_repo_category)
-
-            await ctx.guild_profile(key='bingo-card-repo', value=bingo_card_repo_channel.id)
+            try:
+                bingo_card_repo_channel = await message.guild.create_text_channel('bingo_card_repo', overwrites=dict(
+                    message.channel.overwrites), category=bingo_card_repo_category)
+                await ctx.guild_profile(key='bingo-card-repo', value=bingo_card_repo_channel.id)
+            except Exception as error:
+                raise BadArgument("Not able to locate/create #bingo_card_repo channel. Please use `!config guild bingo-card-repo channel-id` to set the configuration or provide me access to manage channels so that I can create one.")
 
         return bingo_card_repo_channel
 

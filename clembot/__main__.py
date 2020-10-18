@@ -52,7 +52,7 @@ def run_bot(debug=False, launcher=None, from_restart=False):
 
 def parse_cli_args():
     parser = argparse.ArgumentParser(
-        description="Meowth - Discord Bot for Pokemon Go Communities")
+        description="Clembot - Discord Bot for Pokemon Go Communities")
     parser.add_argument(
         "--debug", "-d", help="Enabled debug mode.", action="store_true")
     parser.add_argument(
