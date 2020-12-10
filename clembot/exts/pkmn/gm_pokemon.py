@@ -69,26 +69,26 @@ class Pokemon:
 
     @property
     def form(self):
-        form = _.get(self.db_dict, 'pokemon.form') or _.get(self.db_dict, 'pokemon.uniqueId')
+        form = _.get(self.db_dict, 'pokemonId')
         if '_ALOLA' in form:
             form = form.replace('_ALOLA','_ALOLA_FORM')
         return form
 
     @property
     def base_attack(self):
-        return _.get(self.db_dict, 'pokemon.stats.baseAttack')
+        return _.get(self.db_dict, 'stats.baseAttack')
 
     @property
     def base_defense(self):
-        return _.get(self.db_dict, 'pokemon.stats.baseDefense')
+        return _.get(self.db_dict, 'stats.baseDefense')
 
     @property
     def base_stamina(self):
-        return _.get(self.db_dict, 'pokemon.stats.baseStamina')
+        return _.get(self.db_dict, 'stats.baseStamina')
 
     @property
     def fast_moves(self):
-        return list(map(lambda move: move.replace("_FAST", ""), _.get(self.db_dict, 'pokemon.quickMoves')))
+        return list(map(lambda move: move.replace("_FAST", ""), _.get(self.db_dict, 'quickMoves')))
 
     @property
     def fast_moves_labels(self):
@@ -96,7 +96,7 @@ class Pokemon:
 
     @property
     def charge_moves(self):
-        return list(map(lambda move: move, _.get(self.db_dict, 'pokemon.cinematicMoves')))
+        return list(map(lambda move: move, _.get(self.db_dict, 'cinematicMoves')))
 
     @property
     def charge_moves_labels(self):
@@ -105,14 +105,14 @@ class Pokemon:
 
     @property
     def type1(self):
-        type1 = _.get(self.db_dict, 'pokemon.type1')
+        type1 = _.get(self.db_dict, 'type')
         if type1:
             return type1.replace("POKEMON_TYPE_","").upper()
         return None
 
     @property
     def type2(self):
-        type2 = _.get(self.db_dict, 'pokemon.type2')
+        type2 = _.get(self.db_dict, 'type2')
         if type2:
             return type2.replace("POKEMON_TYPE_", "").upper()
         return None
@@ -213,7 +213,7 @@ class Pokemon:
     async def load(cls, bot):
 
         if len(Pokemon._cache) == 0:
-            table = bot.dbi.table('GM_POKEMON_FORMS')
+            table = bot.dbi.table('PB_POKEMON_FORM')
             forms = await table.query().select().getjson()
 
             for form in forms:

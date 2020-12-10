@@ -1,4 +1,5 @@
 from discord.ext import commands
+from discord.ext.commands import BadArgument
 
 from clembot.config.constants import Icons
 from clembot.core.bot import command
@@ -147,9 +148,13 @@ class RSVPCog(commands.Cog):
 
     @command(pass_context=True, aliases=["mention"])
     @raid_checks.rsvp_enabled()
-    async def cmd_mention(self, ctx, *, status_with_message=None):
+    async def cmd_mention(self, ctx, *, status_with_message):
+        """Allows to tag trainers for a message by their status
+        **Usage:**
+        !mention c message - tags everyone who marked as C with the message
+        !mention message - tags everyone who RSVP'd by any status
+        """
 
-        allowed_status = ["c", "h", "i", "ir", "ii", "cr", "hr"]
         args = status_with_message.split()
 
         # if first word specifies the status, convert to rsvp status
@@ -169,7 +174,7 @@ class RSVPCog(commands.Cog):
 
 
         if len(mention_list) == 0:
-            raise ValueError(f"Beep Beep! **{ctx.message.author.display_name}**, No trainers found to mention.".format())
+            raise BadArgument(f"Beep Beep! **{ctx.message.author.display_name}**, No trainers found to mention.".format())
 
         mention_message = f"**{ctx.message.author.display_name}**: {' '.join(message)} {', '.join(mention_list)}"
 
@@ -184,3 +189,9 @@ class RSVPCog(commands.Cog):
             return await rsvp_enabled.send_rsvp_embed(ctx.message, "")
 
 
+    @command(pass_context=True, aliases=["rlist"])
+    @raid_checks.rsvp_enabled()
+    async def cmd_rlist(self, ctx):
+        rsvp_enabled = RSVPCog.get_rsvp_source(ctx)
+        if rsvp_enabled is not None:
+            return await rsvp_enabled.send_remote_rsvp_embed(ctx.message, "")

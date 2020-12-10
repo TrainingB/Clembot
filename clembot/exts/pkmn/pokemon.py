@@ -18,7 +18,7 @@ from clembot.utilities.utils.utilities import Utilities
 
 class PokemonX:
 
-    def __init__(self, pokemon_id, pokeform_display_text=None, pokedex_id=None, pokedex_num=None, base_attack=None, base_defense=None, base_stamina=None, alias=None, tags=None, type1=None, type2=None, emoji_key=None):
+    def __init__(self, pokemon_id, pokeform_display_text=None, pokedex_id=None, pokedex_num=None, base_attack=None, base_defense=None, base_stamina=None, alias=None, tags=None, type=None, type2=None, emoji_key=None):
         self.pokemon_id = pokemon_id
         self.pokeform_display_text = pokeform_display_text
         self.pokedex_id = pokedex_id
@@ -28,7 +28,7 @@ class PokemonX:
         self.base_stamina = base_stamina
         self.alias = alias
         self.tags = tags
-        self._type1 = type1
+        self._type = type
         self._type2 = type2
         self.emoji_key = emoji_key
 
@@ -49,7 +49,7 @@ class PokemonX:
             'base_stamina': self.base_stamina,
             'pokeform_alias': self.alias,
             'pokeform_tags': self.tags,
-            'type_1': self._type1,
+            'type_1': self._type,
             'type_2': self._type2,
             'emoji_key' : self.emoji_key
         }
@@ -62,7 +62,7 @@ class PokemonX:
         pokeform_display_text = data['pokeform_display_text']
         pokedex_id = data['pokedex_id']
         pokedex_num = data['pokedex_num']
-        type1 = data['type_1']
+        type = data['type_1']
         type2 = data['type_2']
         base_attack = data['base_attack']
         base_defense = data['base_defense']
@@ -71,7 +71,7 @@ class PokemonX:
         tags = data['pokeform_tags']
         emoji_key = data['emoji_key']
 
-        return cls(pokemon_id, pokeform_display_text, pokedex_id, pokedex_num, base_attack, base_defense, base_stamina, alias, tags, type1, type2, emoji_key)
+        return cls(pokemon_id, pokeform_display_text, pokedex_id, pokedex_num, base_attack, base_defense, base_stamina, alias, tags, type, type2, emoji_key)
 
     @property
     def emoji(self):
@@ -90,9 +90,9 @@ class PokemonX:
         return None
 
     @property
-    def type1(self):
-        if self._type1:
-            return self._type1.replace("POKEMON_TYPE_", "").upper()
+    def type(self):
+        if self._type:
+            return self._type.replace("POKEMON_TYPE_", "").upper()
         return None
 
     @property
@@ -104,13 +104,13 @@ class PokemonX:
     @property
     def types(self):
         if self.type2:
-            return [self.type1, self.type2]
-        return [self.type1]
+            return [self.type, self.type2]
+        return [self.type]
 
     @property
-    def type1_icon(self):
-        if self.type1:
-            key = self.type1.lower()
+    def type_icon(self):
+        if self.type:
+            key = self.type.lower()
             return config_template.type_emoji[key]
         return None
 
@@ -123,8 +123,8 @@ class PokemonX:
 
     @property
     def extended_label(self):
-        """returns pokemon(pokedex) type1 type2"""
-        extended_label=f"{self.pokeform_display_text.capitalize()} ({self.pokedex_num}) {self.type1_icon}"
+        """returns pokemon(pokedex) type type2"""
+        extended_label=f"{self.pokeform_display_text.capitalize()} ({self.pokedex_num}) {self.type_icon}"
         if self.type2_icon:
             extended_label=f"{extended_label}{self.type2_icon}"
         return extended_label

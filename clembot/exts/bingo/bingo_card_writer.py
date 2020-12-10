@@ -60,14 +60,14 @@ class BingoCardWriter:
             margin = 10
             font = ImageFont.truetype(os.path.join(script_path,"fonts","Helvetica-Bold.ttf"), 10, encoding="unic")
             special_font = ImageFont.truetype(os.path.join(script_path, "fonts","DejaVuSansMono.ttf"), 40, encoding="unic")
-            small_font = ImageFont.truetype(os.path.join(script_path, "fonts","Helvetica-Bold.ttf"), 20, encoding="unic")
+            small_font = ImageFont.truetype(os.path.join(script_path, "fonts","Helvetica-Bold.ttf"), 18, encoding="unic")
 
             path  = os.path.join(file_path, template_file)
 
             canvas = Image.open(os.path.join(file_path, template_file))
             draw = ImageDraw.Draw(canvas)
 
-            colors = ['indigo','indigo','indigo','indigo','indigo','indigo','indigo','indigo','indigo']
+            colors = ['indigo','white','indigo','white','indigo','white','indigo','white','indigo']
             counter = 0
             for row in bingo_board:
                 x_position = 45

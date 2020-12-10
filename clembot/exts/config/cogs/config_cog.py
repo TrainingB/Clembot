@@ -102,7 +102,7 @@ class ConfigCog(commands.Cog):
         await response_message.add_reaction(MyEmojis.TRASH)
 
 
-    @group(pass_context=True, hidden=True, aliases=["config"])
+    @group(pass_context=True, category='Bot Info', aliases=["config"])
     @is_guild_admin()
     async def cmd_config(self, ctx):
         """
@@ -119,7 +119,7 @@ class ConfigCog(commands.Cog):
             raise BadArgument("`!config` can be used with `guild, channel, timezone, city`")
 
 
-    @cmd_config.command(pass_context=True, hidden=True, aliases=["timezone"])
+    @cmd_config.command(pass_context=True, category='Bot Info', aliases=["timezone"])
     @wrap_error
     @is_guild_admin()
     async def cmd_config_timezone(self, ctx, timezone):
@@ -132,7 +132,7 @@ class ConfigCog(commands.Cog):
         raise BadArgument(f"**{timezone}** didn't resolve to a valid timezone. \nYou can see a list for a valid timezone for a country ISO 3166 country code using `!timezone country_code`")
 
 
-    @cmd_config.command(pass_context=True, hidden=True, aliases=["city"])
+    @cmd_config.command(pass_context=True, category='Bot Info', aliases=["city"])
     @wrap_error
     @is_guild_admin()
     async def cmd_config_city(self, ctx, *city):
@@ -145,7 +145,7 @@ class ConfigCog(commands.Cog):
             raise BadArgument("Please specify city and state, in all caps, without spaces.")
 
 
-    @cmd_config.command(pass_context=True, hidden=True, aliases=["guild"])
+    @cmd_config.command(pass_context=True, category='Bot Info', aliases=["guild"])
     @wrap_error
     @is_guild_admin()
     async def cmd_config_guild(self, ctx, config_name=None, config_value=None):
@@ -168,7 +168,7 @@ class ConfigCog(commands.Cog):
             await ConfigCog.send_guild_config_embed(ctx, config)
 
 
-    @cmd_config.command(pass_context=True, hidden=True, aliases=["channel"])
+    @cmd_config.command(pass_context=True, category='Bot Info', aliases=["channel"])
     @wrap_error
     @is_guild_mod()
     async def cmd_config_channel(self, ctx, config_name=None, config_value=None):
@@ -214,7 +214,7 @@ class ConfigCog(commands.Cog):
 
 
 
-    @cmd_config.command(pass_context=True, hidden=True, aliases=["global"])
+    @cmd_config.command(pass_context=True, category='Bot Info', aliases=["global"])
     @wrap_error
     @checks.is_bot_owner()
     async def cmd_config_global(self, ctx, config_name=None, config_value=None):

@@ -27,7 +27,7 @@ from clembot.exts.profile.user_guild_profile import UserGuildProfile
 from clembot.exts.raid import raid_checks
 from clembot.exts.raid.errors import NotARaidChannel, NotARaidPartyChannel
 
-from clembot.exts.raid.raid import ChannelMessage, Raid, RaidRepository, DiscordOperations
+from clembot.exts.raid.raid import ChannelMessage, Raid, RaidRepository, DiscordOperations, RemoteRaid
 from clembot.utilities.utils import snowflake
 from clembot.utilities.utils.argparser import ArgParser
 from clembot.utilities.utils.embeds import Embeds
@@ -281,7 +281,9 @@ class RaidCog(commands.Cog):
                                                                                            raid_location.gym.gym_code)]
             # TODO if roles_to_notify send notification
 
-        await actual_repsonse_message.add_reaction(MyEmojis.POKE_BATTLER)
+
+        for emoji in raid.actions :
+            await actual_repsonse_message.add_reaction(emoji)
         await actual_channel_message.add_reaction(MyEmojis.POKE_BATTLER)
 
         await raid.insert()
@@ -575,9 +577,29 @@ class RaidCog(commands.Cog):
                         user = self.bot.get_user(payload.user_id)
                         PokeBattler.add_user_to_raid_party(raid.poke_battler_id, user)
                         await Embeds.message(raid.channel, f"{user.display_name} has joined pokebattler raid party [#{raid.poke_battler_id}]({PokeBattler.get_raid_party_url(raid.poke_battler_id)}).", icon=MyEmojis.POKE_BATTLER)
-
             except Exception as error:
                 Logger.info(f"{error}")
+                
+        if emoji == MyEmojis.REMOTE:
+            
+            try:
+                channel = self.bot.get_channel(payload.channel_id)
+                message = await channel.fetch_message(payload.message_id)
+                payload_reaction = next(filter(lambda r: (r.emoji.id == payload.emoji.id), message.reactions), None)
+                if payload_reaction and payload_reaction.me:
+        
+                    raid = Raid.by_message_id.get(message.id)
+                    if raid is not None:
+                        # add the user to the raid party
+                        # user = self.bot.get_user(payload.user_id)
+                        await raid.add_rsvp(member_id=payload.user_id, status='ir', count=1)
+                        chnl, msg = await ChannelMessage.from_text(self.bot, raid.channel_message)
+                        await raid.send_remote_rsvp_embed(msg, "")
+                        
+            except Exception as error:
+                print(error)
+                pass
+
 
 
     @command(pass_context=True, hidden=True)
@@ -845,6 +867,116 @@ class RaidCog(commands.Cog):
             # TODO: handle time input?
             await Embeds.error(ctx.channel, f"I couldn't understand the time format. Try again like this: `!timer 10`",
                                user=ctx.message.author)
+    
+    
+    @group(pass_context=True, aliases=["remote", "rr"], category='Bot Info')
+    @channel_checks.raid_report_enabled()
+    async def cmd_remote_raid(self, ctx, pokemon_or_level, time_remaining=None):
+        """
+        Reports a raid
+        **Arguments**
+        *pokemon_or_level* - pokemon or level. For pokemon if specifying forms, use - as separator
+        *gym_and_or_time* - specify raid location can be a predefined gym code or can be any text to identify the location. You can include minutes remaining as a last parameter.
+    
+        **Usage**
+        `!raid 4 gym 12` -> reports a level 4 raid at gym and egg will hatch in 12 minutes
+        `!raid alola-raichu gym 43` -> reports a absol raid at gym which will expire in 43 minutes
+        """
+        
+        city = await ctx.city()
+        timezone = await ctx.timezone()
+        Logger.info(f"cmd_raid({ctx.message.content}) for {city} {timezone}")
+        raid_id = next(snowflake.create())
+        
+        report_message = f"{ctx.message.channel.id}-{ctx.message.id}"
+        
+        dscrd = DiscordOperations(self.bot)
+        p_level, p_pkmn, p_timer = None, None, None
+        raid_type = "raid"
+        
+        p_level = RaidLevelConverter.to_level(pokemon_or_level)
+        
+        if p_level is not None:
+            raid_type = "egg"
+        else:
+            p_pkmn = await Pokemon.convert(ctx, pokemon_or_level)
+            p_pokeform = await Pokemon.convert(ctx, pokemon_or_level)
+            Logger.info(f"{p_pkmn} <=> {p_pokeform}")
+            p_level = RaidLevelMaster.get_level(p_pokeform)
+            if p_level is None:
+                new_raid_boss = f"Last time I checked, **{p_pokeform}** didn't appear as a raid boss. Please contact an admin to add **{p_pokeform}** as a raid-boss. Anyway, what is the raid boss level?"
+                reaction_dict = {
+                    "1⃣": "1",
+                    "2⃣": "2",
+                    "3⃣": "3",
+                    "4⃣": "4",
+                    "5⃣": "5",
+                    "🇲": "M",
+                    "🇪": "E"
+                }
+                
+                p_level = await Utilities.ask_via_reactions(ctx, ctx.message, new_raid_boss, "Got it!",
+                                                            "I need to know the raid boss level.", "Too late!",
+                                                            reaction_dict, None)
+                if not p_level:
+                    raise BadArgument("Raid level information not available!")
+        
+        if not p_level and not p_pkmn:
+            raise BadArgument("Invalid raid level or Pokemon.")
+        
+        
+        if time_remaining and time_remaining.isdigit():
+            p_timer = int(time_remaining)
+        
+        
+        raid = RemoteRaid(raid_id=raid_id, bot=self.bot, guild_id=ctx.guild.id, author_id=ctx.message.author.id,
+                    report_message=report_message, raid_type=raid_type, level=p_level,
+                    pkmn=p_pkmn, timer=p_timer, timezone=timezone)
+        
+        # create channel
+        # respond in new channel that raid has been created
+        # respond to raid report saying channel has been created
+        
+        new_raid_channel = await dscrd.create_private_channel(ctx, raid)
+        raid.channel_id = new_raid_channel.id
+        
+        raid.raid_channel_id = new_raid_channel.id
+        
+        message_content = f"{MyEmojis.INFO} Raid reported! Coordinate here!"
+        
+        if raid.is_egg:
+            raid_embed = await raid.egg_embed()
+        else:
+            raid_embed = await raid.raid_embed()
+            
+            role = await notify_for(self.bot, ctx.guild, raid.raid_boss.id)
+            if role:
+                message_content = f"{role.mention} raid reported by {ctx.message.author.mention} in {ctx.channel.mention}. Coordinate here!"
+        
+        actual_repsonse_message = await ctx.channel.send(
+            content=f"{MyEmojis.INFO} Tap {MyEmojis.REMOTE} if you are interested in remote invite (first 5 only).", embed=raid_embed)
+        actual_channel_message = await new_raid_channel.send(content=message_content, embed=raid_embed)
+        
+        raid.response_message = ChannelMessage.from_message(actual_repsonse_message)
+        raid.channel_message = ChannelMessage.from_message(actual_channel_message)
+        
+        if p_timer is not None:
+            await Embeds.message(new_raid_channel, raid.timer_message)
+        
+        for emoji in raid.actions:
+            await actual_repsonse_message.add_reaction(emoji)
+        await actual_channel_message.add_reaction(MyEmojis.POKE_BATTLER)
+        
+        await raid.insert()
+        
+        # TODO: record raid report for leader-board
+        user_guild_profile = await UserGuildProfile.find(self.bot, user_id=ctx.message.author.id, guild_id=ctx.guild.id)
+        user_guild_profile.record_report('eggs' if raid.is_egg else 'raids')
+        await user_guild_profile.update()
+        
+        self.bot.loop.create_task(raid.monitor_status())
+        Logger.info(raid)
+
 
 def main():
     pass

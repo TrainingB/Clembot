@@ -3,6 +3,8 @@ import math
 import os
 import tempfile
 
+from discord.ext import commands
+
 from clembot.core.bot import group
 from clembot.utilities.utils.utilities import Utilities
 
@@ -10,7 +12,11 @@ from clembot.utilities.utils.utilities import Utilities
 # from exts.pokemon import Pokemon
 
 
-class CPCalculator:
+class CPCalculator(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+
     cpM = {1: 0.094,
            1.5: 0.135137432,
            2: 0.16639787,
@@ -220,7 +226,7 @@ class CPCalculator:
     def __init__(self):
         self.utilities = Utilities()
 
-    @group(pass_context=True, hidden=True, aliases=["calc"])
+    @group(pass_context=True, category='Bot Info', aliases=["calc"])
     async def _calc(self, ctx):
 
         if ctx.invoked_subcommand is None:
@@ -324,9 +330,7 @@ class CPCalculator:
 
 
 
-
-
-    def pvpIV(self, key: str, level, indAttack, indDefense, indStam):
+    def pvpIV(self, ctx, key: str, level, indAttack, indDefense, indStam):
 
         m = self.cpM[level]
 
@@ -340,7 +344,13 @@ class CPCalculator:
 
         return round(attack * defense * math.floor(stamina))
 
+    @_calc.command(aliases=["rank"])
+    async def pvpIV(self, ctx, key: str, indAttack, indDefense, indStam):
 
+
+        pvpCalculator = PvpIVSpreadCalculator(key)
+
+        await ctx.send(pvpCalculator.find_pvp_rank(indAttack, indDefense, indStam));
 
 
 class PvpIVSpreadCalculator:

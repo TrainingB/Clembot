@@ -7,6 +7,7 @@ from discord.ext.commands import BadArgument
 
 from clembot.core import checks
 from clembot.core.bot import group
+from clembot.core.errors import wrap_error
 from clembot.core.logs import Logger
 from clembot.exts.config.channelconfigmanager import ChannelConfigCache
 from clembot.exts.gymmanager.gym import Gym, GymRepository
@@ -116,6 +117,7 @@ class GymManagerCog(commands.Cog):
 
     @cmd_gym.group(pass_context=True, category='Bot Info', aliases=["update"])
     @checks.is_guild_admin()
+    @wrap_error
     async def _command_gym_update(self, ctx, gym_id: int, attribute, value):
         """
         Allows update gyms attributes one at a time.

@@ -32,7 +32,7 @@ class PokeBattlerCog(commands.Cog):
         self.dbi = bot.dbi
 
 
-    @group(pass_context=True, hidden=True, aliases=["pbraidparty"])
+    @group(pass_context=True, category='Bot Info', aliases=["pbraidparty"])
     async def cmd_pb(self, ctx, raid_party_id, *, json_text=None):
         print(ctx.message)
 

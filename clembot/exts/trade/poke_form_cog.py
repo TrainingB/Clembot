@@ -38,7 +38,7 @@ class PokemonFormCog(commands.Cog):
                                ctx.message.author)
 
 
-    @group(pass_context=True, hidden=True, aliases=["poke-form", "pokeform"])
+    @group(pass_context=True, category='Bot Info', aliases=["poke-form", "pokeform"])
     async def cmd_poke_form(self, ctx):
         if not PokemonForm.available_pokemon_forms:
             await PokemonForm.load_forms(self.bot)

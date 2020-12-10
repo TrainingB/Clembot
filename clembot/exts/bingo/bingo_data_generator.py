@@ -98,7 +98,7 @@ class BingoDataGenerator:
                     }
 
 
-    box_pokemon = [ 'free', 'swinub', 'turtwig', 'totodile' , 'torchic' , 'shiny', 'treecko', 'chimchar', 'mudkip', 'bagon' ]
+    box_pokemon = [ 'free', 'seedot', 'rhyhorn', 'abra' , 'piplup' , 'seedot', 'charmander', 'gastly', 'porygon', 'weedle' ]
 
     box_5_pokemon = [ 'free' ]
 
@@ -117,28 +117,31 @@ class BingoDataGenerator:
 
         bingo_card = cls.generate_default_card()
 
-        weight_box = randint(1, 4)
-        height_box = randint(6, 9)
+        weight_boxes = [randint(1, 2), randint(6, 7)]
+        height_boxes = [randint(8, 9), randint(3, 4)]
+        
 
         for bingo_cell in list(bingo_card.keys()) :
             range_multiplier = 1
             box_pokemon_name = self.box_pokemon[int(bingo_cell)]
             if int(bingo_cell) == 5:
-                box_pokemon_name = 'bagon'
                 range_multiplier = 1.25
-            elif int(bingo_cell) == weight_box or int(bingo_cell) == height_box:
+            elif int(bingo_cell) in weight_boxes or int(bingo_cell) in height_boxes :
                 range_multiplier = 1.6
 
             cell_level = randint(int(randint(10, 12)*range_multiplier), randint(22, 28))
-            cell_json = self.pokemon_cp_level[box_pokemon_name]["{0}".format(cell_level)]
+            cell_json = BingoDataGenerator.pokemon_cp_level.get(box_pokemon_name)[f"{cell_level}"]
             cell_cp = randint(cell_json['Min CP'], cell_json['Max CP'])
             cell_range = keep_number_in_range(cell_cp, int(randint(120, 160) * range_multiplier), cell_json['Min CP'], cell_json['Max CP'])
-            cell_value = ["CP : {:>0}".format(cell_range)]
+            cell_value = ["CP: {:>0}".format(cell_range)]
 
             bingo_card[bingo_cell] = cell_value
 
-        bingo_card[f"{weight_box}"] = [bingo_card[f"{weight_box}"][0], "Weight = {0}".format(size[randint(0, 7)])]
-        bingo_card[f"{height_box}"] = [bingo_card[f"{height_box}"][0], "Height = {0}".format(size[randint(0, 7)])]
+
+        for box in weight_boxes:
+            bingo_card[f"{box}"] = [bingo_card[f"{box}"][0], f"Weight = {size[randint(0, 7)]}".format()]
+        for box in height_boxes:
+            bingo_card[f"{box}"] = [bingo_card[f"{box}"][0], f"Height = {size[randint(0, 7)]}".format()]
         bingo_card['5'] = ['']
 
 
@@ -147,7 +150,7 @@ class BingoDataGenerator:
     @classmethod
     def load_pokemon_data(cls, pokemon=None):
 
-        if not pokemon or pokemon in ['dec2018', 'dec2019']:
+        if not pokemon or pokemon in ['dec2018', 'dec2019', 'dec2020']:
             list_of_pokemon = self.box_pokemon
         else:
             list_of_pokemon = [pokemon]
@@ -176,7 +179,7 @@ class BingoDataGenerator:
         if event_pokemon not in BingoDataGenerator.pokemon_cp_level.keys():
             BingoDataGenerator.load_pokemon_data(event_pokemon)
 
-        if event_pokemon in ['dec2018', 'dec2019']:
+        if event_pokemon in ['dec2018', 'dec2019', 'dec2020']:
             return self.generate_mixed_card()
 
 
